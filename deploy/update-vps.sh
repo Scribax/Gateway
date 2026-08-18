@@ -6,6 +6,7 @@ BRANCH="${BRANCH:-main}"
 PUBLIC_GATEWAY_URL_DEFAULT="${PUBLIC_GATEWAY_URL_DEFAULT:-https://orbiqen.com/v1}"
 UPSTREAM_BASE_URL="${UPSTREAM_BASE_URL:-https://api.wluvyh.cloud}"
 UPSTREAM_SITE_URL="${UPSTREAM_SITE_URL:-https://www.wluvyh.cloud/}"
+BUILD_NEW_API="${BUILD_NEW_API:-false}"
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -74,8 +75,14 @@ ensure_env_value "NEW_API_VERSION" "v1.0.0-rc.24" ".env"
 log "Validando compose"
 docker compose config --quiet
 
-log "Construyendo y levantando servicios"
-docker compose up -d --build
+if [ "$BUILD_NEW_API" = "true" ]; then
+  log "Construyendo New API y portal"
+  docker compose up -d --build
+else
+  log "Construyendo solo portal y reutilizando la imagen existente de New API"
+  docker compose build portal
+  docker compose up -d --no-build
+fi
 
 log "Estado de contenedores"
 docker compose ps
@@ -121,6 +128,10 @@ Ahora cambie el canal madre dentro de New API:
 
 6. Ejecute Test en el canal. Si /v1/models responde pero chat/completions da 502,
    el problema esta del lado del gateway upstream/modelo y hay que validarlo con Wluvyh.
+
+Nota: este deploy no recompila New API por defecto para evitar errores 137/OOM en VPS chicos.
+Si necesita recompilar la imagen custom de New API, ejecute:
+   BUILD_NEW_API=true ./deploy/update-vps.sh
 
 Sitio Wluvyh: ${UPSTREAM_SITE_URL}
 API Wluvyh: ${UPSTREAM_BASE_URL}

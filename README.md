@@ -346,6 +346,14 @@ git pull --ff-only origin main
 sudo ./deploy/update-vps.sh
 ```
 
+Por defecto, `deploy/update-vps.sh` reconstruye solo el portal y reutiliza la imagen existente de New API para evitar errores `137`/`SIGKILL` por falta de RAM durante el build web de New API. Si necesita recompilar New API en el VPS, use:
+
+```bash
+sudo BUILD_NEW_API=true ./deploy/update-vps.sh
+```
+
+En VPS chicos, cree swap o construya la imagen custom fuera del servidor antes de usar `BUILD_NEW_API=true`.
+
 El cambio de proveedor madre no se guarda en Git: pegue la clave Wluvyh en **Channels / Canales** desde el panel administrativo de New API. La Base URL del canal debe ser `https://api.wluvyh.cloud`.
 
 Mientras todavia no haya dominios, puede usar `deploy/nginx/gateway-ip.conf.example`: publica el portal en la IP y dirige exclusivamente `/v1/` al relay. Es una configuracion temporal sin HTTPS; reemplácela por `gateway.conf.example` antes de recibir clientes reales.
