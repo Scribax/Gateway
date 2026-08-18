@@ -163,9 +163,46 @@ Los textos exactos varian con el idioma del panel, pero el flujo es el siguiente
 
 La URL y el formato de autenticacion dependen del proveedor. Si no es realmente OpenAI-compatible, seleccione su adaptador especifico. Confirme ademas que el contrato del proveedor permite reventa y sublicenciamiento.
 
-### API 快连
+### Wluvyh
 
-Para API 快连, use el endpoint de API que indique su cuenta o su documentacion. `https://apikl.com` puede ser el sitio comercial, pero no debe asumirse que la raiz web es el endpoint OpenAI-compatible. Pegue en **Base URL** la URL de API exacta que entregue el proveedor, normalmente sin `/v1` si New API muestra la advertencia de ruta duplicada. Use solo una clave autorizada para relay/reventa y pruebe el canal con **Test** antes de crear saldo para clientes.
+El proveedor madre actual es Wluvyh. El sitio comercial es `https://www.wluvyh.cloud/` y el endpoint OpenAI-compatible para New API es `https://api.wluvyh.cloud`.
+
+En **Channels / Canales**, cree o edite el canal madre con:
+
+```text
+Tipo: OpenAI
+Nombre sugerido: Wluvyh Madre
+Base URL: https://api.wluvyh.cloud
+Key: pegar la clave madre solo en el panel de New API
+```
+
+No agregue la clave madre al repositorio, a `.env.example` ni a scripts de cliente. New API agrega `/v1` internamente cuando corresponde; si el panel advierte ruta duplicada, mantenga la Base URL sin `/v1`.
+
+Modelos observados en `GET /v1/models` del nuevo gateway al 18 de agosto de 2026:
+
+```text
+gpt-5.2
+gpt-5.2-2025-12-11
+gpt-5.2-chat-latest
+gpt-5.2-pro
+gpt-5.2-pro-2025-12-11
+gpt-5.3-codex-spark
+gpt-5.4
+gpt-5.4-2026-03-05
+gpt-5.4-mini
+gpt-5.5
+gpt-5.6
+gpt-5.6-sol
+gpt-5.6-terra
+gpt-image-1
+gpt-image-1.5
+gpt-image-2
+gpt-4o-audio-preview
+gpt-4o-realtime-preview
+codex-auto-review
+```
+
+`gpt-5.6-luna` no aparece en el nuevo gateway; quite ese modelo de los canales, grupos, tokens y catálogos antes de probar clientes. Tras cambiar el canal, ejecute **Test** desde New API y luego valide con una subclave de cliente. Si `/v1/models` responde pero una completion devuelve `502`, el endpoint y la autenticacion llegan al proveedor, pero el modelo/canal aun requiere validacion del lado de Wluvyh antes de aceptar trafico real.
 
 ## 4. Precio y margen
 
@@ -282,13 +319,14 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
    ```
 
 3. Cambie todos los secretos locales (`SESSION_SECRET`, `CRYPTO_SECRET`, contrasena de PostgreSQL y Redis) por valores aleatorios. Para este dominio configure `PUBLIC_GATEWAY_URL=https://orbiqen.com/v1`, `PORTAL_COOKIE_SECURE=true`, `GIN_MODE=release` y `DEBUG=false`.
-4. Revise la configuracion y levante el stack:
+4. Revise la configuracion y levante el stack con el script de deploy:
 
    ```bash
-   docker compose config --quiet
-   docker compose up -d --build
-   docker compose ps
+   chmod +x deploy/update-vps.sh
+   sudo PROJECT_DIR=/opt/gateway ./deploy/update-vps.sh
    ```
+
+   El script actualiza desde Git, crea `.env` si falta, guarda backup de la configuracion, fuerza variables seguras de produccion, ejecuta `docker compose up -d --build` y muestra los pasos para cambiar el canal madre a Wluvyh dentro de New API.
 
 5. Copie `deploy/nginx/gateway.conf.example` a `/etc/nginx/sites-available/orbiqen`, active el sitio y valide:
 
@@ -299,6 +337,16 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
 
 6. Emita el certificado con Certbot para `orbiqen.com` y `www.orbiqen.com`. El portal quedara en `https://orbiqen.com` y el relay en `https://orbiqen.com/v1`.
 7. Mantenga New API admin en `http://127.0.0.1:3000` mediante tunel SSH o VPN. No cree una regla Nginx que publique `/`, `/setup` o las rutas `/api/*` administrativas.
+
+Para actualizaciones posteriores en el VPS:
+
+```bash
+cd /opt/gateway
+git pull --ff-only origin main
+sudo ./deploy/update-vps.sh
+```
+
+El cambio de proveedor madre no se guarda en Git: pegue la clave Wluvyh en **Channels / Canales** desde el panel administrativo de New API. La Base URL del canal debe ser `https://api.wluvyh.cloud`.
 
 Mientras todavia no haya dominios, puede usar `deploy/nginx/gateway-ip.conf.example`: publica el portal en la IP y dirige exclusivamente `/v1/` al relay. Es una configuracion temporal sin HTTPS; reemplácela por `gateway.conf.example` antes de recibir clientes reales.
 

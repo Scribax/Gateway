@@ -212,7 +212,7 @@
               <label>Usuario SSH<div class="input-wrap"><input data-vault="sshUser" value="root" autocomplete="username"></div></label>
               <label>Usuario administrador New API<div class="input-wrap"><input data-vault="adminUser" value="" placeholder="admin" autocomplete="username"></div></label>
               <label>Contrasena de New API<div class="input-wrap"><input data-vault="adminPassword" type="password" value="" autocomplete="new-password"><button class="icon-button reveal" type="button" aria-label="Mostrar contrasena" title="Mostrar contrasena"><i data-lucide="eye"></i></button></div></label>
-              <label>Base URL madre<div class="input-wrap"><input data-vault="upstreamUrl" value="" placeholder="https://endpoint-del-proveedor"></div></label>
+              <label>Base URL madre<div class="input-wrap"><input data-vault="upstreamUrl" value="https://api.wluvyh.cloud" placeholder="https://api.wluvyh.cloud"></div></label>
               <label>API Key madre<div class="input-wrap"><input data-vault="upstreamKey" type="password" value="" autocomplete="off"><button class="icon-button reveal" type="button" aria-label="Mostrar clave" title="Mostrar clave"><i data-lucide="eye"></i></button></div></label>
               <label>Nombre del grupo comercial<div class="input-wrap"><input data-vault="group" value="clientes"></div></label>
             </div>
@@ -241,27 +241,28 @@
       </section>
 
       <section id="channel">
-        <div class="section-head"><div><span class="section-number">03</span><h2>Canal madre APIKL</h2></div><p>Ve a Channels, agrega un canal OpenAI-compatible y prueba la conexion antes de asignar saldo.</p></div>
+        <div class="section-head"><div><span class="section-number">03</span><h2>Canal madre Wluvyh</h2></div><p>Ve a Channels, agrega un canal OpenAI-compatible y prueba la conexion antes de asignar saldo.</p></div>
         <div class="tool">
           <div class="tool-head"><div><strong>Valores del canal</strong><span>Channels > Add Channel</span></div><span class="tag">OpenAI</span></div>
           <div class="tool-body">
             <div class="settings-grid">
-              <div class="setting"><span>Nombre</span><code>API-KL Madre</code></div>
+              <div class="setting"><span>Nombre</span><code>Wluvyh Madre</code></div>
               <div class="setting blue"><span>Tipo</span><code>OpenAI</code><p>O el adaptador generico equivalente.</p></div>
-              <div class="setting"><span>Base URL</span><code data-value="upstreamUrl">Completar en la caja privada</code><p>Usa el endpoint real de API, normalmente sin `/v1`.</p></div>
+              <div class="setting"><span>Base URL</span><code data-value="upstreamUrl">https://api.wluvyh.cloud</code><p>Use el endpoint de API sin `/v1` para evitar rutas duplicadas.</p></div>
               <div class="setting coral"><span>Key</span><code data-secret="upstreamKey">No cargada</code><p>Nunca uses esta clave en clientes o scripts.</p></div>
             </div>
             <p class="eyebrow" style="margin-top:20px">Modelos habilitados</p>
             <div class="model-list">
               <div class="model"><code>gpt-5.6-sol</code></div><div class="model"><code>gpt-5.5</code></div><div class="model"><code>gpt-5.4</code></div>
-              <div class="model"><code>gpt-5.6-terra</code></div><div class="model"><code>gpt-5.4-mini</code></div><div class="model"><code>gpt-5.6-luna</code></div>
+              <div class="model"><code>gpt-5.6-terra</code></div><div class="model"><code>gpt-5.4-mini</code></div><div class="model"><code>gpt-5.6</code></div>
+              <div class="model"><code>gpt-5.2</code></div><div class="model"><code>gpt-5.2-pro</code></div><div class="model"><code>gpt-image-2</code></div>
             </div>
           </div>
         </div>
         <div class="steps" style="margin-top:10px">
           <label class="step"><input type="checkbox"><span class="check"><i data-lucide="check" size="15"></i></span><div><strong>Guardar y ejecutar Test</strong><p>La prueba del canal debe quedar verde y devolver un modelo real.</p></div><span class="tag">Obligatorio</span></label>
         </div>
-        <div class="warning"><i data-lucide="triangle-alert"></i><span><code>apikl.com</code> puede ser el sitio comercial y no el endpoint de API. Confirma la Base URL exacta en la documentacion o panel del proveedor.</span></div>
+        <div class="warning"><i data-lucide="triangle-alert"></i><span>El sitio comercial es <code>https://www.wluvyh.cloud/</code>; en New API use como Base URL madre <code>https://api.wluvyh.cloud</code>. No cargue <code>gpt-5.6-luna</code>: no aparece en el nuevo <code>/v1/models</code>.</span></div>
       </section>
 
       <section id="pricing">
@@ -276,7 +277,6 @@
               <tr><td><code>gpt-5.4</code></td><td><strong>US$ 0.185475</strong></td><td>US$ 1.112850</td><td>US$ 0.018548</td><td>-</td></tr>
               <tr><td><code>gpt-5.6-terra</code></td><td><strong>US$ 0.148380</strong></td><td>US$ 0.890280</td><td>US$ 0.014838</td><td>US$ 0.185475</td></tr>
               <tr><td><code>gpt-5.4-mini</code></td><td><strong>US$ 0.055643</strong></td><td>US$ 0.333855</td><td>US$ 0.005564</td><td>-</td></tr>
-              <tr><td><code>gpt-5.6-luna</code></td><td><strong>US$ 0.014838</strong></td><td>US$ 0.089028</td><td>US$ 0.001484</td><td>US$ 0.018548</td></tr>
             </tbody>
           </table>
         </div>
@@ -318,8 +318,8 @@ python .\check_usage.py</pre></div>
         <div class="command"><div class="command-head"><span>Actualizar desde Git</span><button class="icon-button copy" type="button" aria-label="Copiar comandos" title="Copiar comandos"><i data-lucide="copy"></i></button></div><pre data-template="ssh -p {{port}} {{sshUser}}@{{host}}
 cd /opt/gateway
 git pull --ff-only origin main
-docker compose up -d --build
-docker compose ps"></pre></div>
+chmod +x deploy/update-vps.sh
+sudo ./deploy/update-vps.sh"></pre></div>
         <div class="command"><div class="command-head"><span>Diagnostico</span><button class="icon-button copy" type="button" aria-label="Copiar comandos" title="Copiar comandos"><i data-lucide="copy"></i></button></div><pre>cd /opt/gateway
 docker compose ps
 docker compose logs --tail 100 portal

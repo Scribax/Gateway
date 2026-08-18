@@ -6,3 +6,4 @@ portal/node_modules/
 portal/.next/
 portal/*.tsbuildinfo
 docs/*.private.html
+backups/
