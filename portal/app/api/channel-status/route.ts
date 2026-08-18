@@ -43,14 +43,13 @@ async function probeModel(model: string, apiKey: string, baseUrl: string): Promi
   const endpointStarted = performance.now()
 
   try {
-    const modelsResponse = await fetch(`${baseUrl}/models`, {
+    const modelsResponsePromise = fetch(`${baseUrl}/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(8000),
       cache: 'no-store',
     })
-    const endpointPingMs = Math.round(performance.now() - endpointStarted)
-    const started = performance.now()
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const completionStarted = performance.now()
+    const responsePromise = fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -65,7 +64,9 @@ async function probeModel(model: string, apiKey: string, baseUrl: string): Promi
       signal: AbortSignal.timeout(18000),
       cache: 'no-store',
     })
-    const dialogLatencyMs = Math.round(performance.now() - started)
+    const [modelsResponse, response] = await Promise.all([modelsResponsePromise, responsePromise])
+    const endpointPingMs = Math.round(performance.now() - endpointStarted)
+    const dialogLatencyMs = Math.round(performance.now() - completionStarted)
     const text = await response.text()
     const ok = modelsResponse.ok && response.ok
     return {
@@ -113,12 +114,18 @@ export async function POST(request: Request) {
       : await newApiFetch<NewApiEnvelope<KeyPage>>('/api/token/?p=1&size=100')
     const keys = keysBody ? requireSuccess(keysBody).items || [] : []
     const keyCache = new Map<number, string>()
+    if (!directMotherMode) {
+      const tokenIds = [...new Set(models.map((model) => keys.find((key) => canUseModel(key, model))?.id).filter((id): id is number => typeof id === 'number'))]
+      await Promise.all(tokenIds.map(async (id) => {
+        keyCache.set(id, await revealKey(id))
+      }))
+    }
     const results: ProbeResult[] = []
 
-    for (const model of models) {
+    const tasks = models.map(async (model) => {
       const token = directMotherMode ? null : keys.find((key) => canUseModel(key, model))
       if (!directMotherMode && !token) {
-        results.push({
+        return {
           model,
           ok: false,
           status: 'Degraded',
@@ -127,17 +134,16 @@ export async function POST(request: Request) {
           dialogLatencyMs: 0,
           message: 'No hay una API Key activa con saldo para este modelo.',
           checkedAt: Math.floor(Date.now() / 1000),
-        })
-        continue
+        } satisfies ProbeResult
       }
       const apiKey = directMotherMode
         ? MOTHER_PROBE_KEY
-        : (token && (keyCache.has(token.id)
-          ? keyCache.get(token.id)
-          : await revealKey(token.id))) || ''
+        : (token && keyCache.get(token.id)) || ''
       const baseUrl = directMotherMode ? MOTHER_PROBE_BASE_URL : `${INTERNAL_URL}/v1`
-      results.push(await probeModel(model, apiKey, baseUrl))
-    }
+      return probeModel(model, apiKey, baseUrl)
+    })
+    const settled = await Promise.all(tasks)
+    results.push(...settled)
     await mergeModelHealth(Object.fromEntries(
       results.map((result) => [result.model, {
         ok: result.ok,
