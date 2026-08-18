@@ -1,4 +1,5 @@
 import { BackendError, errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
+import { mergeModelHealth } from '@/lib/model-health'
 
 const INTERNAL_URL = (process.env.NEW_API_INTERNAL_URL || 'http://127.0.0.1:3000').replace(/\/$/, '')
 const MOTHER_PROBE_KEY = process.env.STATUS_PROBE_API_KEY?.trim() || ''
@@ -137,6 +138,14 @@ export async function POST(request: Request) {
       const baseUrl = directMotherMode ? MOTHER_PROBE_BASE_URL : `${INTERNAL_URL}/v1`
       results.push(await probeModel(model, apiKey, baseUrl))
     }
+    await mergeModelHealth(Object.fromEntries(
+      results.map((result) => [result.model, {
+        ok: result.ok,
+        statusCode: result.statusCode,
+        checkedAt: result.checkedAt,
+        message: result.message,
+      }]),
+    ))
 
     return Response.json({ success: true, data: { results } })
   } catch (error) {

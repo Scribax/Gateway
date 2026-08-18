@@ -1,5 +1,6 @@
 import { errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
 import { MODEL_CATALOG, QUOTA_PER_USD } from '@/lib/catalog'
+import { readModelHealth } from '@/lib/model-health'
 
 type PageData<T> = { items: T[]; total: number; page: number; page_size: number }
 type LogItem = {
@@ -83,12 +84,13 @@ function buildWindow(logs: LogItem[], modelId: string, windowDays: number) {
 
 export async function GET() {
   try {
-    const [selfBody, keysBody, logsBody, modelsBody, groupsBody] = await Promise.all([
+    const [selfBody, keysBody, logsBody, modelsBody, groupsBody, modelHealth] = await Promise.all([
       newApiFetch<NewApiEnvelope<Record<string, unknown>>>('/api/user/self'),
       newApiFetch<NewApiEnvelope<PageData<Record<string, unknown>>>>('/api/token/?p=1&size=100'),
       newApiFetch<NewApiEnvelope<PageData<Record<string, unknown>>>>('/api/log/self?p=1&size=12'),
       newApiFetch<NewApiEnvelope<string[]>>('/api/user/models'),
       newApiFetch<NewApiEnvelope<Record<string, { desc: string; ratio: number | string }>>>('/api/user/self/groups'),
+      readModelHealth(),
     ])
 
     const user = requireSuccess(selfBody)
@@ -96,10 +98,15 @@ export async function GET() {
     const logs = requireSuccess(logsBody) as PageData<LogItem>
     const enabledModels = requireSuccess(modelsBody)
     const groups = requireSuccess(groupsBody)
-    const visibleModels = MODEL_CATALOG.filter((model) => enabledModels.includes(model.id))
+    const hasHealthState = Object.keys(modelHealth).length > 0
+    const visibleModels = MODEL_CATALOG.filter((model) => (
+      enabledModels.includes(model.id) && (!hasHealthState || modelHealth[model.id]?.ok)
+    ))
+    const statusModels = MODEL_CATALOG.filter((model) => enabledModels.includes(model.id))
     const requestLogs = logs.items || []
     const statusWindows = [7, 15, 30]
-    const channels = visibleModels.map((model) => {
+    const channels = statusModels.map((model) => {
+      const health = modelHealth[model.id]
       const windows = {
         '7': buildWindow(requestLogs, model.id, 7),
         '15': buildWindow(requestLogs, model.id, 15),
@@ -118,7 +125,7 @@ export async function GET() {
         provider: 'OpenAI' as const,
         modelId: model.id,
         group: 'clientes',
-        status: pickStatus(availability, requests),
+        status: health ? health.ok ? 'Operational' : 'Degraded' : pickStatus(availability, requests),
         endpointPingMs,
         dialogLatencyMs,
         windows,

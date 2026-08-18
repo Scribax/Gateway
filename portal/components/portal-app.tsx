@@ -448,6 +448,7 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
       })) as { data: { results: LiveProbe[] } }
       const next = Object.fromEntries(body.data.results.map((probe) => [probe.model, probe]))
       setLiveProbes(next)
+      window.setTimeout(() => { void refresh() }, 800)
     } catch (cause) {
       setProbeError(cause instanceof Error ? cause.message : 'No se pudo probar el estado real.')
     } finally {
