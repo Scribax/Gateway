@@ -1,0 +1,128 @@
+name: revender-gateway
+
+services:
+  portal:
+    build:
+      context: ./portal
+      args:
+        NEXT_PUBLIC_GATEWAY_URL: ${PUBLIC_GATEWAY_URL:-http://127.0.0.1:3000/v1}
+        NEXT_PUBLIC_PORTAL_NAME: ${PORTAL_NAME:-Gateway AI}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORTAL_PORT:-3100}:3100"
+    environment:
+      HOSTNAME: 0.0.0.0
+      NEW_API_INTERNAL_URL: http://new-api:3000
+      NEXT_PUBLIC_GATEWAY_URL: ${PUBLIC_GATEWAY_URL:-http://127.0.0.1:3000/v1}
+      NEXT_PUBLIC_PORTAL_NAME: ${PORTAL_NAME:-Gateway AI}
+      PORTAL_COOKIE_SECURE: ${PORTAL_COOKIE_SECURE:-false}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    depends_on:
+      new-api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://localhost:3100').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - backend
+
+  new-api:
+    image: ${NEW_API_IMAGE:-calciumion/new-api:v1.0.0-rc.24}
+    restart: unless-stopped
+    command: --log-dir /app/logs
+    ports:
+      - "127.0.0.1:${NEW_API_PORT:-3000}:3000"
+    environment:
+      SQL_DSN: postgresql://${POSTGRES_USER:-newapi}:${POSTGRES_PASSWORD:-newapi_local_db_2026}@postgres:5432/${POSTGRES_DB:-newapi}
+      REDIS_CONN_STRING: redis://:${REDIS_PASSWORD:-newapi_local_redis_2026}@redis:6379/0
+      SESSION_SECRET: ${SESSION_SECRET:-local_session_secret_9f31c8776eb04f71a325b7446f957aca}
+      CRYPTO_SECRET: ${CRYPTO_SECRET:-local_crypto_secret_61a0e0f6c2044be2b9e3e76bd33d5f22}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+      GIN_MODE: ${GIN_MODE:-debug}
+      DEBUG: ${DEBUG:-true}
+      ERROR_LOG_ENABLED: ${ERROR_LOG_ENABLED:-true}
+      BATCH_UPDATE_ENABLED: ${BATCH_UPDATE_ENABLED:-true}
+      NODE_NAME: ${NODE_NAME:-new-api-local}
+      SESSION_COOKIE_SECURE: "false"
+      TRUSTED_PROXIES: none
+    volumes:
+      - new_api_data:/data
+      - new_api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O - http://localhost:3000/api/status |
+          grep -q '"success"[[:space:]]*:[[:space:]]*true'
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - backend
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-newapi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-newapi_local_db_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-newapi}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - backend
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-newapi_local_redis_2026}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-newapi_local_redis_2026}
+      TZ: ${TZ:-America/Argentina/Buenos_Aires}
+    networks:
+      - backend
+
+volumes:
+  new_api_data:
+  new_api_logs:
+  postgres_data:
+  redis_data:
+
+networks:
+  backend:
+    driver: bridge
