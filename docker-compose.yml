@@ -34,7 +34,12 @@ services:
       - backend
 
   new-api:
-    image: ${NEW_API_IMAGE:-calciumion/new-api:v1.0.0-rc.24}
+    image: ${NEW_API_IMAGE:-orbiqen/new-api:v1.0.0-rc.24-1}
+    build:
+      context: .
+      dockerfile: deploy/new-api/Dockerfile
+      args:
+        NEW_API_VERSION: ${NEW_API_VERSION:-v1.0.0-rc.24}
     restart: unless-stopped
     command: --log-dir /app/logs
     ports:

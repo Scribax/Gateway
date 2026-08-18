@@ -6,7 +6,7 @@ Incluye un portal de clientes independiente y simplificado. New API queda como m
 
 ## Componentes
 
-- New API `v1.0.0-rc.24`, fijada para evitar cambios inesperados de `latest`.
+- New API `v1.0.0-rc.24`, fijada y compilada con la plantilla de correo de Orbiqen.
 - PostgreSQL 16 con volumen persistente.
 - Redis 7.4 con AOF persistente, recomendado por el Compose oficial.
 - Panel y API solamente en `http://localhost:3000`.
@@ -100,6 +100,8 @@ Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y 
 ### Verificación de correo con Resend
 
 El portal usa el mecanismo de verificación incorporado en New API. Resend se conecta como servidor SMTP; la API key de Resend se guarda solamente en el panel administrativo de New API y nunca en Git.
+
+La imagen `orbiqen/new-api:v1.0.0-rc.24-1` se construye desde el tag oficial y aplica exclusivamente [`deploy/new-api/email-template.patch`](deploy/new-api/email-template.patch). El parche reemplaza el correo chino de verificación por una plantilla transaccional en español. Al actualizar `NEW_API_VERSION`, primero verifique que el parche siga aplicando y pruebe el registro completo antes de desplegar.
 
 Antes de configurar el envío, agregue y verifique `orbiqen.com` en **Resend > Domains**. Luego use una dirección remitente del dominio, por ejemplo `no-reply@orbiqen.com`. El remitente de prueba de Resend no sirve para enviar libremente a clientes reales.
 
