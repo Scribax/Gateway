@@ -18,6 +18,8 @@ Los valores incorporados son exclusivamente locales. No se deben reutilizar en p
 
 Este repositorio es la fuente de despliegue del gateway y del portal. El archivo `.env` local nunca se versiona; use `.env.example` como plantilla.
 
+La guia visual para administradores esta en [`docs/admin-guide.html`](docs/admin-guide.html). Es un HTML local con checklist, comandos copiables y campos de sesion para credenciales; no contiene secretos reales.
+
 ```powershell
 git clone https://github.com/Scribax/Gateway.git
 Set-Location .\Gateway
