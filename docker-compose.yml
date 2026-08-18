@@ -34,7 +34,7 @@ services:
       - backend
 
   new-api:
-    image: ${NEW_API_IMAGE:-orbiqen/new-api:v1.0.0-rc.24-1}
+    image: ${NEW_API_IMAGE:-orbiqen/new-api:v1.0.0-rc.24-2}
     build:
       context: .
       dockerfile: deploy/new-api/Dockerfile

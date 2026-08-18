@@ -1,7 +1,7 @@
 diff --git a/controller/misc.go b/controller/misc.go
 --- a/controller/misc.go
 +++ b/controller/misc.go
-@@ -283,10 +283,45 @@ func SendEmailVerification(c *gin.Context) {
+@@ -283,10 +283,40 @@ func SendEmailVerification(c *gin.Context) {
  	}
  	code := common.GenerateVerificationCode(6)
  	common.RegisterVerificationCodeWithKey(email, code, common.EmailVerificationPurpose)
@@ -22,12 +22,7 @@ diff --git a/controller/misc.go b/controller/misc.go
 +          <tr><td style="height:5px;background:#0b7a53;font-size:0;line-height:0;">&nbsp;</td></tr>
 +          <tr>
 +            <td style="padding:30px 36px 12px;">
-+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-+                <tr>
-+                  <td style="width:34px;height:34px;border-radius:7px;background:#0b7a53;color:#ffffff;text-align:center;font-size:19px;font-weight:700;">O</td>
-+                  <td style="padding-left:10px;color:#17201c;font-size:20px;font-weight:700;">Orbiqen</td>
-+                </tr>
-+              </table>
++              <img src="https://orbiqen.com/orbiqen-logo.png" width="154" alt="Orbiqen" style="display:block;width:154px;max-width:100%%;height:auto;border:0;">
 +            </td>
 +          </tr>
 +          <tr>
