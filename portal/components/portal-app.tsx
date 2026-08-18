@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
   BarChart3,
   BookOpen,
@@ -16,6 +17,7 @@ import {
   Cpu,
   CreditCard,
   Clock3,
+  Download,
   Eye,
   EyeOff,
   Gauge,
@@ -31,17 +33,20 @@ import {
   Mic2,
   Plus,
   RadioTower,
+  ReceiptText,
   RefreshCw,
   Server,
   ShieldCheck,
   Sparkles,
   Trash2,
+  TrendingUp,
+  Users,
   WalletCards,
   X,
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
-type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup'
+type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup' | 'admin'
 type ChannelWindow = {
   days: number
   availability: number
@@ -74,8 +79,11 @@ type LiveProbe = {
   checkedAt: number
 }
 type User = {
+  id?: number
   username: string
   display_name?: string
+  role?: number
+  status?: number
   quota: number
   used_quota: number
   request_count: number
@@ -138,6 +146,51 @@ type UsageResponse = {
   gatewayUrl: string
 }
 
+type AdminMetricRow = {
+  requests: number
+  tokens: number
+  revenueUsd: number
+  costUsd: number
+  profitUsd: number
+}
+
+type AdminCustomer = {
+  username: string
+  displayName: string
+  group: string
+  status: number
+  balanceUsd: number
+  requests: number
+  tokens: number
+  revenueUsd: number
+  costUsd: number
+  errors: number
+}
+
+type AdminResponse = {
+  range: string
+  rangeDays: number
+  generatedAt: number
+  config: { upstreamFactor: number; paymentFeeRate: number; providerCostIsEstimate: boolean }
+  totals: {
+    customers: number
+    activeCustomers: number
+    requests: number
+    errors: number
+    totalTokens: number
+    revenueUsd: number
+    costUsd: number
+    paymentFeesUsd: number
+    netProfitUsd: number
+    creditedUsd: number
+  }
+  customers: AdminCustomer[]
+  models: Array<AdminMetricRow & { model: string }>
+  keys: Array<AdminMetricRow & { key: string; username: string }>
+  suspicious: Array<AdminCustomer & { reason: string }>
+  truncated: boolean
+}
+
 type UsageMeta = {
   reasoning_effort?: string
   request_path?: string
@@ -157,7 +210,7 @@ function BrandLogo({ light = false }: { light?: boolean }) {
   return <span className={`brand-logo${light ? ' brand-logo-light' : ''}`}><img src="/orbiqen-logo.png" alt="Orbiqen" /></span>
 }
 
-const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }> = [
+const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean }> = [
   { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
   { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'status', label: 'Estado', icon: Server },
@@ -165,6 +218,7 @@ const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }>
   { id: 'models', label: 'Modelos', icon: Sparkles },
   { id: 'wallet', label: 'Saldo', icon: WalletCards },
   { id: 'setup', label: 'Conectar', icon: Code2 },
+  { id: 'admin', label: 'Administración', icon: Users, adminOnly: true },
 ]
 
 const viewTitles: Record<View, { title: string; subtitle: string }> = {
@@ -175,6 +229,7 @@ const viewTitles: Record<View, { title: string; subtitle: string }> = {
   models: { title: 'Modelos', subtitle: 'Precios finales por millón de tokens' },
   wallet: { title: 'Saldo', subtitle: 'Crédito disponible para tus consumos' },
   setup: { title: 'Conectar', subtitle: 'Configuración lista para tu entorno' },
+  admin: { title: 'Administración', subtitle: 'Clientes, costos y rentabilidad del gateway' },
 }
 
 function money(value: number, digits = 2) {
@@ -909,6 +964,106 @@ function UsageView({ data }: { data: DashboardData }) {
   )
 }
 
+function AdminView() {
+  const [admin, setAdmin] = useState<AdminResponse | null>(null)
+  const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    let alive = true
+    async function loadAdmin() {
+      setLoading(true); setError('')
+      try {
+        const body = await readJson(await fetch(`/api/admin?range=${range}`, { cache: 'no-store' }))
+        if (alive) setAdmin(body.data)
+      } catch (cause) {
+        if (alive) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el panel administrativo.')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+    void loadAdmin()
+    return () => { alive = false }
+  }, [range, refreshKey])
+
+  function exportCustomers() {
+    if (!admin) return
+    const rows = [
+      ['Cliente', 'Grupo', 'Estado', 'Saldo USD', 'Requests', 'Tokens', 'Facturado USD', 'Costo estimado USD', 'Errores'],
+      ...admin.customers.map((customer) => [customer.username, customer.group, customer.status === 1 ? 'Activo' : 'Bloqueado', customer.balanceUsd, customer.requests, customer.tokens, customer.revenueUsd, customer.costUsd, customer.errors]),
+    ]
+    downloadText(`admin_clientes_${range}.csv`, `${rows.map((row) => row.map(csvEscape).join(',')).join('\n')}\n`)
+  }
+
+  const margin = admin?.totals.revenueUsd
+    ? (admin.totals.netProfitUsd / admin.totals.revenueUsd) * 100
+    : 0
+
+  return <div className="admin-page">
+    <section className="admin-command-bar">
+      <div>
+        <p className="eyebrow">Control financiero</p>
+        <h2>Rentabilidad del gateway</h2>
+        <span>Datos administrativos de New API</span>
+      </div>
+      <div className="admin-actions">
+        <label><CalendarRange size={16} /><select value={range} onChange={(event) => setRange(event.target.value as typeof range)}><option value="7d">7 días</option><option value="30d">30 días</option><option value="90d">90 días</option><option value="all">Histórico</option></select></label>
+        <button className="icon-button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading} aria-label="Actualizar administración"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button>
+        <button className="secondary-button" onClick={exportCustomers} disabled={!admin}><Download size={17} />Exportar</button>
+      </div>
+    </section>
+
+    {error && <div className="form-error">{error}</div>}
+    {loading && !admin && <section className="usage-skeleton"><LoaderCircle className="spin" size={25} /><span>Cargando métricas administrativas...</span></section>}
+    {admin && <>
+      <section className="admin-stats-grid">
+        <UsageStat label="Facturado por uso" value={money(admin.totals.revenueUsd, admin.totals.revenueUsd < 1 ? 4 : 2)} hint={`${compactNumber(admin.totals.requests)} solicitudes`} icon={ReceiptText} tone="blue" />
+        <UsageStat label="Costo proveedor" value={money(admin.totals.costUsd, admin.totals.costUsd < 1 ? 4 : 2)} hint={admin.config.providerCostIsEstimate ? `Estimado al ${(admin.config.upstreamFactor * 100).toFixed(1)}%` : 'Costo conciliado'} icon={CircleDollarSign} tone="coral" />
+        <UsageStat label="Ganancia neta" value={money(admin.totals.netProfitUsd, Math.abs(admin.totals.netProfitUsd) < 1 ? 4 : 2)} hint={`${margin.toFixed(1)}% de margen`} icon={TrendingUp} tone="green" />
+        <UsageStat label="Clientes activos" value={`${admin.totals.activeCustomers}/${admin.totals.customers}`} hint={`${admin.totals.errors} errores en el rango`} icon={Users} tone="violet" />
+      </section>
+
+      <section className="admin-ledger-strip">
+        <div><small>Tokens procesados</small><strong>{compactNumber(admin.totals.totalTokens)}</strong></div>
+        <div><small>Comisiones estimadas</small><strong>{money(admin.totals.paymentFeesUsd, 4)}</strong></div>
+        <div><small>Crédito asignado</small><strong>{money(admin.totals.creditedUsd, 4)}</strong></div>
+        <div><small>Última actualización</small><strong>{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(admin.generatedAt))}</strong></div>
+      </section>
+
+      {admin.truncated && <div className="admin-warning"><AlertTriangle size={17} />El rango supera 2.000 registros por categoría; las tablas muestran una muestra limitada.</div>}
+
+      <section className="section-block">
+        <div className="section-heading"><div><h3>Clientes registrados</h3><p>Saldo, consumo y rentabilidad por cuenta</p></div><span className="info-chip"><Users size={15} />{admin.customers.length} clientes</span></div>
+        <div className="table-wrap"><table className="admin-table"><thead><tr><th>Cliente</th><th>Grupo</th><th>Estado</th><th>Saldo</th><th>Requests</th><th>Tokens</th><th>Facturado</th><th>Costo est.</th><th>Ganancia bruta</th><th className="right">Alertas</th></tr></thead><tbody>
+          {admin.customers.length === 0 && <tr><td colSpan={10}><div className="empty-row"><Users size={18} />No hay clientes registrados</div></td></tr>}
+          {admin.customers.map((customer) => <tr key={customer.username}><td><span className="admin-customer"><span className={`status-dot ${customer.status === 1 ? 'active' : ''}`} /><span><strong>{customer.displayName}</strong><small>{customer.username}</small></span></span></td><td><code>{customer.group}</code></td><td><span className={`admin-state ${customer.status === 1 ? 'active' : 'blocked'}`}>{customer.status === 1 ? 'Activo' : 'Bloqueado'}</span></td><td>{money(customer.balanceUsd, 4)}</td><td>{compactNumber(customer.requests)}</td><td>{compactNumber(customer.tokens)}</td><td>{money(customer.revenueUsd, 4)}</td><td>{money(customer.costUsd, 4)}</td><td className="profit-cell">{money(customer.revenueUsd - customer.costUsd, 4)}</td><td className="right">{customer.errors ? <span className="risk-badge"><AlertTriangle size={13} />{customer.errors}</span> : <span className="clean-badge">Normal</span>}</td></tr>)}
+        </tbody></table></div>
+      </section>
+
+      <section className="admin-split-grid">
+        <article className="admin-panel">
+          <div className="section-heading"><div><h3>Modelos más utilizados</h3><p>Ordenados por facturación</p></div><BarChart3 size={18} /></div>
+          <div className="admin-ranking">{admin.models.length === 0 && <div className="empty-row"><BarChart3 size={18} />Sin consumo</div>}{admin.models.slice(0, 8).map((model, index) => <div className="admin-rank-row" key={model.model}><span className="rank-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{model.model}</strong><small>{compactNumber(model.requests)} req · {compactNumber(model.tokens)} tokens</small></div><span><strong>{money(model.revenueUsd, 4)}</strong><small>{money(model.profitUsd, 4)} margen</small></span></div>)}</div>
+        </article>
+        <article className="admin-panel">
+          <div className="section-heading"><div><h3>Consumo sospechoso</h3><p>Errores repetidos o volumen alto</p></div><AlertTriangle size={18} /></div>
+          <div className="admin-risk-list">{admin.suspicious.length === 0 && <div className="admin-all-clear"><ShieldCheck size={24} /><strong>Sin alertas</strong><span>No se detectaron patrones anormales.</span></div>}{admin.suspicious.map((customer) => <div className="admin-risk-row" key={customer.username}><span className="risk-icon"><AlertTriangle size={16} /></span><div><strong>{customer.username}</strong><small>{customer.reason}</small></div><span>{compactNumber(customer.requests)} req</span></div>)}</div>
+        </article>
+      </section>
+
+      <section className="section-block">
+        <div className="section-heading"><div><h3>Ganancia por API key</h3><p>Rentabilidad agrupada por credencial</p></div><KeyRound size={18} /></div>
+        <div className="table-wrap"><table className="admin-table"><thead><tr><th>API Key</th><th>Cliente</th><th>Requests</th><th>Tokens</th><th>Facturado</th><th>Costo est.</th><th className="right">Ganancia bruta</th></tr></thead><tbody>
+          {admin.keys.length === 0 && <tr><td colSpan={7}><div className="empty-row"><KeyRound size={18} />Sin consumo por API key</div></td></tr>}
+          {admin.keys.slice(0, 50).map((key) => <tr key={`${key.username}-${key.key}`}><td><span className="key-title"><KeyRound size={15} />{key.key}</span></td><td>{key.username}</td><td>{compactNumber(key.requests)}</td><td>{compactNumber(key.tokens)}</td><td>{money(key.revenueUsd, 4)}</td><td>{money(key.costUsd, 4)}</td><td className="right profit-cell">{money(key.profitUsd, 4)}</td></tr>)}
+        </tbody></table></div>
+      </section>
+    </>}
+  </div>
+}
+
 function ModelsView({ data }: { data: DashboardData }) {
   return <div className="view-stack">
     <section className="models-hero">
@@ -1236,6 +1391,7 @@ export function PortalApp() {
     if (!data) return null
     if (view === 'overview') return <Overview data={data} setView={setView} />
     if (view === 'usage') return <UsageView data={data} />
+    if (view === 'admin') return <AdminView />
     if (view === 'status') return <StatusView data={data} refresh={load} />
     if (view === 'keys') return <KeysView data={data} reload={load} />
     if (view === 'models') return <ModelsView data={data} />
@@ -1253,18 +1409,19 @@ export function PortalApp() {
   if (!data) return <LoadingScreen />
 
   const title = viewTitles[view]
+  const visibleNav = navItems.filter((item) => !item.adminOnly || Number(data.user.role || 0) >= 10)
   const initials = (data.user.display_name || data.user.username).slice(0, 2).toUpperCase()
   return <main className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
       <div className="brand"><BrandLogo light /></div>
-      <nav>{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => { setView(id); setSidebarOpen(false) }}><Icon size={19} /><span>{label}</span></button>)}</nav>
+      <nav>{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => { setView(id); setSidebarOpen(false) }}><Icon size={19} /><span>{label}</span></button>)}</nav>
       <div className="sidebar-footer"><div className="account-row"><span className="avatar">{initials}</span><span><strong>{data.user.display_name || data.user.username}</strong><small>{data.user.username}</small></span><button className="icon-button" onClick={logout} aria-label="Cerrar sesión"><LogOut size={17} /></button></div></div>
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Cerrar menú" />}
     <section className="main-area">
       <header className="topbar"><button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú"><Menu size={21} /></button><div><h1>{title.title}</h1><p>{title.subtitle}</p></div><div className="top-actions"><button className="icon-button" onClick={load} disabled={refreshing} aria-label="Actualizar"><RefreshCw className={refreshing ? 'spin' : ''} size={18} /></button><button className="balance-pill" onClick={() => setView('wallet')}><WalletCards size={17} /><span>{money(data.user.quota / data.quotaPerUsd, 2)}</span></button></div></header>
       <div className="content-area">{error && <div className="form-error">{error}</div>}{content}</div>
-      <nav className="mobile-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+      <nav className="mobile-nav">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
     </section>
   </main>
 }

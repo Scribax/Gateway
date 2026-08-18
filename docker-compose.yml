@@ -18,6 +18,8 @@ services:
       PORTAL_COOKIE_SECURE: ${PORTAL_COOKIE_SECURE:-false}
       STATUS_PROBE_API_KEY: ${STATUS_PROBE_API_KEY:-}
       STATUS_PROBE_BASE_URL: ${STATUS_PROBE_BASE_URL:-https://api.wluvyh.cloud/v1}
+      UPSTREAM_COST_FACTOR: ${UPSTREAM_COST_FACTOR:-0.1}
+      PAYMENT_FEE_RATE: ${PAYMENT_FEE_RATE:-0.035}
       TZ: ${TZ:-America/Argentina/Buenos_Aires}
     depends_on:
       new-api:
