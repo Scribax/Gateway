@@ -101,7 +101,7 @@ Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y 
 
 El portal usa el mecanismo de verificación incorporado en New API. Resend se conecta como servidor SMTP; la API key de Resend se guarda solamente en el panel administrativo de New API y nunca en Git.
 
-Antes de configurar el envío, agregue y verifique su dominio en **Resend > Domains**. Luego cree una dirección remitente del dominio, por ejemplo `no-reply@api.sudominio.com`. El remitente de prueba de Resend no sirve para enviar libremente a clientes reales.
+Antes de configurar el envío, agregue y verifique `orbiqen.com` en **Resend > Domains**. Luego use una dirección remitente del dominio, por ejemplo `no-reply@orbiqen.com`. El remitente de prueba de Resend no sirve para enviar libremente a clientes reales.
 
 En New API abra **System Settings / Configuración del sistema > Email / SMTP** y use:
 
@@ -110,7 +110,7 @@ SMTP Server: smtp.resend.com
 SMTP Port: 465
 SMTP Account / Username: resend
 SMTP Token / Password: [API key de Resend]
-SMTP From: no-reply@api.sudominio.com
+SMTP From: no-reply@orbiqen.com
 SSL: activado
 STARTTLS: desactivado
 Insecure Skip Verify: desactivado
@@ -279,7 +279,7 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
    chmod 600 .env
    ```
 
-3. Cambie todos los secretos locales (`SESSION_SECRET`, `CRYPTO_SECRET`, contrasena de PostgreSQL y Redis) por valores aleatorios. Configure `PUBLIC_GATEWAY_URL=https://api.sudominio.com/v1`, `PORTAL_COOKIE_SECURE=true`, `GIN_MODE=release` y `DEBUG=false`.
+3. Cambie todos los secretos locales (`SESSION_SECRET`, `CRYPTO_SECRET`, contrasena de PostgreSQL y Redis) por valores aleatorios. Para este dominio configure `PUBLIC_GATEWAY_URL=https://orbiqen.com/v1`, `PORTAL_COOKIE_SECURE=true`, `GIN_MODE=release` y `DEBUG=false`.
 4. Revise la configuracion y levante el stack:
 
    ```bash
@@ -288,14 +288,14 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
    docker compose ps
    ```
 
-5. Copie `deploy/nginx/gateway.conf.example` a `/etc/nginx/sites-available/gateway`, reemplace `app.example.com` y `api.example.com`, active el sitio y valide:
+5. Copie `deploy/nginx/gateway.conf.example` a `/etc/nginx/sites-available/orbiqen`, active el sitio y valide:
 
    ```bash
-   sudo ln -s /etc/nginx/sites-available/gateway /etc/nginx/sites-enabled/gateway
+   sudo ln -s /etc/nginx/sites-available/orbiqen /etc/nginx/sites-enabled/orbiqen
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
-6. Emita certificados con Certbot para ambos dominios y fuerce HTTPS. Pruebe el portal en `https://app.sudominio.com` y el relay en `https://api.sudominio.com/v1`.
+6. Emita el certificado con Certbot para `orbiqen.com` y `www.orbiqen.com`. El portal quedara en `https://orbiqen.com` y el relay en `https://orbiqen.com/v1`.
 7. Mantenga New API admin en `http://127.0.0.1:3000` mediante tunel SSH o VPN. No cree una regla Nginx que publique `/`, `/setup` o las rutas `/api/*` administrativas.
 
 Mientras todavia no haya dominios, puede usar `deploy/nginx/gateway-ip.conf.example`: publica el portal en la IP y dirige exclusivamente `/v1/` al relay. Es una configuracion temporal sin HTTPS; reemplácela por `gateway.conf.example` antes de recibir clientes reales.
