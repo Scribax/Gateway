@@ -2,6 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { Pool } from 'pg'
 
 import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
+import { QUOTA_PER_USD } from '@/lib/catalog'
 
 export const MINIMUM_PAYMENT_USD = 1
 export const ARS_PER_USD = 1600
@@ -75,11 +76,12 @@ export function arsForUsd(amountUsd: number) {
 }
 
 async function insertPendingTopUp(userId: number, amountUsd: number, tradeNo: string) {
+  const quotaAmount = Math.round(amountUsd * QUOTA_PER_USD)
   await getPool().query(
     `INSERT INTO top_ups
       (user_id, amount, money, trade_no, payment_method, payment_provider, create_time, complete_time, status)
      VALUES ($1, $2::bigint, $3::numeric, $4, 'mercadopago', 'mercadopago', $5, 0, 'pending')`,
-    [userId, amountUsd, amountUsd, tradeNo, Math.floor(Date.now() / 1000)],
+    [userId, quotaAmount, amountUsd, tradeNo, Math.floor(Date.now() / 1000)],
   )
 }
 
@@ -185,7 +187,7 @@ export async function processMercadoPagoWebhook(request: Request) {
   const topUp = await getPendingTopUp(tradeNo)
   if (!topUp) throw new BackendError('La orden de recarga no existe.', 404)
   if (topUp.status === 'success') return { credited: false, duplicate: true }
-  if (payment.currency_id !== 'ARS' || Number(payment.transaction_amount) !== arsForUsd(topUp.amount)) {
+  if (payment.currency_id !== 'ARS' || Number(payment.transaction_amount) !== arsForUsd(topUp.money)) {
     throw new BackendError('El importe del pago no coincide con la orden.', 400)
   }
 
