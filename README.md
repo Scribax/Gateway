@@ -368,7 +368,7 @@ Un despliegue habitual completo incluye:
 4. Mercado Pago Checkout Pro ya esta integrado en el portal. El webhook valida la firma en produccion, confirma el pago consultando a Mercado Pago, usa la orden pendiente de New API y completa la recarga con una operacion administrativa idempotente. No exponga credenciales de administrador ni permita que un webhook sin autenticar modifique saldos.
 5. Monitoreo de errores, consumo, saldo del proveedor madre, latencia, limites de tasa, rotacion de claves y auditoria de recargas.
 
-Las recargas aprobadas se convierten con una tasa fija de `1 USD = 1.600 ARS` y el minimo es `US$ 1`. Antes de aceptar dinero real, prueba primero una recarga de `US$ 1` en produccion y verifica el saldo, el registro de recarga y el webhook en los logs.
+Las recargas aprobadas se convierten con una tasa fija de `1 USD = 1.600 ARS`. El portal ofrece un paquete mínimo de `US$ 1` y permite importes personalizados mayores a `US$ 1`, con hasta dos decimales. Las URLs de retorno muestran el estado aprobado, pendiente o rechazado dentro de la vista **Saldo**. Antes de aceptar dinero real, prueba primero una recarga de `US$ 1` en produccion y verifica el saldo, el registro de recarga y el webhook en los logs.
 
 ## Antes de produccion
 

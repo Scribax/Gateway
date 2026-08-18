@@ -5,6 +5,7 @@ import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '
 import { QUOTA_PER_USD } from '@/lib/catalog'
 
 export const MINIMUM_PAYMENT_USD = 1
+export const MAXIMUM_PAYMENT_USD = 10_000
 export const ARS_PER_USD = 1600
 
 type PortalUser = {
@@ -65,14 +66,15 @@ function publicOrigin() {
 
 export function validatePaymentAmount(value: unknown) {
   const amount = Number(value)
-  if (!Number.isInteger(amount) || amount < MINIMUM_PAYMENT_USD || amount > 10_000) {
-    throw new BackendError(`El monto debe ser un número entero entre US$ ${MINIMUM_PAYMENT_USD} y US$ 10.000.`, 400)
+  const rounded = Math.round((amount + Number.EPSILON) * 100) / 100
+  if (!Number.isFinite(amount) || amount < MINIMUM_PAYMENT_USD || amount > MAXIMUM_PAYMENT_USD || rounded !== amount) {
+    throw new BackendError(`El monto debe estar entre US$ ${MINIMUM_PAYMENT_USD} y US$ ${MAXIMUM_PAYMENT_USD.toLocaleString('es-AR')}, con hasta 2 decimales.`, 400)
   }
-  return amount
+  return rounded
 }
 
 export function arsForUsd(amountUsd: number) {
-  return amountUsd * ARS_PER_USD
+  return Math.round(amountUsd * ARS_PER_USD)
 }
 
 async function insertPendingTopUp(userId: number, amountUsd: number, tradeNo: string) {

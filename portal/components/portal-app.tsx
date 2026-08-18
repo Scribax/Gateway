@@ -48,6 +48,7 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
 type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup' | 'admin'
+type PaymentReturn = 'success' | 'pending' | 'failure'
 type ChannelWindow = {
   days: number
   availability: number
@@ -1330,9 +1331,12 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
   )
 }
 
-function WalletView({ data }: { data: DashboardData }) {
+function WalletView({ data, paymentReturn, onDismissPayment }: { data: DashboardData; paymentReturn: PaymentReturn | null; onDismissPayment: () => void }) {
   const [message, setMessage] = useState('')
   const [busyAmount, setBusyAmount] = useState<number | null>(null)
+  const [customAmount, setCustomAmount] = useState('')
+  const customAmountValue = Number(customAmount)
+  const customAmountValid = customAmount.trim() !== '' && Number.isFinite(customAmountValue) && customAmountValue > 1 && customAmountValue <= 10_000 && Math.round((customAmountValue + Number.EPSILON) * 100) / 100 === customAmountValue
   async function checkout(amount: number) {
     setBusyAmount(amount); setMessage('')
     try {
@@ -1342,8 +1346,21 @@ function WalletView({ data }: { data: DashboardData }) {
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Pagos no disponibles.') }
     finally { setBusyAmount(null) }
   }
+  function submitCustomAmount(event: FormEvent) {
+    event.preventDefault()
+    if (!customAmountValid) {
+      setMessage('Ingresá un importe mayor a US$ 1 y con hasta 2 decimales.')
+      return
+    }
+    void checkout(customAmountValue)
+  }
   const balance = data.user.quota / data.quotaPerUsd
   return <div className="view-stack">
+    {paymentReturn && <section className={`payment-result ${paymentReturn}`} role="status">
+      <span className="payment-result-icon">{paymentReturn === 'success' ? <Check size={20} /> : paymentReturn === 'pending' ? <Clock3 size={20} /> : <AlertTriangle size={20} />}</span>
+      <div><strong>{paymentReturn === 'success' ? 'Pago aprobado' : paymentReturn === 'pending' ? 'Pago pendiente' : 'Pago no completado'}</strong><p>{paymentReturn === 'success' ? 'Mercado Pago confirmó la operación. El saldo se acredita automáticamente; actualizá el panel si todavía no aparece.' : paymentReturn === 'pending' ? 'Mercado Pago todavía está procesando la operación. El saldo se acreditará cuando se confirme.' : 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.'}</p></div>
+      <button className="icon-button" onClick={onDismissPayment} aria-label="Cerrar estado del pago"><X size={17} /></button>
+    </section>}
     <section className="wallet-hero">
       <div><p>Saldo disponible</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>Cuenta {data.user.username}</span></div>
       <span className="wallet-icon"><WalletCards size={28} /></span>
@@ -1358,6 +1375,15 @@ function WalletView({ data }: { data: DashboardData }) {
     <section className="section-block">
       <div className="section-heading"><div><h3>Cargar saldo</h3><p>Pago seguro con Mercado Pago · mínimo US$ 1</p></div></div>
       <div className="package-grid">{[1, 5, 10, 25].map((amount, index) => <button className={`package-card ${index === 2 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === 1 ? 'Prueba mínima' : index === 2 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>AR$ {(amount * 1600).toLocaleString('es-AR')} · Pago único</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
+      <div className="custom-topup">
+        <div className="custom-topup-copy"><strong>Otro importe</strong><small>Recargá cualquier monto mayor a US$ 1, hasta US$ 10.000.</small></div>
+        <form className="custom-topup-form" onSubmit={submitCustomAmount}>
+          <label className="currency-input"><span>US$</span><input type="number" min="1.01" max="10000" step="0.01" inputMode="decimal" placeholder="12,50" value={customAmount} onChange={(event) => { setCustomAmount(event.target.value); setMessage('') }} aria-label="Importe personalizado en dólares" /></label>
+          <button className="primary-button" type="submit" disabled={busyAmount !== null || !customAmountValid}><CreditCard size={17} />Continuar al pago</button>
+        </form>
+        {customAmountValid && <small className="custom-topup-total">Total a pagar: AR$ {(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}</small>}
+        {customAmount && !customAmountValid && <small className="custom-topup-error">Usá un importe mayor a US$ 1, con hasta 2 decimales.</small>}
+      </div>
       {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
     </section>
   </div>
@@ -1393,6 +1419,7 @@ export function PortalApp() {
   const [auth, setAuth] = useState<'loading' | 'anonymous' | 'authenticated'>('loading')
   const [data, setData] = useState<DashboardData | null>(null)
   const [view, setView] = useState<View>('overview')
+  const [paymentReturn, setPaymentReturn] = useState<PaymentReturn | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
@@ -1411,6 +1438,14 @@ export function PortalApp() {
 
   useEffect(() => { void load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const payment = new URLSearchParams(window.location.search).get('payment')
+    if (payment !== 'success' && payment !== 'pending' && payment !== 'failure') return
+    setPaymentReturn(payment)
+    setView('wallet')
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }, [])
+
   const content = useMemo(() => {
     if (!data) return null
     if (view === 'overview') return <Overview data={data} setView={setView} />
@@ -1419,13 +1454,13 @@ export function PortalApp() {
     if (view === 'status') return <StatusView data={data} refresh={load} />
     if (view === 'keys') return <KeysView data={data} reload={load} />
     if (view === 'models') return <ModelsView data={data} />
-    if (view === 'wallet') return <WalletView data={data} />
+    if (view === 'wallet') return <WalletView data={data} paymentReturn={paymentReturn} onDismissPayment={() => setPaymentReturn(null)} />
     return <SetupView data={data} />
-  }, [data, view, load])
+  }, [data, view, load, paymentReturn])
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
-    setData(null); setAuth('anonymous'); setView('overview')
+    setData(null); setAuth('anonymous'); setView('overview'); setPaymentReturn(null)
   }
 
   if (auth === 'loading') return <LoadingScreen />
