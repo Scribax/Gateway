@@ -3,8 +3,10 @@
 import {
   Activity,
   ArrowUpRight,
+  BarChart3,
   BookOpen,
   Bot,
+  CalendarRange,
   Check,
   ChevronRight,
   CircleDollarSign,
@@ -13,10 +15,12 @@ import {
   Copy,
   Cpu,
   CreditCard,
+  Clock3,
   Eye,
   EyeOff,
   Gauge,
   Image as ImageIcon,
+  Filter,
   KeyRound,
   LayoutDashboard,
   LoaderCircle,
@@ -37,7 +41,7 @@ import {
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
-type View = 'overview' | 'status' | 'keys' | 'models' | 'wallet' | 'setup'
+type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup'
 type ChannelWindow = {
   days: number
   availability: number
@@ -97,6 +101,12 @@ type UsageLog = {
   prompt_tokens: number
   completion_tokens: number
   token_name: string
+  use_time?: number
+  type?: number
+  ip?: string
+  channel_name?: string
+  content?: string
+  other?: string | Record<string, unknown>
 }
 type ModelPrice = {
   id: string
@@ -121,12 +131,35 @@ type DashboardData = {
   gatewayUrl: string
 }
 
+type UsageResponse = {
+  user: User
+  logs: UsageLog[]
+  quotaPerUsd: number
+  gatewayUrl: string
+}
+
+type UsageMeta = {
+  reasoning_effort?: string
+  request_path?: string
+  billing_source?: string
+  billing_mode?: string
+  cache_ratio?: number
+  cache_tokens?: number
+  cache_creation_tokens?: number
+  frt?: number
+  stream_status?: { status?: string; end_reason?: string }
+  model_ratio?: number
+  group_ratio?: number
+  user_group_ratio?: number
+}
+
 function BrandLogo({ light = false }: { light?: boolean }) {
   return <span className={`brand-logo${light ? ' brand-logo-light' : ''}`}><img src="/orbiqen-logo.png" alt="Orbiqen" /></span>
 }
 
 const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
+  { id: 'usage', label: 'Usage', icon: BarChart3 },
   { id: 'status', label: 'Estado', icon: Server },
   { id: 'keys', label: 'API Keys', icon: KeyRound },
   { id: 'models', label: 'Modelos', icon: Sparkles },
@@ -136,6 +169,7 @@ const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }>
 
 const viewTitles: Record<View, { title: string; subtitle: string }> = {
   overview: { title: 'Resumen', subtitle: 'Tu actividad y saldo en un solo lugar' },
+  usage: { title: 'Usage Records', subtitle: 'Uso real por cliente y por modelo' },
   status: { title: 'Channel Status', subtitle: 'Estado y actividad de tus canales comerciales' },
   keys: { title: 'API Keys', subtitle: 'Credenciales para tus aplicaciones' },
   models: { title: 'Modelos', subtitle: 'Precios finales por millón de tokens' },
@@ -164,6 +198,43 @@ function formatDate(timestamp: number) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(timestamp * 1000))
+}
+
+function formatDuration(ms: number) {
+  if (!ms || ms < 1000) return `${Math.max(0, Math.round(ms || 0))} ms`
+  const seconds = ms / 1000
+  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 2 : 1)} s`
+  const minutes = Math.floor(seconds / 60)
+  const remaining = Math.round(seconds % 60)
+  return `${minutes}m ${String(remaining).padStart(2, '0')}s`
+}
+
+function parseUsageMeta(log: UsageLog): UsageMeta {
+  const raw = log.other
+  if (!raw) return {}
+  if (typeof raw === 'object') return raw as UsageMeta
+  try {
+    return JSON.parse(raw) as UsageMeta
+  } catch {
+    return {}
+  }
+}
+
+function csvEscape(value: string | number | null | undefined) {
+  const text = value === null || value === undefined ? '' : String(value)
+  return `"${text.replaceAll('"', '""')}"`
+}
+
+function downloadText(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 async function readJson(response: Response) {
@@ -293,6 +364,19 @@ function Stat({ label, value, hint, icon: Icon, tone }: { label: string; value: 
   )
 }
 
+function UsageStat({ label, value, hint, icon: Icon, tone }: { label: string; value: string; hint: string; icon: typeof Activity; tone: string }) {
+  return (
+    <article className="usage-stat">
+      <div className={`usage-stat-icon ${tone}`}><Icon size={18} /></div>
+      <div>
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <span>{hint}</span>
+      </div>
+    </article>
+  )
+}
+
 function Overview({ data, setView }: { data: DashboardData; setView: (view: View) => void }) {
   const available = data.user.quota / data.quotaPerUsd
   const spent = data.user.used_quota / data.quotaPerUsd
@@ -389,6 +473,440 @@ function KeysView({ data, reload }: { data: DashboardData; reload: () => Promise
   }
 
   return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} activas</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />Crear API Key</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Credencial</th><th>Modelos</th><th>Saldo</th><th>Último uso</th><th className="right">Acciones</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={6}><div className="empty-row"><KeyRound size={20} />No hay claves creadas</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : 'Todos'}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label="Revelar clave">{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label="Eliminar clave"><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} onClose={() => setSecret('')} />}</div>
+}
+
+type UsageRange = '24h' | '7d' | '30d'
+type UsageGranularity = 'hour' | 'day'
+
+type UsageBucket = {
+  label: string
+  requests: number
+  tokens: number
+  cost: number
+  durationMs: number
+}
+
+function bucketLabel(timestamp: number, granularity: UsageGranularity) {
+  const date = new Date(timestamp * 1000)
+  if (granularity === 'hour') {
+    return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: 'short', hour: '2-digit' }).format(date)
+  }
+  return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: 'short' }).format(date)
+}
+
+function rangeFloor(range: UsageRange) {
+  const now = Math.floor(Date.now() / 1000)
+  if (range === '24h') return now - 24 * 3600
+  if (range === '7d') return now - 7 * 24 * 3600
+  return now - 30 * 24 * 3600
+}
+
+function buildBuckets(logs: UsageLog[], granularity: UsageGranularity): UsageBucket[] {
+  const map = new Map<string, UsageBucket>()
+  for (const log of logs.slice().sort((a, b) => a.created_at - b.created_at)) {
+    const label = bucketLabel(log.created_at, granularity)
+    const entry = map.get(label) || { label, requests: 0, tokens: 0, cost: 0, durationMs: 0 }
+    entry.requests += 1
+    entry.tokens += (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+    entry.cost += log.quota || 0
+    entry.durationMs += log.use_time || 0
+    map.set(label, entry)
+  }
+  return Array.from(map.values())
+}
+
+function buildBreakdown(logs: UsageLog[], quotaPerUsd: number, type: 'model' | 'key') {
+  const map = new Map<string, { label: string; requests: number; tokens: number; cost: number }>()
+  for (const log of logs) {
+    const rawLabel = type === 'model' ? (log.model_name || 'N/D') : (log.token_name || 'Sin nombre')
+    const entry = map.get(rawLabel) || { label: rawLabel, requests: 0, tokens: 0, cost: 0 }
+    entry.requests += 1
+    entry.tokens += (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+    entry.cost += (log.quota || 0) / quotaPerUsd
+    map.set(rawLabel, entry)
+  }
+  return Array.from(map.values()).sort((a, b) => b.requests - a.requests || b.cost - a.cost)
+}
+
+function Donut({ items, total, tone }: { items: Array<{ label: string; value: number; color: string }>; total: string; tone: string }) {
+  const size = 180
+  const stroke = 28
+  const radius = (size - stroke) / 2
+  const circumference = 2 * Math.PI * radius
+  let offset = 0
+  return (
+    <div className={`usage-donut ${tone}`}>
+      <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Gráfico de distribución">
+        <circle cx={size / 2} cy={size / 2} r={radius} className="usage-donut-track" />
+        {items.map((item) => {
+          const dash = Math.max(4, (item.value / 100) * circumference)
+          const circle = (
+            <circle
+              key={item.label}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              className="usage-donut-segment"
+              stroke={item.color}
+              strokeDasharray={`${dash} ${circumference - dash}`}
+              strokeDashoffset={-offset}
+            />
+          )
+          offset += dash
+          return circle
+        })}
+      </svg>
+      <div className="usage-donut-label">
+        <strong>{total}</strong>
+        <span>selección activa</span>
+      </div>
+    </div>
+  )
+}
+
+function UsageView({ data }: { data: DashboardData }) {
+  const [usage, setUsage] = useState<UsageResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [range, setRange] = useState<UsageRange>('7d')
+  const [granularity, setGranularity] = useState<UsageGranularity>('day')
+
+  useEffect(() => {
+    let alive = true
+    async function loadUsage() {
+      setLoading(true)
+      setError('')
+      try {
+        const response = await fetch('/api/usage', { cache: 'no-store' })
+        if (response.status === 401) {
+          setError('La sesión expiró.')
+          return
+        }
+        const body = await readJson(response)
+        if (alive) setUsage(body.data)
+      } catch (cause) {
+        if (alive) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el usage.')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+    void loadUsage()
+    return () => { alive = false }
+  }, [])
+
+  const quotaPerUsd = usage?.quotaPerUsd || data.quotaPerUsd
+  const logs = usage?.logs || []
+  const filtered = useMemo(() => {
+    const floor = rangeFloor(range)
+    return logs.filter((log) => log.created_at >= floor).sort((a, b) => b.created_at - a.created_at)
+  }, [logs, range])
+  const totalRequests = filtered.length
+  const totalPrompt = filtered.reduce((sum, log) => sum + (log.prompt_tokens || 0), 0)
+  const totalCompletion = filtered.reduce((sum, log) => sum + (log.completion_tokens || 0), 0)
+  const totalTokens = totalPrompt + totalCompletion
+  const totalCost = filtered.reduce((sum, log) => sum + ((log.quota || 0) / quotaPerUsd), 0)
+  const avgDuration = filtered.length ? filtered.reduce((sum, log) => sum + (log.use_time || 0), 0) / filtered.length : 0
+  const buckets = useMemo(() => buildBuckets(filtered, granularity), [filtered, granularity])
+  const modelBreakdown = useMemo(() => buildBreakdown(filtered, quotaPerUsd, 'model').slice(0, 6), [filtered, quotaPerUsd])
+  const keyBreakdown = useMemo(() => buildBreakdown(filtered, quotaPerUsd, 'key').slice(0, 6), [filtered, quotaPerUsd])
+  const totalModelRequests = modelBreakdown.reduce((sum, item) => sum + item.requests, 0) || 1
+  const totalKeyRequests = keyBreakdown.reduce((sum, item) => sum + item.requests, 0) || 1
+  const seriesMax = Math.max(1, ...buckets.map((item) => item.requests))
+  const series = buckets.slice(-14)
+  const detailedRows = useMemo(() => filtered.map((log) => {
+    const meta = parseUsageMeta(log)
+    const billingMode = meta.billing_mode || meta.billing_source || 'Token'
+    const rateMultiplier = meta.cache_ratio || 0.1
+    const billedCost = (log.quota || 0) / quotaPerUsd
+    const originalCost = rateMultiplier > 0 ? billedCost / rateMultiplier : billedCost
+    const inputTokens = Math.max(0, (log.prompt_tokens || 0) - (meta.cache_tokens || 0))
+    const outputTokens = log.completion_tokens || 0
+    const cacheReadTokens = meta.cache_tokens || 0
+    const cacheCreationTokens = meta.cache_creation_tokens || 0
+    const totalTokenCount = inputTokens + outputTokens + cacheReadTokens + cacheCreationTokens
+    const rowType = log.type === 2 ? 'Stream' : log.type === 1 ? 'Sync' : (meta.stream_status?.status ? 'Stream' : 'Sync')
+    return {
+      id: log.id,
+      time: log.created_at,
+      apiKey: log.token_name || 'Sin nombre',
+      model: log.model_name || 'N/D',
+      reasoning: meta.reasoning_effort || '-',
+      endpoint: meta.request_path || log.channel_name || '/v1/chat/completions',
+      ip: log.ip || 'N/D',
+      type: rowType,
+      billingMode,
+      inputTokens,
+      outputTokens,
+      cacheReadTokens,
+      cacheCreationTokens,
+      rateMultiplier,
+      billedCost,
+      originalCost,
+      firstTokenMs: meta.frt || 0,
+      durationMs: log.use_time || 0,
+      totalTokenCount,
+    }
+  }), [filtered, quotaPerUsd])
+
+  function exportCsv() {
+    const header = [
+      'Time',
+      'API Key Name',
+      'Model',
+      'Reasoning Effort',
+      'Inbound Endpoint',
+      'IP Address',
+      'Type',
+      'Billing Mode',
+      'Input Tokens',
+      'Output Tokens',
+      'Cache Read Tokens',
+      'Cache Creation Tokens',
+      'Rate Multiplier',
+      'Billed Cost',
+      'Original Cost',
+      'First Token (ms)',
+      'Duration (ms)',
+    ]
+    const rows = [
+      header.map(csvEscape).join(','),
+      ...detailedRows.map((row) => [
+        new Date(row.time * 1000).toISOString(),
+        row.apiKey,
+        row.model,
+        row.reasoning,
+        row.endpoint,
+        row.ip,
+        row.type,
+        row.billingMode,
+        row.inputTokens,
+        row.outputTokens,
+        row.cacheReadTokens,
+        row.cacheCreationTokens,
+        row.rateMultiplier.toFixed(4),
+        row.billedCost.toFixed(8),
+        row.originalCost.toFixed(8),
+        row.firstTokenMs || '',
+        row.durationMs || '',
+      ].map(csvEscape).join(',')),
+    ]
+    const suffix = range === '24h' ? '24h' : range === '7d' ? '7d' : '30d'
+    downloadText(`usage_${suffix}.csv`, `${rows.join('\n')}\n`)
+  }
+
+  return (
+    <div className="usage-page">
+      <section className="usage-hero">
+        <div>
+          <p className="eyebrow">Usage Records</p>
+          <h2>Uso real por cliente</h2>
+          <span>Todo el consumo que ve este usuario sale de sus propios logs en New API.</span>
+        </div>
+        <div className="usage-hero-meta">
+          <div><small>Cuenta</small><strong>{usage?.user.display_name || usage?.user.username || data.user.username}</strong></div>
+          <div><small>Ventana</small><strong>{range === '24h' ? '24 horas' : range === '7d' ? '7 días' : '30 días'}</strong></div>
+        </div>
+      </section>
+
+      <section className="usage-toolbar">
+        <div className="usage-controls">
+          <label>
+            <CalendarRange size={16} />
+            <select value={range} onChange={(event) => setRange(event.target.value as UsageRange)}>
+              <option value="24h">Últimas 24 horas</option>
+              <option value="7d">Últimos 7 días</option>
+              <option value="30d">Últimos 30 días</option>
+            </select>
+          </label>
+          <label>
+            <Filter size={16} />
+            <select value={granularity} onChange={(event) => setGranularity(event.target.value as UsageGranularity)}>
+              <option value="hour">Por hora</option>
+              <option value="day">Por día</option>
+            </select>
+          </label>
+        </div>
+        <div className="usage-toolbar-actions">
+          <div className="usage-toolbar-note">
+            <Clock3 size={16} />
+            <span>Datos en vivo con actualización al abrir la pestaña</span>
+          </div>
+          <button className="secondary-button" onClick={exportCsv}><Clipboard size={16} />Export CSV</button>
+        </div>
+      </section>
+
+      {loading && <section className="usage-skeleton"><LoaderCircle className="spin" size={26} /><span>Cargando uso real...</span></section>}
+      {error && <div className="form-error">{error}</div>}
+
+      {!loading && !error && (
+        <>
+          <section className="usage-stats-grid">
+            <UsageStat label="Total requests" value={compactNumber(totalRequests)} hint="Solicitudes del rango" icon={Activity} tone="blue" />
+            <UsageStat label="Total tokens" value={compactNumber(totalTokens)} hint={`Prompt ${compactNumber(totalPrompt)} / Completion ${compactNumber(totalCompletion)}`} icon={Gauge} tone="green" />
+            <UsageStat label="Total cost" value={money(totalCost, totalCost < 1 ? 4 : 2)} hint="Costo real del usuario" icon={CircleDollarSign} tone="coral" />
+            <UsageStat label="Avg duration" value={formatDuration(avgDuration)} hint="Tiempo promedio por request" icon={Clock3} tone="violet" />
+          </section>
+
+          <section className="usage-chart-grid">
+            <article className="usage-panel">
+              <div className="usage-panel-head">
+                <div>
+                  <p>Model Distribution</p>
+                  <h3>Por requests</h3>
+                </div>
+                <span>Top {modelBreakdown.length}</span>
+              </div>
+              <div className="usage-panel-body split">
+                <Donut
+                  tone="blue"
+                  total={compactNumber(totalRequests)}
+                  items={modelBreakdown.map((item, index) => ({
+                    label: item.label,
+                    value: (item.requests / totalModelRequests) * 100,
+                    color: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'][index % 6],
+                  }))}
+                />
+                <div className="usage-list">
+                  {modelBreakdown.map((item, index) => (
+                    <div className="usage-list-row" key={item.label}>
+                      <div>
+                        <strong>{item.label}</strong>
+                        <small>{compactNumber(item.tokens)} tokens</small>
+                      </div>
+                      <div>
+                        <span>{compactNumber(item.requests)} req</span>
+                        <small>{money(item.cost, 4)}</small>
+                      </div>
+                      <i style={{ background: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'][index % 6] }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
+
+            <article className="usage-panel">
+              <div className="usage-panel-head">
+                <div>
+                  <p>Group Usage Distribution</p>
+                  <h3>Por keys</h3>
+                </div>
+                <span>Top {keyBreakdown.length}</span>
+              </div>
+              <div className="usage-panel-body split">
+                <Donut
+                  tone="green"
+                  total={money(totalCost, 2)}
+                  items={keyBreakdown.map((item, index) => ({
+                    label: item.label,
+                    value: (item.requests / totalKeyRequests) * 100,
+                    color: ['#10b981', '#34d399', '#06b6d4', '#3b82f6', '#f59e0b', '#ef4444'][index % 6],
+                  }))}
+                />
+                <div className="usage-list">
+                  {keyBreakdown.map((item, index) => (
+                    <div className="usage-list-row" key={item.label}>
+                      <div>
+                        <strong>{item.label}</strong>
+                        <small>{compactNumber(item.tokens)} tokens</small>
+                      </div>
+                      <div>
+                        <span>{compactNumber(item.requests)} req</span>
+                        <small>{money(item.cost, 4)}</small>
+                      </div>
+                      <i style={{ background: ['#10b981', '#34d399', '#06b6d4', '#3b82f6', '#f59e0b', '#ef4444'][index % 6] }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
+          </section>
+
+          <section className="usage-panel usage-graph-panel">
+            <div className="usage-panel-head">
+              <div>
+                <p>Activity Trend</p>
+                <h3>Solicitudes del rango</h3>
+              </div>
+              <span>{series.length} puntos</span>
+            </div>
+            <div className="usage-bars">
+              {series.length === 0 && <div className="empty-row"><Activity size={18} />Sin actividad en el rango</div>}
+              {series.map((bucket) => (
+                <div className="usage-bar-item" key={`${bucket.label}-${bucket.requests}`}>
+                  <div className="usage-bar-track">
+                    <span style={{ height: `${Math.max(6, (bucket.requests / seriesMax) * 100)}%` }} />
+                  </div>
+                  <strong>{bucket.requests}</strong>
+                  <small>{bucket.label}</small>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="usage-table-card">
+            <div className="usage-panel-head">
+              <div>
+                <p>Recent Requests</p>
+                <h3>Tabla detallada</h3>
+              </div>
+              <span>{filtered.length} en pantalla</span>
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>API Key</th>
+                    <th>Model</th>
+                    <th>Reasoning</th>
+                    <th>Endpoint</th>
+                    <th>IP</th>
+                    <th>Type</th>
+                    <th>Billing</th>
+                    <th>In</th>
+                    <th>Out</th>
+                    <th>Cache R</th>
+                    <th>Cache C</th>
+                    <th>Rate</th>
+                    <th>Billed</th>
+                    <th>Original</th>
+                    <th>FRT</th>
+                    <th>Duration</th>
+                    <th className="right">Costo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailedRows.length === 0 && <tr><td colSpan={18}><div className="empty-row"><Activity size={18} />No hay registros para ese rango</div></td></tr>}
+                  {detailedRows.map((row) => (
+                    <tr key={row.id}>
+                      <td>{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.time * 1000))}</td>
+                      <td>{row.apiKey}</td>
+                      <td><span className="usage-model">{row.model}</span></td>
+                      <td>{row.reasoning}</td>
+                      <td>{row.endpoint}</td>
+                      <td>{row.ip}</td>
+                      <td>{row.type}</td>
+                      <td>{row.billingMode}</td>
+                      <td>{compactNumber(row.inputTokens)}</td>
+                      <td>{compactNumber(row.outputTokens)}</td>
+                      <td>{compactNumber(row.cacheReadTokens)}</td>
+                      <td>{compactNumber(row.cacheCreationTokens)}</td>
+                      <td>{row.rateMultiplier.toFixed(3)}</td>
+                      <td>{money(row.billedCost, 6)}</td>
+                      <td>{money(row.originalCost, 6)}</td>
+                      <td>{row.firstTokenMs ? `${Math.round(row.firstTokenMs)} ms` : '-'}</td>
+                      <td>{formatDuration(row.durationMs || 0)}</td>
+                      <td className="right strong">{money(row.billedCost, 6)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  )
 }
 
 function ModelsView({ data }: { data: DashboardData }) {
@@ -717,6 +1235,7 @@ export function PortalApp() {
   const content = useMemo(() => {
     if (!data) return null
     if (view === 'overview') return <Overview data={data} setView={setView} />
+    if (view === 'usage') return <UsageView data={data} />
     if (view === 'status') return <StatusView data={data} refresh={load} />
     if (view === 'keys') return <KeysView data={data} reload={load} />
     if (view === 'models') return <ModelsView data={data} />
