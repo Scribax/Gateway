@@ -216,7 +216,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
             <label>
               Código de verificación
               <span className="verification-field">
-                <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" pattern="[0-9]{6}" required />
+                <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/[^a-fA-F0-9]/g, '').toLowerCase().slice(0, 6))} inputMode="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={6} placeholder="a1b2c3" pattern="[a-fA-F0-9]{6}" required />
                 <button className="secondary-button verification-send" type="button" onClick={sendVerificationCode} disabled={sendingCode || cooldown > 0 || !email}>
                   {sendingCode ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />}
                   {cooldown > 0 ? `${cooldown}s` : codeSent ? 'Reenviar' : 'Enviar código'}
