@@ -262,6 +262,8 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
 6. Emita certificados con Certbot para ambos dominios y fuerce HTTPS. Pruebe el portal en `https://app.sudominio.com` y el relay en `https://api.sudominio.com/v1`.
 7. Mantenga New API admin en `http://127.0.0.1:3000` mediante tunel SSH o VPN. No cree una regla Nginx que publique `/`, `/setup` o las rutas `/api/*` administrativas.
 
+Mientras todavia no haya dominios, puede usar `deploy/nginx/gateway-ip.conf.example`: publica el portal en la IP y dirige exclusivamente `/v1/` al relay. Es una configuracion temporal sin HTTPS; reemplácela por `gateway.conf.example` antes de recibir clientes reales.
+
 Un despliegue habitual completo incluye:
 
 1. VPS (Hetzner, DigitalOcean, Vultr u otro proveedor) con backups y firewall.
