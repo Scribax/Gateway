@@ -95,7 +95,7 @@ PUBLIC_GATEWAY_URL=http://127.0.0.1:3000/v1
 PORTAL_COOKIE_SECURE=false
 ```
 
-Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y `PORTAL_COOKIE_SECURE` debe ser `true`. Los botones de compra quedan en estado no disponible hasta incorporar las credenciales y webhooks de Mercado Pago.
+Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y `PORTAL_COOKIE_SECURE` debe ser `true`. El portal ofrece recargas por Mercado Pago desde US$ 1; los pagos en crypto se muestran como próximos y todavía no acreditan saldo.
 
 ### Verificación de correo con Resend
 

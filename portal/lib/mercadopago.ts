@@ -78,8 +78,8 @@ async function insertPendingTopUp(userId: number, amountUsd: number, tradeNo: st
   await getPool().query(
     `INSERT INTO top_ups
       (user_id, amount, money, trade_no, payment_method, payment_provider, create_time, complete_time, status)
-     VALUES ($1, $2, $2, $3, 'mercadopago', 'mercadopago', $4, 0, 'pending')`,
-    [userId, amountUsd, tradeNo, Math.floor(Date.now() / 1000)],
+     VALUES ($1, $2::bigint, $3::numeric, $4, 'mercadopago', 'mercadopago', $5, 0, 'pending')`,
+    [userId, amountUsd, amountUsd, tradeNo, Math.floor(Date.now() / 1000)],
   )
 }
 

@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   BarChart3,
+  Bitcoin,
   BookOpen,
   Bot,
   CalendarRange,
@@ -1342,7 +1343,24 @@ function WalletView({ data }: { data: DashboardData }) {
     finally { setBusyAmount(null) }
   }
   const balance = data.user.quota / data.quotaPerUsd
-  return <div className="view-stack"><section className="wallet-hero"><div><p>Saldo disponible</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>Cuenta {data.user.username}</span></div><span className="wallet-icon"><WalletCards size={28} /></span></section><section className="section-block"><div className="section-heading"><div><h3>Cargar saldo</h3><p>Pago seguro con Mercado Pago · US$ 1 = AR$ 1.600</p></div></div><div className="package-grid">{[1, 5, 10, 25].map((amount, index) => <button className={`package-card ${index === 2 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{index === 2 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>AR$ {(amount * 1600).toLocaleString('es-AR')} · Pago único</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>{message && <div className="payment-message"><CreditCard size={18} />{message}</div>}</section></div>
+  return <div className="view-stack">
+    <section className="wallet-hero">
+      <div><p>Saldo disponible</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>Cuenta {data.user.username}</span></div>
+      <span className="wallet-icon"><WalletCards size={28} /></span>
+    </section>
+    <section className="section-block">
+      <div className="section-heading"><div><h3>Métodos de pago</h3><p>Elegí cómo cargar crédito en tu cuenta</p></div></div>
+      <div className="payment-method-grid">
+        <div className="payment-method active"><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>Disponible · AR$ 1.600 por US$ 1</small></span><ShieldCheck size={17} /></div>
+        <div className="payment-method disabled"><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto</strong><small>Próximamente · USDT, BTC y más</small></span><LockKeyhole size={16} /></div>
+      </div>
+    </section>
+    <section className="section-block">
+      <div className="section-heading"><div><h3>Cargar saldo</h3><p>Pago seguro con Mercado Pago · mínimo US$ 1</p></div></div>
+      <div className="package-grid">{[1, 5, 10, 25].map((amount, index) => <button className={`package-card ${index === 2 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === 1 ? 'Prueba mínima' : index === 2 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>AR$ {(amount * 1600).toLocaleString('es-AR')} · Pago único</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
+      {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
+    </section>
+  </div>
 }
 
 const snippets = {
