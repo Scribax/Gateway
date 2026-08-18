@@ -16,6 +16,8 @@ services:
       NEXT_PUBLIC_GATEWAY_URL: ${PUBLIC_GATEWAY_URL:-http://127.0.0.1:3000/v1}
       NEXT_PUBLIC_PORTAL_NAME: ${PORTAL_NAME:-Orbiqen}
       PORTAL_COOKIE_SECURE: ${PORTAL_COOKIE_SECURE:-false}
+      STATUS_PROBE_API_KEY: ${STATUS_PROBE_API_KEY:-}
+      STATUS_PROBE_BASE_URL: ${STATUS_PROBE_BASE_URL:-https://api.wluvyh.cloud/v1}
       TZ: ${TZ:-America/Argentina/Buenos_Aires}
     depends_on:
       new-api:

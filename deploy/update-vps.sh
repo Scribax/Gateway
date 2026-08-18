@@ -114,14 +114,25 @@ Ahora cambie el canal madre dentro de New API:
    Key: pegue la clave madre de Wluvyh solo en el panel
 
 4. Modelos recomendados para habilitar:
+   codex-auto-review
+   gpt-4o-audio-preview
+   gpt-4o-realtime-preview
+   gpt-5.2
+   gpt-5.2-2025-12-11
+   gpt-5.2-chat-latest
+   gpt-5.2-pro
+   gpt-5.2-pro-2025-12-11
+   gpt-5.3-codex-spark
+   gpt-5.4
+   gpt-5.4-2026-03-05
+   gpt-5.4-mini
+   gpt-5.5
+   gpt-5.6
    gpt-5.6-sol
    gpt-5.6-terra
-   gpt-5.6
-   gpt-5.5
-   gpt-5.4
-   gpt-5.4-mini
-   gpt-5.2
-   gpt-5.2-pro
+   gpt-image-1
+   gpt-image-1.5
+   gpt-image-2
 
 5. Quite de canales, grupos y tokens:
    gpt-5.6-luna

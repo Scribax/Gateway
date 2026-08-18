@@ -32,7 +32,38 @@ import {
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
-type View = 'overview' | 'keys' | 'models' | 'wallet' | 'setup'
+type View = 'overview' | 'status' | 'keys' | 'models' | 'wallet' | 'setup'
+type ChannelWindow = {
+  days: number
+  availability: number
+  requests: number
+  tokens: number
+  costUsd: number
+  lastSeen: number
+  history: number[]
+}
+type ChannelStatus = {
+  id: string
+  label: string
+  accent: 'green' | 'coral' | 'blue'
+  provider: 'OpenAI'
+  modelId: string
+  group: string
+  status: 'Operational' | 'Degraded' | 'Inactive'
+  endpointPingMs: number
+  dialogLatencyMs: number
+  windows: Record<'7' | '15' | '30', ChannelWindow>
+}
+type LiveProbe = {
+  model: string
+  ok: boolean
+  status: 'Operational' | 'Degraded'
+  statusCode: number
+  endpointPingMs: number
+  dialogLatencyMs: number
+  message: string
+  checkedAt: number
+}
 type User = {
   username: string
   display_name?: string
@@ -77,6 +108,8 @@ type DashboardData = {
   logs: UsageLog[]
   logTotal: number
   models: ModelPrice[]
+  channels: ChannelStatus[]
+  statusWindows: number[]
   groups: Record<string, { desc: string; ratio: number | string }>
   quotaPerUsd: number
   gatewayUrl: string
@@ -88,6 +121,7 @@ function BrandLogo({ light = false }: { light?: boolean }) {
 
 const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
+  { id: 'status', label: 'Estado', icon: Server },
   { id: 'keys', label: 'API Keys', icon: KeyRound },
   { id: 'models', label: 'Modelos', icon: Sparkles },
   { id: 'wallet', label: 'Saldo', icon: WalletCards },
@@ -96,6 +130,7 @@ const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }>
 
 const viewTitles: Record<View, { title: string; subtitle: string }> = {
   overview: { title: 'Resumen', subtitle: 'Tu actividad y saldo en un solo lugar' },
+  status: { title: 'Channel Status', subtitle: 'Estado y actividad de tus canales comerciales' },
   keys: { title: 'API Keys', subtitle: 'Credenciales para tus aplicaciones' },
   models: { title: 'Modelos', subtitle: 'Precios finales por millón de tokens' },
   wallet: { title: 'Saldo', subtitle: 'Crédito disponible para tus consumos' },
@@ -354,6 +389,188 @@ function ModelsView({ data }: { data: DashboardData }) {
   return <div className="view-stack"><div className="catalog-summary"><div><Sparkles size={20} /><span><strong>{data.models.length} modelos</strong><small>Plan Profesional</small></span></div><div><Gauge size={20} /><span><strong>Pago por uso</strong><small>Sin costo fijo</small></span></div></div><section className="section-block"><div className="table-wrap"><table><thead><tr><th>Modelo</th><th>Entrada / 1M</th><th>Salida / 1M</th><th>Cache read / 1M</th><th>Estado</th></tr></thead><tbody>{data.models.map((model) => <tr key={model.id}><td><span className="catalog-model"><span className={`model-glyph ${model.accent}`}>{model.label.slice(-1)}</span><span><strong>{model.label}</strong><code>{model.id}</code></span></span></td><td>{money(model.input, model.input < 0.1 ? 4 : 3)}</td><td>{money(model.output, model.output < 0.1 ? 4 : 3)}</td><td>{money(model.cacheRead, 5)}</td><td><span className="available-badge"><Check size={13} />Disponible</span></td></tr>)}</tbody></table></div></section></div>
 }
 
+function statusTone(status: ChannelStatus['status']) {
+  if (status === 'Operational') return 'green'
+  if (status === 'Degraded') return 'coral'
+  return 'blue'
+}
+
+function statusDotClass(status: ChannelStatus['status']) {
+  if (status === 'Operational') return 'status-good'
+  if (status === 'Degraded') return 'status-warn'
+  return 'status-muted'
+}
+
+function formatSeen(timestamp: number) {
+  if (!timestamp) return 'Sin tráfico'
+  return new Intl.DateTimeFormat('es-AR', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp * 1000))
+}
+
+function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Promise<void> }) {
+  const [windowDays, setWindowDays] = useState<7 | 15 | 30>(7)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [probing, setProbing] = useState(false)
+  const [probeError, setProbeError] = useState('')
+  const [liveProbes, setLiveProbes] = useState<Record<string, LiveProbe>>({})
+  useEffect(() => {
+    if (!autoRefresh) return
+    const timer = window.setInterval(() => { void refresh() }, 50000)
+    return () => window.clearInterval(timer)
+  }, [autoRefresh, refresh])
+
+  const windowKey = String(windowDays) as '7' | '15' | '30'
+  const availableWindows = data.statusWindows.length ? data.statusWindows : [7, 15, 30]
+  const cards = data.channels.map((channel) => ({
+    ...channel,
+    window: channel.windows[windowKey],
+    live: liveProbes[channel.modelId],
+    availabilityValue: liveProbes[channel.modelId]
+      ? liveProbes[channel.modelId].ok ? 100 : 0
+      : channel.windows[windowKey].availability,
+  }))
+  const operational = cards.filter((channel) => (channel.live?.status || channel.status) === 'Operational').length
+  const degraded = cards.filter((channel) => (channel.live?.status || channel.status) === 'Degraded').length
+  const avgAvailability = cards.length ? Math.round(cards.reduce((sum, channel) => sum + channel.availabilityValue, 0) / cards.length) : 0
+
+  async function runProbe() {
+    setProbing(true)
+    setProbeError('')
+    try {
+      const body = await readJson(await fetch('/api/channel-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ models: cards.map((channel) => channel.modelId) }),
+      })) as { data: { results: LiveProbe[] } }
+      const next = Object.fromEntries(body.data.results.map((probe) => [probe.model, probe]))
+      setLiveProbes(next)
+    } catch (cause) {
+      setProbeError(cause instanceof Error ? cause.message : 'No se pudo probar el estado real.')
+    } finally {
+      setProbing(false)
+    }
+  }
+
+  return (
+    <div className="view-stack status-view">
+      <section className="status-topbar">
+        <div className="status-title">
+          <h2>Channel Status</h2>
+          <p>Vista de disponibilidad, actividad y salud por modelo.</p>
+        </div>
+        <div className="status-actions">
+          <div className="window-switch">
+            {availableWindows.map((days) => (
+              <button key={days} className={windowDays === days ? 'active' : ''} onClick={() => setWindowDays(days as 7 | 15 | 30)}>
+                {days} days
+              </button>
+            ))}
+          </div>
+          <span className={`status-pill ${degraded > 0 ? 'warn' : 'ok'}`}>{degraded > 0 ? 'DEGRADED' : 'OPERATIONAL'}</span>
+          <button className="icon-button" onClick={() => void refresh()} aria-label="Actualizar">
+            <RefreshCw size={18} />
+          </button>
+          <button className="probe-pill" onClick={runProbe} disabled={probing || cards.length === 0}>
+            {probing ? <LoaderCircle size={16} className="spin" /> : <Activity size={16} />}
+            Probar ahora
+          </button>
+          <button className="refresh-pill" onClick={() => setAutoRefresh((value) => !value)}>
+            <RefreshCw size={16} className={autoRefresh ? 'spin' : ''} />
+            Auto refresh: 50s
+          </button>
+        </div>
+      </section>
+      {probeError && <div className="status-error">{probeError}</div>}
+
+      <section className="status-summary">
+        <div className="summary-card">
+          <span>Canales</span>
+          <strong>{cards.length}</strong>
+          <small>Modelos habilitados</small>
+        </div>
+        <div className="summary-card">
+          <span>Operativos</span>
+          <strong>{operational}</strong>
+          <small>En la ventana de {windowDays} días</small>
+        </div>
+        <div className="summary-card">
+          <span>Disponibilidad</span>
+          <strong>{avgAvailability}%</strong>
+          <small>Promedio de actividad</small>
+        </div>
+      </section>
+
+      <section className="status-grid">
+        {cards.map((channel) => (
+          <article className={`status-card tone-${channel.accent} ${channel.live ? 'has-live' : ''}`} key={channel.id}>
+            <div className="status-card-head">
+              <div className="status-card-brand">
+                <span className={`status-glyph ${channel.accent}`}><Server size={18} /></span>
+                <div>
+                  <h3>{channel.label}</h3>
+                  <div className="status-meta">
+                    <span className="provider-badge">{channel.provider}</span>
+                    <code>{channel.modelId}</code>
+                  </div>
+                </div>
+              </div>
+              <span className={`channel-badge ${statusTone(channel.live?.status || channel.status)}`}>{channel.live?.status || channel.status}</span>
+            </div>
+
+            <div className="status-metrics">
+              <div>
+                <span>Dialog latency</span>
+                <strong>{channel.live?.dialogLatencyMs || channel.dialogLatencyMs}ms</strong>
+              </div>
+              <div>
+                <span>Endpoint ping</span>
+                <strong>{channel.live?.endpointPingMs || channel.endpointPingMs}ms</strong>
+              </div>
+            </div>
+
+            <div className="status-foot">
+              <div>
+                <span>Availability · {windowDays} days</span>
+                <strong>{channel.availabilityValue}%</strong>
+              </div>
+              <div>
+                <span>History ({channel.window.history.length} pts)</span>
+                <strong>Next update in 50s</strong>
+              </div>
+            </div>
+
+            <div className="status-bars" aria-hidden="true">
+              {channel.window.history.map((height, index) => (
+                <span
+                  key={`${channel.id}-${index}`}
+                  className={`status-bar ${statusDotClass(channel.live?.status || channel.status)}`}
+                  style={{ height: `${height}%` }}
+                />
+              ))}
+            </div>
+
+            <div className="status-card-bottom">
+              <span>Past</span>
+              <span>Now</span>
+            </div>
+
+            <div className="status-card-footer">
+              <span>Group</span>
+              <code>{channel.group}</code>
+              <span>{channel.live ? `HTTP ${channel.live.statusCode || 'ERR'}` : 'Last seen'}</span>
+              <strong title={channel.live?.message}>{channel.live ? formatSeen(channel.live.checkedAt) : formatSeen(channel.window.lastSeen)}</strong>
+            </div>
+          </article>
+        ))}
+      </section>
+    </div>
+  )
+}
+
 function WalletView({ data }: { data: DashboardData }) {
   const [message, setMessage] = useState('')
   async function checkout(amount: number) {
@@ -415,6 +632,7 @@ export function PortalApp() {
   const content = useMemo(() => {
     if (!data) return null
     if (view === 'overview') return <Overview data={data} setView={setView} />
+    if (view === 'status') return <StatusView data={data} refresh={load} />
     if (view === 'keys') return <KeysView data={data} reload={load} />
     if (view === 'models') return <ModelsView data={data} />
     if (view === 'wallet') return <WalletView data={data} />
@@ -442,7 +660,7 @@ export function PortalApp() {
     <section className="main-area">
       <header className="topbar"><button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú"><Menu size={21} /></button><div><h1>{title.title}</h1><p>{title.subtitle}</p></div><div className="top-actions"><button className="icon-button" onClick={load} disabled={refreshing} aria-label="Actualizar"><RefreshCw className={refreshing ? 'spin' : ''} size={18} /></button><button className="balance-pill" onClick={() => setView('wallet')}><WalletCards size={17} /><span>{money(data.user.quota / data.quotaPerUsd, 2)}</span></button></div></header>
       <div className="content-area">{error && <div className="form-error">{error}</div>}{content}</div>
-      <nav className="mobile-nav">{navItems.slice(0, 5).map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+      <nav className="mobile-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
     </section>
   </main>
 }

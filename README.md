@@ -181,6 +181,9 @@ No agregue la clave madre al repositorio, a `.env.example` ni a scripts de clien
 Modelos observados en `GET /v1/models` del nuevo gateway al 18 de agosto de 2026:
 
 ```text
+codex-auto-review
+gpt-4o-audio-preview
+gpt-4o-realtime-preview
 gpt-5.2
 gpt-5.2-2025-12-11
 gpt-5.2-chat-latest
@@ -197,9 +200,6 @@ gpt-5.6-terra
 gpt-image-1
 gpt-image-1.5
 gpt-image-2
-gpt-4o-audio-preview
-gpt-4o-realtime-preview
-codex-auto-review
 ```
 
 `gpt-5.6-luna` no aparece en el nuevo gateway; quite ese modelo de los canales, grupos, tokens y catálogos antes de probar clientes. Tras cambiar el canal, ejecute **Test** desde New API y luego valide con una subclave de cliente. Si `/v1/models` responde pero una completion devuelve `502`, el endpoint y la autenticacion llegan al proveedor, pero el modelo/canal aun requiere validacion del lado de Wluvyh antes de aceptar trafico real.
