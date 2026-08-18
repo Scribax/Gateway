@@ -166,6 +166,7 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .status-card-bottom { justify-content: space-between; margin-top: -10px; color: #748399; font-size: 10px; text-transform: uppercase; }
 .status-card-footer { min-height: 35px; padding-top: 11px; border-top: 1px solid #26344a; gap: 9px; color: #8392a6; font-size: 11px; }
 .status-card-footer code { color: #62e0ac; }.status-card-footer strong { margin-left: auto; color: #dce7e3; font-size: 11px; }
+.status-footnote { color: #7d8ca2; font-size: 11px; margin-top: -4px; }
 @keyframes statusIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes barRise { from { transform: scaleY(.25); opacity: .5; } to { transform: scaleY(1); opacity: 1; } }
 .wallet-hero { min-height: 170px; padding: 26px; background: var(--sidebar); color: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; }

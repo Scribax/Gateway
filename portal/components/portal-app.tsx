@@ -110,6 +110,7 @@ type DashboardData = {
   models: ModelPrice[]
   channels: ChannelStatus[]
   statusWindows: number[]
+  statusLastCheckedAt: number
   groups: Record<string, { desc: string; ratio: number | string }>
   quotaPerUsd: number
   gatewayUrl: string
@@ -411,17 +412,52 @@ function formatSeen(timestamp: number) {
   }).format(new Date(timestamp * 1000))
 }
 
+function formatRelativeHours(timestamp: number) {
+  if (!timestamp) return 'sin historial'
+  const diffMs = Date.now() - timestamp * 1000
+  const hours = Math.max(0, Math.round(diffMs / (60 * 60 * 1000)))
+  return hours === 0 ? 'ahora' : `hace ${hours}h`
+}
+
 function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Promise<void> }) {
   const [windowDays, setWindowDays] = useState<7 | 15 | 30>(7)
-  const [autoRefresh, setAutoRefresh] = useState(true)
   const [probing, setProbing] = useState(false)
   const [probeError, setProbeError] = useState('')
   const [liveProbes, setLiveProbes] = useState<Record<string, LiveProbe>>({})
+  const runProbe = useCallback(async () => {
+    setProbing(true)
+    setProbeError('')
+    try {
+      const body = await readJson(await fetch('/api/channel-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ models: data.channels.map((channel) => channel.modelId) }),
+      })) as { data: { results: LiveProbe[] } }
+      const next = Object.fromEntries(body.data.results.map((probe) => [probe.model, probe]))
+      setLiveProbes(next)
+      window.setTimeout(() => { void refresh() }, 800)
+    } catch (cause) {
+      setProbeError(cause instanceof Error ? cause.message : 'No se pudo probar el estado real.')
+    } finally {
+      setProbing(false)
+    }
+  }, [data.channels, refresh])
+
   useEffect(() => {
-    if (!autoRefresh) return
-    const timer = window.setInterval(() => { void refresh() }, 50000)
-    return () => window.clearInterval(timer)
-  }, [autoRefresh, refresh])
+    const intervalMs = 2 * 60 * 60 * 1000
+    let intervalId: number | undefined
+    const ageMs = data.statusLastCheckedAt ? Date.now() - (data.statusLastCheckedAt * 1000) : Number.POSITIVE_INFINITY
+    const firstDelay = Number.isFinite(ageMs) && ageMs < intervalMs ? intervalMs - ageMs : 0
+    const timeoutId = window.setTimeout(() => {
+      void runProbe().finally(() => {
+        intervalId = window.setInterval(() => { void runProbe() }, intervalMs)
+      })
+    }, firstDelay)
+    return () => {
+      window.clearTimeout(timeoutId)
+      if (intervalId) window.clearInterval(intervalId)
+    }
+  }, [data.statusLastCheckedAt, runProbe])
 
   const windowKey = String(windowDays) as '7' | '15' | '30'
   const availableWindows = data.statusWindows.length ? data.statusWindows : [7, 15, 30]
@@ -436,25 +472,8 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
   const operational = cards.filter((channel) => (channel.live?.status || channel.status) === 'Operational').length
   const degraded = cards.filter((channel) => (channel.live?.status || channel.status) === 'Degraded').length
   const avgAvailability = cards.length ? Math.round(cards.reduce((sum, channel) => sum + channel.availabilityValue, 0) / cards.length) : 0
-
-  async function runProbe() {
-    setProbing(true)
-    setProbeError('')
-    try {
-      const body = await readJson(await fetch('/api/channel-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ models: cards.map((channel) => channel.modelId) }),
-      })) as { data: { results: LiveProbe[] } }
-      const next = Object.fromEntries(body.data.results.map((probe) => [probe.model, probe]))
-      setLiveProbes(next)
-      window.setTimeout(() => { void refresh() }, 800)
-    } catch (cause) {
-      setProbeError(cause instanceof Error ? cause.message : 'No se pudo probar el estado real.')
-    } finally {
-      setProbing(false)
-    }
-  }
+  const latestLiveCheck = Math.max(0, ...Object.values(liveProbes).map((probe) => probe.checkedAt || 0))
+  const lastCheckLabel = latestLiveCheck ? formatSeen(latestLiveCheck) : formatRelativeHours(data.statusLastCheckedAt)
 
   return (
     <div className="view-stack status-view">
@@ -475,14 +494,10 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
           <button className="icon-button" onClick={() => void refresh()} aria-label="Actualizar">
             <RefreshCw size={18} />
           </button>
-          <button className="probe-pill" onClick={runProbe} disabled={probing || cards.length === 0}>
-            {probing ? <LoaderCircle size={16} className="spin" /> : <Activity size={16} />}
-            Probar ahora
-          </button>
-          <button className="refresh-pill" onClick={() => setAutoRefresh((value) => !value)}>
-            <RefreshCw size={16} className={autoRefresh ? 'spin' : ''} />
-            Auto refresh: 50s
-          </button>
+          <span className="refresh-pill">
+            <RefreshCw size={16} className={probing ? 'spin' : ''} />
+            Auto check: 2h
+          </span>
         </div>
       </section>
       {probeError && <div className="status-error">{probeError}</div>}
@@ -568,6 +583,7 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
           </article>
         ))}
       </section>
+      <div className="status-footnote">Último chequeo global: {lastCheckLabel}</div>
     </div>
   )
 }

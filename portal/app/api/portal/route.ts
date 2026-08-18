@@ -99,6 +99,7 @@ export async function GET() {
     const enabledModels = requireSuccess(modelsBody)
     const groups = requireSuccess(groupsBody)
     const hasHealthState = Object.keys(modelHealth).length > 0
+    const statusLastCheckedAt = Object.values(modelHealth).reduce((max, value) => Math.max(max, value.checkedAt || 0), 0)
     const visibleModels = MODEL_CATALOG.filter((model) => (
       enabledModels.includes(model.id) && (!hasHealthState || modelHealth[model.id]?.ok)
     ))
@@ -143,6 +144,7 @@ export async function GET() {
         groups,
         channels,
         statusWindows,
+        statusLastCheckedAt,
         quotaPerUsd: QUOTA_PER_USD,
         gatewayUrl: process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://127.0.0.1:3000/v1',
       },

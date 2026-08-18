@@ -8,7 +8,7 @@ export type ModelHealthState = Record<string, {
 }>
 
 const HEALTH_FILE = process.env.MODEL_HEALTH_FILE || '/tmp/orbiqen-model-health.json'
-const HEALTH_TTL_SECONDS = Number(process.env.MODEL_HEALTH_TTL_SECONDS || 900)
+const HEALTH_TTL_SECONDS = Number(process.env.MODEL_HEALTH_TTL_SECONDS || 14400)
 
 export async function readModelHealth(): Promise<ModelHealthState> {
   try {
