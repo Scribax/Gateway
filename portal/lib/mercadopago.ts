@@ -1,8 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
-import { Pool } from 'pg'
 
 import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
-import { QUOTA_PER_USD } from '@/lib/catalog'
+import { deletePendingTopUp, getPendingTopUp, insertPendingTopUp } from '@/lib/payment-topups'
 
 export const MINIMUM_PAYMENT_USD = 1
 export const MAXIMUM_PAYMENT_USD = 10_000
@@ -14,34 +13,12 @@ type PortalUser = {
   username?: string
 }
 
-type PendingTopUp = {
-  user_id: number
-  amount: number
-  money: number
-  trade_no: string
-  status: string
-}
-
 type MercadoPagoPayment = {
   id?: number | string
   status?: string
   currency_id?: string
   transaction_amount?: number
   external_reference?: string
-}
-
-let pool: Pool | undefined
-
-function getPool() {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.PORTAL_DATABASE_URL,
-      max: 4,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
-    })
-  }
-  return pool
 }
 
 function required(name: string) {
@@ -77,28 +54,6 @@ export function arsForUsd(amountUsd: number) {
   return Math.round(amountUsd * ARS_PER_USD)
 }
 
-async function insertPendingTopUp(userId: number, amountUsd: number, tradeNo: string) {
-  const quotaAmount = Math.round(amountUsd * QUOTA_PER_USD)
-  await getPool().query(
-    `INSERT INTO top_ups
-      (user_id, amount, money, trade_no, payment_method, payment_provider, create_time, complete_time, status)
-     VALUES ($1, $2::bigint, $3::numeric, $4, 'mercadopago', 'mercadopago', $5, 0, 'pending')`,
-    [userId, quotaAmount, amountUsd, tradeNo, Math.floor(Date.now() / 1000)],
-  )
-}
-
-async function deletePendingTopUp(tradeNo: string) {
-  await getPool().query(`DELETE FROM top_ups WHERE trade_no = $1 AND status = 'pending'`, [tradeNo])
-}
-
-async function getPendingTopUp(tradeNo: string) {
-  const result = await getPool().query<PendingTopUp>(
-    `SELECT user_id, amount, money, trade_no, status FROM top_ups WHERE trade_no = $1 LIMIT 1`,
-    [tradeNo],
-  )
-  return result.rows[0]
-}
-
 export async function createMercadoPagoPreference(user: PortalUser, amountUsd: number) {
   const userId = Number(user.id)
   if (!Number.isInteger(userId) || userId <= 0) throw new BackendError('No se pudo identificar la cuenta.', 401)
@@ -109,7 +64,7 @@ export async function createMercadoPagoPreference(user: PortalUser, amountUsd: n
   const tradeNo = `orbiqen:${userId}:${randomUUID()}`
   const amountArs = arsForUsd(amountUsd)
 
-  await insertPendingTopUp(userId, amountUsd, tradeNo)
+  await insertPendingTopUp(userId, amountUsd, tradeNo, 'mercadopago', 'mercadopago')
   try {
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',

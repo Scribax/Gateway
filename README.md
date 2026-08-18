@@ -95,7 +95,7 @@ PUBLIC_GATEWAY_URL=http://127.0.0.1:3000/v1
 PORTAL_COOKIE_SECURE=false
 ```
 
-Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y `PORTAL_COOKIE_SECURE` debe ser `true`. El portal ofrece recargas por Mercado Pago desde US$ 1; los pagos en crypto se muestran como próximos y todavía no acreditan saldo.
+Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y `PORTAL_COOKIE_SECURE` debe ser `true`. El portal ofrece recargas por Mercado Pago y NOWPayments desde US$ 1; las credenciales crypto se configuran solamente en `.env`.
 
 ### Verificación de correo con Resend
 
@@ -319,7 +319,7 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
    ```
 
 3. Cambie todos los secretos locales (`SESSION_SECRET`, `CRYPTO_SECRET`, contrasena de PostgreSQL y Redis) por valores aleatorios. Para este dominio configure `PUBLIC_GATEWAY_URL=https://orbiqen.com/v1`, `PORTAL_COOKIE_SECURE=true`, `GIN_MODE=release` y `DEBUG=false`.
-4. Configure los pagos antes de publicar recargas. En `.env` agregue `PUBLIC_PORTAL_URL=https://orbiqen.com`, `MERCADOPAGO_ACCESS_TOKEN`, `NEW_API_ADMIN_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`. El Access Token de Mercado Pago y el token administrativo de New API son secretos: no deben entrar en Git ni en el navegador. La clave publica de Mercado Pago no es necesaria para Checkout Pro.
+4. Configure los pagos antes de publicar recargas. En `.env` agregue `PUBLIC_PORTAL_URL=https://orbiqen.com`, `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `NOWPAYMENTS_API_KEY`, `NOWPAYMENTS_IPN_SECRET` y `NEW_API_ADMIN_TOKEN`. Configure el IPN de NOWPayments hacia `https://orbiqen.com/api/payments/nowpayments/webhook`. Todos los tokens son secretos: no deben entrar en Git ni en el navegador.
 5. Revise la configuracion y levante el stack con el script de deploy:
 
    ```bash
@@ -337,7 +337,7 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
    ```
 
 7. Emita el certificado con Certbot para `orbiqen.com` y `www.orbiqen.com`. El portal quedara en `https://orbiqen.com` y el relay en `https://orbiqen.com/v1`.
-8. En Mercado Pago configure el webhook de pagos hacia `https://orbiqen.com/api/payments/mercadopago/webhook` y copie su secreto de firma en `MERCADOPAGO_WEBHOOK_SECRET`. El endpoint consulta el pago directamente en Mercado Pago, valida moneda/importe/orden y completa la recarga en New API una sola vez.
+8. En Mercado Pago configure el webhook de pagos hacia `https://orbiqen.com/api/payments/mercadopago/webhook` y copie su secreto de firma en `MERCADOPAGO_WEBHOOK_SECRET`. En NOWPayments configure el IPN hacia `https://orbiqen.com/api/payments/nowpayments/webhook` y copie su IPN Secret en `NOWPAYMENTS_IPN_SECRET`. Ambos endpoints validan firma, moneda/importe/orden y completan la recarga en New API una sola vez.
 9. Mantenga New API admin en `http://127.0.0.1:3000` mediante tunel SSH o VPN. No cree una regla Nginx que publique `/`, `/setup` o las rutas `/api/*` administrativas.
 
 Para actualizaciones posteriores en el VPS:
@@ -365,7 +365,7 @@ Un despliegue habitual completo incluye:
 1. VPS (Hetzner, DigitalOcean, Vultr u otro proveedor) con backups y firewall.
 2. Dominio, proxy inverso Nginx o Traefik y HTTPS automatico para un endpoint como `https://api.tudominio.com`.
 3. PostgreSQL y Redis sin puertos publicos, secretos gestionados externamente y `SESSION_COOKIE_SECURE=true`.
-4. Mercado Pago Checkout Pro ya esta integrado en el portal. El webhook valida la firma en produccion, confirma el pago consultando a Mercado Pago, usa la orden pendiente de New API y completa la recarga con una operacion administrativa idempotente. No exponga credenciales de administrador ni permita que un webhook sin autenticar modifique saldos.
+4. Mercado Pago Checkout Pro y NOWPayments ya estan integrados en el portal. Ambos webhooks validan firma, confirman el pago con el proveedor, usan la orden pendiente de New API y completan la recarga con una operacion administrativa idempotente. No exponga credenciales de administrador ni permita que un webhook sin autenticar modifique saldos.
 5. Monitoreo de errores, consumo, saldo del proveedor madre, latencia, limites de tasa, rotacion de claves y auditoria de recargas.
 
 Las recargas aprobadas se convierten con una tasa fija de `1 USD = 1.600 ARS`. El portal ofrece un paquete mínimo de `US$ 1` y permite importes personalizados mayores a `US$ 1`, con hasta dos decimales. Las URLs de retorno muestran el estado aprobado, pendiente o rechazado dentro de la vista **Saldo**. Antes de aceptar dinero real, prueba primero una recarga de `US$ 1` en produccion y verifica el saldo, el registro de recarga y el webhook en los logs.

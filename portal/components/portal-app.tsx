@@ -49,6 +49,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
 type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup' | 'admin'
 type PaymentReturn = 'success' | 'pending' | 'failure'
+type PaymentMethod = 'mercadopago' | 'crypto'
 type ChannelWindow = {
   days: number
   availability: number
@@ -1334,15 +1335,17 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
 function WalletView({ data, paymentReturn, onDismissPayment }: { data: DashboardData; paymentReturn: PaymentReturn | null; onDismissPayment: () => void }) {
   const [message, setMessage] = useState('')
   const [busyAmount, setBusyAmount] = useState<number | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mercadopago')
   const [customAmount, setCustomAmount] = useState('')
   const customAmountValue = Number(customAmount)
   const customAmountValid = customAmount.trim() !== '' && Number.isFinite(customAmountValue) && customAmountValue > 1 && customAmountValue <= 10_000 && Math.round((customAmountValue + Number.EPSILON) * 100) / 100 === customAmountValue
   async function checkout(amount: number) {
     setBusyAmount(amount); setMessage('')
     try {
-      const body = await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount }) }))
-      if (!body.data?.initPoint) throw new Error('Mercado Pago no devolvió el enlace de pago.')
-      window.location.assign(body.data.initPoint)
+      const body = await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, provider: paymentMethod }) }))
+      const paymentUrl = paymentMethod === 'crypto' ? body.data?.invoiceUrl : body.data?.initPoint
+      if (!paymentUrl) throw new Error(paymentMethod === 'crypto' ? 'NOWPayments no devolvió el enlace de pago.' : 'Mercado Pago no devolvió el enlace de pago.')
+      window.location.assign(paymentUrl)
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Pagos no disponibles.') }
     finally { setBusyAmount(null) }
   }
@@ -1368,12 +1371,12 @@ function WalletView({ data, paymentReturn, onDismissPayment }: { data: Dashboard
     <section className="section-block">
       <div className="section-heading"><div><h3>Métodos de pago</h3><p>Elegí cómo cargar crédito en tu cuenta</p></div></div>
       <div className="payment-method-grid">
-        <div className="payment-method active"><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>Disponible · AR$ 1.600 por US$ 1</small></span><ShieldCheck size={17} /></div>
-        <div className="payment-method disabled"><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto</strong><small>Próximamente · USDT, BTC y más</small></span><LockKeyhole size={16} /></div>
+        <button className={`payment-method ${paymentMethod === 'mercadopago' ? 'active' : ''}`} onClick={() => setPaymentMethod('mercadopago')}><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>ARS · US$ 1.600 por dólar</small></span>{paymentMethod === 'mercadopago' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
+        <button className={`payment-method crypto-method ${paymentMethod === 'crypto' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · NOWPayments</strong><small>BTC, USDT y más monedas</small></span>{paymentMethod === 'crypto' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
       </div>
     </section>
     <section className="section-block">
-      <div className="section-heading"><div><h3>Cargar saldo</h3><p>Pago seguro con Mercado Pago · mínimo US$ 1</p></div></div>
+      <div className="section-heading"><div><h3>Cargar saldo</h3><p>{paymentMethod === 'crypto' ? 'Pago crypto seguro · mínimo US$ 1' : 'Pago seguro con Mercado Pago · mínimo US$ 1'}</p></div></div>
       <div className="package-grid">{[1, 5, 10, 25].map((amount, index) => <button className={`package-card ${index === 2 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === 1 ? 'Prueba mínima' : index === 2 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>AR$ {(amount * 1600).toLocaleString('es-AR')} · Pago único</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
       <div className="custom-topup">
         <div className="custom-topup-copy"><strong>Otro importe</strong><small>Recargá cualquier monto mayor a US$ 1, hasta US$ 10.000.</small></div>
