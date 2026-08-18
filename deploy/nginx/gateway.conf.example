@@ -1,4 +1,4 @@
-# Gateway AI: ejemplo para Nginx en el VPS.
+# Orbiqen: ejemplo para Nginx en el VPS.
 # Sustituya los dominios y configure TLS antes de usarlo en produccion.
 
 server {

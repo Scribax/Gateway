@@ -34,7 +34,9 @@ code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospac
 
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 720; font-size: 16px; white-space: nowrap; }
 .brand-light { color: #fff; }
-.brand-mark { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: var(--green); border-radius: 7px; }
+.brand-logo { display: inline-flex; align-items: center; width: 154px; height: 36px; overflow: hidden; }
+.brand-logo img { display: block; width: 154px; height: auto; }
+.brand-logo-light img { filter: grayscale(1) brightness(0) invert(1); }
 .icon-button { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .icon-button:hover { color: var(--text); border-color: var(--line-strong); background: var(--surface-soft); }
 .icon-button.danger:hover { color: var(--danger); border-color: #e7bbb8; background: #fff5f4; }

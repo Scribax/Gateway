@@ -82,6 +82,10 @@ type DashboardData = {
   gatewayUrl: string
 }
 
+function BrandLogo({ light = false }: { light?: boolean }) {
+  return <span className={`brand-logo${light ? ' brand-logo-light' : ''}`}><img src="/orbiqen-logo.png" alt="Orbiqen" /></span>
+}
+
 const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard }> = [
   { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
   { id: 'keys', label: 'API Keys', icon: KeyRound },
@@ -139,8 +143,6 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
   const [codeSent, setCodeSent] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [error, setError] = useState('')
-  const brand = process.env.NEXT_PUBLIC_PORTAL_NAME || 'Gateway AI'
-
   useEffect(() => {
     if (cooldown <= 0) return
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000)
@@ -187,7 +189,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
   return (
     <main className="auth-shell">
       <section className="auth-brand-panel">
-        <div className="brand brand-light"><span className="brand-mark"><Sparkles size={19} /></span>{brand}</div>
+        <div className="brand brand-light"><BrandLogo light /></div>
         <div className="auth-brand-content">
           <div className="auth-signal"><span /><span /><span /></div>
           <h1>Una API.<br />Todos tus modelos.</h1>
@@ -196,7 +198,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
         <div className="auth-proof"><ShieldCheck size={18} /><span>Claves aisladas y control de consumo</span></div>
       </section>
       <section className="auth-form-panel">
-        <div className="auth-mobile-brand brand"><span className="brand-mark"><Sparkles size={18} /></span>{brand}</div>
+        <div className="auth-mobile-brand brand"><BrandLogo /></div>
         <form className="auth-form" onSubmit={submit}>
           <div>
             <p className="eyebrow">{mode === 'login' ? 'Bienvenido' : 'Nueva cuenta'}</p>
@@ -385,7 +387,7 @@ function SetupView({ data }: { data: DashboardData }) {
 }
 
 function LoadingScreen() {
-  return <main className="loading-screen"><div className="brand"><span className="brand-mark"><Sparkles size={18} /></span>Gateway AI</div><LoaderCircle className="spin" size={25} /></main>
+  return <main className="loading-screen"><div className="brand"><BrandLogo /></div><LoaderCircle className="spin" size={25} /></main>
 }
 
 export function PortalApp() {
@@ -395,8 +397,6 @@ export function PortalApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const brand = process.env.NEXT_PUBLIC_PORTAL_NAME || 'Gateway AI'
-
   const load = useCallback(async () => {
     setRefreshing(true); setError('')
     try {
@@ -434,7 +434,7 @@ export function PortalApp() {
   const initials = (data.user.display_name || data.user.username).slice(0, 2).toUpperCase()
   return <main className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-      <div className="brand"><span className="brand-mark"><Sparkles size={18} /></span>{brand}</div>
+      <div className="brand"><BrandLogo light /></div>
       <nav>{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => { setView(id); setSidebarOpen(false) }}><Icon size={19} /><span>{label}</span></button>)}</nav>
       <div className="sidebar-footer"><div className="account-row"><span className="avatar">{initials}</span><span><strong>{data.user.display_name || data.user.username}</strong><small>{data.user.username}</small></span><button className="icon-button" onClick={logout} aria-label="Cerrar sesión"><LogOut size={17} /></button></div></div>
     </aside>

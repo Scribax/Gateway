@@ -1,4 +1,4 @@
-# New API Gateway local
+# Orbiqen Gateway local
 
 Entorno local reproducible para probar New API como gateway OpenAI-compatible, con PostgreSQL persistente, Redis y scripts de relay y saldo.
 
@@ -90,7 +90,7 @@ Variables principales:
 
 ```env
 PORTAL_PORT=3100
-PORTAL_NAME=Gateway AI
+PORTAL_NAME=Orbiqen
 PUBLIC_GATEWAY_URL=http://127.0.0.1:3000/v1
 PORTAL_COOKIE_SECURE=false
 ```
