@@ -19,6 +19,7 @@ import {
   LoaderCircle,
   LockKeyhole,
   LogOut,
+  Mail,
   Menu,
   Plus,
   RefreshCw,
@@ -130,10 +131,37 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
   const [visible, setVisible] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [codeSent, setCodeSent] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
   const [error, setError] = useState('')
   const brand = process.env.NEXT_PUBLIC_PORTAL_NAME || 'Gateway AI'
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000)
+    return () => window.clearInterval(timer)
+  }, [cooldown])
+
+  async function sendVerificationCode() {
+    setSendingCode(true)
+    setError('')
+    try {
+      await readJson(await fetch('/api/auth/verification', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }),
+      }))
+      setCodeSent(true)
+      setCooldown(60)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo enviar el código.')
+    } finally {
+      setSendingCode(false)
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -142,7 +170,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
     try {
       if (mode === 'register') {
         await readJson(await fetch('/api/auth/register', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, email, verificationCode }),
         }))
       }
       await readJson(await fetch('/api/auth/login', {
@@ -178,6 +206,23 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
             Usuario
             <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder="tu_usuario" required />
           </label>
+          {mode === 'register' && <>
+            <label>
+              Correo electrónico
+              <input value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }} type="email" autoComplete="email" placeholder="vos@tuempresa.com" required />
+            </label>
+            <label>
+              Código de verificación
+              <span className="verification-field">
+                <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" pattern="[0-9]{6}" required />
+                <button className="secondary-button verification-send" type="button" onClick={sendVerificationCode} disabled={sendingCode || cooldown > 0 || !email}>
+                  {sendingCode ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />}
+                  {cooldown > 0 ? `${cooldown}s` : codeSent ? 'Reenviar' : 'Enviar código'}
+                </button>
+              </span>
+            </label>
+            {codeSent && <p className="form-success">Código enviado. Revisá también la carpeta de spam.</p>}
+          </>}
           <label>
             Contraseña
             <span className="password-field">
@@ -187,7 +232,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
           </label>
           {error && <div className="form-error">{error}</div>}
           <button className="primary-button auth-submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}{mode === 'login' ? 'Ingresar' : 'Crear cuenta'}</button>
-          <button className="text-button" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}>
+          <button className="text-button" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setCodeSent(false); setCooldown(0) }}>
             {mode === 'login' ? 'Crear una cuenta nueva' : 'Ya tengo una cuenta'}
           </button>
         </form>

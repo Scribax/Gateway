@@ -78,7 +78,7 @@ El directorio `portal/` contiene una aplicación Next.js independiente. No modif
 
 Funciones disponibles:
 
-- Inicio de sesión y registro usando las cuentas de New API.
+- Inicio de sesión y registro con verificación de correo usando las cuentas de New API.
 - Saldo, solicitudes y actividad reciente.
 - Creación, revelado y revocación de subclaves.
 - Límite de crédito y modelos permitidos por clave.
@@ -96,6 +96,40 @@ PORTAL_COOKIE_SECURE=false
 ```
 
 Para producción, `PUBLIC_GATEWAY_URL` debe apuntar al dominio HTTPS público y `PORTAL_COOKIE_SECURE` debe ser `true`. Los botones de compra quedan en estado no disponible hasta incorporar las credenciales y webhooks de Mercado Pago.
+
+### Verificación de correo con Resend
+
+El portal usa el mecanismo de verificación incorporado en New API. Resend se conecta como servidor SMTP; la API key de Resend se guarda solamente en el panel administrativo de New API y nunca en Git.
+
+Antes de configurar el envío, agregue y verifique su dominio en **Resend > Domains**. Luego cree una dirección remitente del dominio, por ejemplo `no-reply@api.sudominio.com`. El remitente de prueba de Resend no sirve para enviar libremente a clientes reales.
+
+En New API abra **System Settings / Configuración del sistema > Email / SMTP** y use:
+
+```text
+SMTP Server: smtp.resend.com
+SMTP Port: 465
+SMTP Account / Username: resend
+SMTP Token / Password: [API key de Resend]
+SMTP From: no-reply@api.sudominio.com
+SSL: activado
+STARTTLS: desactivado
+Insecure Skip Verify: desactivado
+Force AUTH LOGIN: desactivado
+```
+
+Guarde y use la prueba de correo del panel si está disponible. Como alternativa, Resend también admite el puerto `587`; en ese caso desactive **SSL** y active **STARTTLS**.
+
+Finalmente, en **System Settings > Operation Settings** active:
+
+```text
+Register enabled
+Password register enabled
+Email verification enabled
+```
+
+El cliente ahora pulsa **Crear una cuenta nueva**, escribe su correo, solicita el código, ingresa los seis dígitos recibidos y crea la cuenta. New API valida el código antes de guardar el usuario. Para comprobarlo, regístrese con un correo real desde el portal; el evento debe aparecer como `Delivered` en **Resend > Emails**.
+
+Si aparece `SMTP server is not configured`, falta guardar alguno de los campos SMTP. Si Resend rechaza el remitente, confirme que `SMTP From` pertenece exactamente a un dominio verificado. Nunca pegue la API key en `.env.example`, documentación, capturas, commits ni logs.
 
 ## 2. Primer administrador
 
