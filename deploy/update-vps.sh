@@ -4,6 +4,7 @@ set -Eeuo pipefail
 PROJECT_DIR="${PROJECT_DIR:-/opt/gateway}"
 BRANCH="${BRANCH:-main}"
 PUBLIC_GATEWAY_URL_DEFAULT="${PUBLIC_GATEWAY_URL_DEFAULT:-https://orbiqen.com/v1}"
+PUBLIC_PORTAL_URL_DEFAULT="${PUBLIC_PORTAL_URL_DEFAULT:-https://orbiqen.com}"
 UPSTREAM_BASE_URL="${UPSTREAM_BASE_URL:-https://api.wluvyh.cloud}"
 UPSTREAM_SITE_URL="${UPSTREAM_SITE_URL:-https://www.wluvyh.cloud/}"
 BUILD_NEW_API="${BUILD_NEW_API:-false}"
@@ -66,6 +67,7 @@ log "Backup de configuracion guardado en $backup_dir"
 
 log "Ajustando variables recomendadas de produccion"
 ensure_env_value "PUBLIC_GATEWAY_URL" "$PUBLIC_GATEWAY_URL_DEFAULT" ".env"
+ensure_env_value "PUBLIC_PORTAL_URL" "$PUBLIC_PORTAL_URL_DEFAULT" ".env"
 ensure_env_value "PORTAL_COOKIE_SECURE" "true" ".env"
 ensure_env_value "GIN_MODE" "release" ".env"
 ensure_env_value "DEBUG" "false" ".env"
@@ -74,6 +76,16 @@ ensure_env_value "NEW_API_VERSION" "v1.0.0-rc.24" ".env"
 
 log "Validando compose"
 docker compose config --quiet
+
+if [ -z "${MERCADOPAGO_ACCESS_TOKEN:-}" ] && ! grep -q '^MERCADOPAGO_ACCESS_TOKEN=[^[:space:]]' .env; then
+  log "Aviso: MERCADOPAGO_ACCESS_TOKEN no esta configurado; el checkout permanecera deshabilitado"
+fi
+if [ -z "${NEW_API_ADMIN_TOKEN:-}" ] && ! grep -q '^NEW_API_ADMIN_TOKEN=[^[:space:]]' .env; then
+  log "Aviso: NEW_API_ADMIN_TOKEN no esta configurado; el webhook no podra acreditar saldo"
+fi
+if [ -z "${MERCADOPAGO_WEBHOOK_SECRET:-}" ] && ! grep -q '^MERCADOPAGO_WEBHOOK_SECRET=[^[:space:]]' .env; then
+  log "Aviso: MERCADOPAGO_WEBHOOK_SECRET no esta configurado; produccion rechazara webhooks"
+fi
 
 if [ "$BUILD_NEW_API" = "true" ]; then
   log "Construyendo New API y portal"

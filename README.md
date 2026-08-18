@@ -319,7 +319,8 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
    ```
 
 3. Cambie todos los secretos locales (`SESSION_SECRET`, `CRYPTO_SECRET`, contrasena de PostgreSQL y Redis) por valores aleatorios. Para este dominio configure `PUBLIC_GATEWAY_URL=https://orbiqen.com/v1`, `PORTAL_COOKIE_SECURE=true`, `GIN_MODE=release` y `DEBUG=false`.
-4. Revise la configuracion y levante el stack con el script de deploy:
+4. Configure los pagos antes de publicar recargas. En `.env` agregue `PUBLIC_PORTAL_URL=https://orbiqen.com`, `MERCADOPAGO_ACCESS_TOKEN`, `NEW_API_ADMIN_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`. El Access Token de Mercado Pago y el token administrativo de New API son secretos: no deben entrar en Git ni en el navegador. La clave publica de Mercado Pago no es necesaria para Checkout Pro.
+5. Revise la configuracion y levante el stack con el script de deploy:
 
    ```bash
    chmod +x deploy/update-vps.sh
@@ -328,15 +329,16 @@ El mismo Compose sirve como base para el VPS. Los puertos están ligados a `127.
 
    El script actualiza desde Git, crea `.env` si falta, guarda backup de la configuracion, fuerza variables seguras de produccion, ejecuta `docker compose up -d --build` y muestra los pasos para cambiar el canal madre a Wluvyh dentro de New API.
 
-5. Copie `deploy/nginx/gateway.conf.example` a `/etc/nginx/sites-available/orbiqen`, active el sitio y valide:
+6. Copie `deploy/nginx/gateway.conf.example` a `/etc/nginx/sites-available/orbiqen`, active el sitio y valide:
 
    ```bash
    sudo ln -s /etc/nginx/sites-available/orbiqen /etc/nginx/sites-enabled/orbiqen
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
-6. Emita el certificado con Certbot para `orbiqen.com` y `www.orbiqen.com`. El portal quedara en `https://orbiqen.com` y el relay en `https://orbiqen.com/v1`.
-7. Mantenga New API admin en `http://127.0.0.1:3000` mediante tunel SSH o VPN. No cree una regla Nginx que publique `/`, `/setup` o las rutas `/api/*` administrativas.
+7. Emita el certificado con Certbot para `orbiqen.com` y `www.orbiqen.com`. El portal quedara en `https://orbiqen.com` y el relay en `https://orbiqen.com/v1`.
+8. En Mercado Pago configure el webhook de pagos hacia `https://orbiqen.com/api/payments/mercadopago/webhook` y copie su secreto de firma en `MERCADOPAGO_WEBHOOK_SECRET`. El endpoint consulta el pago directamente en Mercado Pago, valida moneda/importe/orden y completa la recarga en New API una sola vez.
+9. Mantenga New API admin en `http://127.0.0.1:3000` mediante tunel SSH o VPN. No cree una regla Nginx que publique `/`, `/setup` o las rutas `/api/*` administrativas.
 
 Para actualizaciones posteriores en el VPS:
 
@@ -363,10 +365,10 @@ Un despliegue habitual completo incluye:
 1. VPS (Hetzner, DigitalOcean, Vultr u otro proveedor) con backups y firewall.
 2. Dominio, proxy inverso Nginx o Traefik y HTTPS automatico para un endpoint como `https://api.tudominio.com`.
 3. PostgreSQL y Redis sin puertos publicos, secretos gestionados externamente y `SESSION_COOKIE_SECURE=true`.
-4. Mercado Pago mediante un servicio propio: el webhook valida firma e idempotencia, confirma el pago y llama a una operacion administrativa de New API para acreditar cuota. No exponga credenciales de administrador ni permita que un webhook sin autenticar modifique saldos.
+4. Mercado Pago Checkout Pro ya esta integrado en el portal. El webhook valida la firma en produccion, confirma el pago consultando a Mercado Pago, usa la orden pendiente de New API y completa la recarga con una operacion administrativa idempotente. No exponga credenciales de administrador ni permita que un webhook sin autenticar modifique saldos.
 5. Monitoreo de errores, consumo, saldo del proveedor madre, latencia, limites de tasa, rotacion de claves y auditoria de recargas.
 
-Mercado Pago no queda integrado automaticamente por este repositorio. Hay que implementar y probar el adaptador de pagos, su conciliacion y la politica de reembolsos antes de aceptar dinero real.
+Las recargas aprobadas se convierten con una tasa fija de `1 USD = 1.600 ARS` y el minimo es `US$ 1`. Antes de aceptar dinero real, prueba primero una recarga de `US$ 1` en produccion y verifica el saldo, el registro de recarga y el webhook en los logs.
 
 ## Antes de produccion
 

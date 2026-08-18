@@ -1331,12 +1331,18 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
 
 function WalletView({ data }: { data: DashboardData }) {
   const [message, setMessage] = useState('')
+  const [busyAmount, setBusyAmount] = useState<number | null>(null)
   async function checkout(amount: number) {
-    try { await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount }) })) }
-    catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Pagos no disponibles.') }
+    setBusyAmount(amount); setMessage('')
+    try {
+      const body = await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount }) }))
+      if (!body.data?.initPoint) throw new Error('Mercado Pago no devolvió el enlace de pago.')
+      window.location.assign(body.data.initPoint)
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Pagos no disponibles.') }
+    finally { setBusyAmount(null) }
   }
   const balance = data.user.quota / data.quotaPerUsd
-  return <div className="view-stack"><section className="wallet-hero"><div><p>Saldo disponible</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>Cuenta {data.user.username}</span></div><span className="wallet-icon"><WalletCards size={28} /></span></section><section className="section-block"><div className="section-heading"><div><h3>Cargar saldo</h3><p>Crédito en dólares para todos los modelos</p></div></div><div className="package-grid">{[5, 10, 25].map((amount, index) => <button className={`package-card ${index === 1 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)}><span>{index === 1 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>Pago único</small><span className="package-cta">Comprar <ChevronRight size={16} /></span></button>)}</div>{message && <div className="payment-message"><CreditCard size={18} />{message}</div>}</section></div>
+  return <div className="view-stack"><section className="wallet-hero"><div><p>Saldo disponible</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>Cuenta {data.user.username}</span></div><span className="wallet-icon"><WalletCards size={28} /></span></section><section className="section-block"><div className="section-heading"><div><h3>Cargar saldo</h3><p>Pago seguro con Mercado Pago · US$ 1 = AR$ 1.600</p></div></div><div className="package-grid">{[1, 5, 10, 25].map((amount, index) => <button className={`package-card ${index === 2 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{index === 2 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>AR$ {(amount * 1600).toLocaleString('es-AR')} · Pago único</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>{message && <div className="payment-message"><CreditCard size={18} />{message}</div>}</section></div>
 }
 
 const snippets = {
