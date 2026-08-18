@@ -5,6 +5,7 @@ import { deletePendingTopUp, getPendingTopUp, insertPendingTopUp } from '@/lib/p
 import { arsForUsd, validatePaymentAmount } from '@/lib/mercadopago'
 
 const NOWPAYMENTS_API_URL = 'https://api.nowpayments.io/v1'
+export const MINIMUM_CRYPTO_PAYMENT_USD = 10
 
 type PortalUser = { id?: number; email?: string; username?: string }
 type NowPayment = {
@@ -48,6 +49,9 @@ export async function createNowPaymentsInvoice(user: PortalUser, amountUsd: numb
   const userId = Number(user.id)
   if (!Number.isInteger(userId) || userId <= 0) throw new BackendError('No se pudo identificar la cuenta.', 401)
   validatePaymentAmount(amountUsd)
+  if (amountUsd < MINIMUM_CRYPTO_PAYMENT_USD) {
+    throw new BackendError(`Las recargas con crypto tienen un mínimo de US$ ${MINIMUM_CRYPTO_PAYMENT_USD} por los límites de red y conversión de NOWPayments.`, 400)
+  }
   const origin = publicOrigin()
   const tradeNo = `orbiqen:crypto:${userId}:${randomUUID()}`
   await insertPendingTopUp(userId, amountUsd, tradeNo, 'crypto', 'nowpayments')
