@@ -97,8 +97,8 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json().catch(() => ({})) as { models?: string[] }
     const requestedModels = Array.isArray(payload.models) ? payload.models.filter((model) => typeof model === 'string') : []
-    if (requestedModels.length === 0 || requestedModels.length > 10) {
-      throw new BackendError('Seleccioná entre 1 y 10 modelos para probar.', 400)
+    if (requestedModels.length === 0 || requestedModels.length > 25) {
+      throw new BackendError('Seleccioná entre 1 y 25 modelos para probar.', 400)
     }
 
     const modelsBody = await newApiFetch<NewApiEnvelope<string[]>>('/api/user/models')
