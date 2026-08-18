@@ -4,16 +4,19 @@ import {
   Activity,
   ArrowUpRight,
   BookOpen,
+  Bot,
   Check,
   ChevronRight,
   CircleDollarSign,
   Clipboard,
   Code2,
   Copy,
+  Cpu,
   CreditCard,
   Eye,
   EyeOff,
   Gauge,
+  Image as ImageIcon,
   KeyRound,
   LayoutDashboard,
   LoaderCircle,
@@ -21,7 +24,9 @@ import {
   LogOut,
   Mail,
   Menu,
+  Mic2,
   Plus,
+  RadioTower,
   RefreshCw,
   Server,
   ShieldCheck,
@@ -387,7 +392,70 @@ function KeysView({ data, reload }: { data: DashboardData; reload: () => Promise
 }
 
 function ModelsView({ data }: { data: DashboardData }) {
-  return <div className="view-stack"><div className="catalog-summary"><div><Sparkles size={20} /><span><strong>{data.models.length} modelos</strong><small>Plan Profesional</small></span></div><div><Gauge size={20} /><span><strong>Pago por uso</strong><small>Sin costo fijo</small></span></div></div><section className="section-block"><div className="table-wrap"><table><thead><tr><th>Modelo</th><th>Entrada / 1M</th><th>Salida / 1M</th><th>Cache read / 1M</th><th>Estado</th></tr></thead><tbody>{data.models.map((model) => <tr key={model.id}><td><span className="catalog-model"><span className={`model-glyph ${model.accent}`}>{model.label.slice(-1)}</span><span><strong>{model.label}</strong><code>{model.id}</code></span></span></td><td>{money(model.input, model.input < 0.1 ? 4 : 3)}</td><td>{money(model.output, model.output < 0.1 ? 4 : 3)}</td><td>{money(model.cacheRead, 5)}</td><td><span className="available-badge"><Check size={13} />Disponible</span></td></tr>)}</tbody></table></div></section></div>
+  return <div className="view-stack">
+    <section className="models-hero">
+      <div>
+        <p className="eyebrow">Catálogo comercial</p>
+        <h2>Modelos disponibles</h2>
+        <p>Vista compacta con identidad visual real, precios y estado de venta en una sola pantalla.</p>
+      </div>
+      <div className="catalog-summary">
+        <div><Sparkles size={20} /><span><strong>{data.models.length} modelos</strong><small>Plan Profesional</small></span></div>
+        <div><Gauge size={20} /><span><strong>Pago por uso</strong><small>Sin costo fijo</small></span></div>
+      </div>
+    </section>
+
+    <section className="model-grid">
+      {data.models.map((model) => {
+        const visual = getModelVisual(model.id)
+        const priceLines = [
+          { label: 'Entrada', value: money(model.input, model.input < 0.1 ? 4 : 3) },
+          { label: 'Salida', value: money(model.output, model.output < 0.1 ? 4 : 3) },
+          { label: 'Cache read', value: money(model.cacheRead, 5) },
+          { label: 'Cache write', value: model.cacheWrite > 0 ? money(model.cacheWrite, 5) : '-' },
+        ]
+        return (
+          <article className={`model-card tone-${model.accent}`} key={model.id}>
+            <div className="model-card-top">
+              <span className={`model-badge ${model.accent}`}><visual.Icon size={18} /></span>
+              <span className="available-badge"><Check size={13} />Disponible</span>
+            </div>
+            <div className="model-card-head">
+              <div>
+                <h3>{model.label}</h3>
+                <code>{model.id}</code>
+              </div>
+              <span className={`model-family family-${visual.family.toLowerCase()}`}>{visual.family}</span>
+            </div>
+            <div className="model-chip-row">
+              <span className="model-chip">OpenAI</span>
+              <span className="model-chip">{visual.mode}</span>
+            </div>
+            <div className="model-price-grid">
+              {priceLines.map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </article>
+        )
+      })}
+    </section>
+  </div>
+}
+
+function getModelVisual(modelId: string) {
+  if (modelId.includes('image')) return { Icon: ImageIcon, family: 'Image', mode: 'Vision' }
+  if (modelId.includes('audio')) return { Icon: Mic2, family: 'Audio', mode: 'Voice' }
+  if (modelId.includes('realtime')) return { Icon: RadioTower, family: 'Realtime', mode: 'Stream' }
+  if (modelId.includes('codex')) return { Icon: Code2, family: 'Codex', mode: 'Code' }
+  if (modelId.includes('pro')) return { Icon: Cpu, family: 'Pro', mode: 'Premium' }
+  if (modelId.includes('mini')) return { Icon: Gauge, family: 'Mini', mode: 'Light' }
+  if (modelId.includes('terra')) return { Icon: Server, family: 'Terra', mode: 'General' }
+  if (modelId.includes('sol')) return { Icon: Sparkles, family: 'Sol', mode: 'General' }
+  return { Icon: Bot, family: 'Core', mode: 'General' }
 }
 
 function statusTone(status: ChannelStatus['status']) {
