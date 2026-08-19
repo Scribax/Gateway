@@ -473,9 +473,23 @@ function Overview({ data, setView }: { data: DashboardData; setView: (view: View
 function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: () => void; onCreated: (key: string) => void }) {
   const [name, setName] = useState('mi-aplicacion')
   const [quota, setQuota] = useState(Math.min(10, Math.max(1, Math.floor(data.user.quota / data.quotaPerUsd))))
-  const [models, setModels] = useState<string[]>(data.models.map((model) => model.id))
+  const groupOptions = [
+    { id: 'clientes', label: 'ChatGPT', description: 'Modelos GPT y Codex', matches: (id: string) => !id.includes('claude') },
+    { id: 'claude', label: 'Claude', description: 'Modelos Anthropic', matches: (id: string) => id.includes('claude') },
+  ].filter((option) => option.id in data.groups)
+  const fallbackGroup = groupOptions[0] || { id: 'default', label: 'ChatGPT', description: 'Modelos disponibles', matches: (_id: string) => true }
+  const [group, setGroup] = useState(fallbackGroup.id)
+  const selectedGroup = groupOptions.find((option) => option.id === group) || fallbackGroup
+  const groupModels = data.models.filter((model) => selectedGroup.matches(model.id))
+  const [models, setModels] = useState<string[]>(groupModels.map((model) => model.id))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  function selectGroup(nextGroup: string) {
+    setGroup(nextGroup)
+    const nextOption = groupOptions.find((option) => option.id === nextGroup) || fallbackGroup
+    setModels(data.models.filter((model) => nextOption.matches(model.id)).map((model) => model.id))
+  }
 
   function toggleModel(id: string) {
     setModels((current) => current.includes(id) ? current.filter((model) => model !== id) : [...current, id])
@@ -486,7 +500,7 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
     try {
       const body = await readJson(await fetch('/api/keys', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, quotaUsd: quota, group: 'default', models }),
+        body: JSON.stringify({ name, quotaUsd: quota, group, models }),
       }))
       onCreated(body.data.key)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo crear la clave.') }
@@ -499,7 +513,8 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
       <div className="modal-body">
         <label>Nombre<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} required /></label>
         <label>Límite de consumo (USD)<input type="number" min="0.01" step="0.01" value={quota} onChange={(event) => setQuota(Number(event.target.value))} required /></label>
-        <fieldset><legend>Modelos permitidos</legend><div className="model-check-grid">{data.models.map((model) => <label className={`check-row ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span>{model.label}</label>)}</div></fieldset>
+        <fieldset><legend>Grupo de acceso</legend><div className="group-choice-grid">{groupOptions.map((option) => <label className={`group-choice ${group === option.id ? 'selected' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span><strong>{option.label}</strong><small>{option.description}</small></span></label>)}</div></fieldset>
+        <fieldset><legend>Modelos permitidos · {selectedGroup.label}</legend><div className="model-check-grid">{groupModels.map((model) => <label className={`check-row ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span>{model.label}</label>)}</div></fieldset>
         {error && <div className="form-error">{error}</div>}
       </div>
       <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button" disabled={loading || models.length === 0}>{loading ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}Crear clave</button></div>

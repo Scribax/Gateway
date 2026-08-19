@@ -28,7 +28,15 @@ export async function POST(request: Request) {
     const allowedGroups = requireSuccess(groupsBody)
     const selectedModels = (payload.models || []).filter((model) => allowedModels.has(model))
     if (selectedModels.length === 0) throw new BackendError('Seleccioná al menos un modelo.', 400)
-    const group = payload.group && payload.group in allowedGroups ? payload.group : 'default'
+    const group = payload.group?.trim() || (('clientes' in allowedGroups) ? 'clientes' : 'default')
+    if (!(group in allowedGroups)) throw new BackendError('Seleccioná un grupo válido.', 400)
+    const selectedClaudeModels = selectedModels.filter((model) => model.includes('claude'))
+    if (group === 'claude' && selectedClaudeModels.length !== selectedModels.length) {
+      throw new BackendError('El grupo Claude solo puede usar modelos Claude.', 400)
+    }
+    if (group !== 'claude' && selectedClaudeModels.length > 0) {
+      throw new BackendError('El grupo ChatGPT solo puede usar modelos ChatGPT.', 400)
+    }
     const beforeIds = new Set((requireSuccess(beforeBody).items || []).map((item) => item.id))
 
     const createBody = await newApiFetch<NewApiEnvelope<unknown>>('/api/token/', {
