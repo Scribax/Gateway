@@ -9,6 +9,7 @@ export type ModelPrice = {
 }
 
 export const MODEL_CATALOG: ModelPrice[] = [
+  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', input: 0.6, output: 3, cacheRead: 0.06, cacheWrite: 0, accent: 'coral' },
   { id: 'codex-auto-review', label: 'codex-auto-review', input: 0, output: 0, cacheRead: 0, cacheWrite: 0, accent: 'blue' },
   { id: 'gpt-4o-audio-preview', label: 'GPT 4o Audio Preview', input: 0, output: 0, cacheRead: 0, cacheWrite: 0, accent: 'blue' },
   { id: 'gpt-4o-realtime-preview', label: 'GPT 4o Realtime Preview', input: 0, output: 0, cacheRead: 0, cacheWrite: 0, accent: 'blue' },

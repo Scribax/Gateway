@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   BarChart3,
   Bitcoin,
+  BrainCircuit,
   BookOpen,
   Bot,
   CalendarRange,
@@ -1124,6 +1125,7 @@ function ModelsView({ data }: { data: DashboardData }) {
 }
 
 function getModelVisual(modelId: string) {
+  if (modelId.includes('claude')) return { Icon: BrainCircuit, family: 'Claude', mode: 'Reasoning' }
   if (modelId.includes('image')) return { Icon: ImageIcon, family: 'Image', mode: 'Vision' }
   if (modelId.includes('audio')) return { Icon: Mic2, family: 'Audio', mode: 'Voice' }
   if (modelId.includes('realtime')) return { Icon: RadioTower, family: 'Realtime', mode: 'Stream' }

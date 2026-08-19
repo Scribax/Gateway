@@ -197,6 +197,7 @@ gpt-5.5
 gpt-5.6
 gpt-5.6-sol
 gpt-5.6-terra
+claude-opus-4-8
 gpt-image-1
 gpt-image-1.5
 gpt-image-2
