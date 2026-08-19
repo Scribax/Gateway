@@ -476,8 +476,8 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
   const groupOptions = [
     { id: 'clientes', label: 'ChatGPT', description: 'Modelos GPT y Codex', matches: (id: string) => !id.includes('claude') },
     { id: 'claude', label: 'Claude', description: 'Modelos Anthropic', matches: (id: string) => id.includes('claude') },
-  ].filter((option) => option.id in data.groups)
-  const fallbackGroup = groupOptions[0] || { id: 'default', label: 'ChatGPT', description: 'Modelos disponibles', matches: (_id: string) => true }
+  ].filter((option) => data.models.some((model) => option.matches(model.id)))
+  const fallbackGroup = groupOptions[0] || { id: 'clientes', label: 'ChatGPT', description: 'Modelos disponibles', matches: (_id: string) => true }
   const [group, setGroup] = useState(fallbackGroup.id)
   const selectedGroup = groupOptions.find((option) => option.id === group) || fallbackGroup
   const groupModels = data.models.filter((model) => selectedGroup.matches(model.id))

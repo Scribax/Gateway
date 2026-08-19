@@ -28,8 +28,9 @@ export async function POST(request: Request) {
     const allowedGroups = requireSuccess(groupsBody)
     const selectedModels = (payload.models || []).filter((model) => allowedModels.has(model))
     if (selectedModels.length === 0) throw new BackendError('Seleccioná al menos un modelo.', 400)
-    const group = payload.group?.trim() || (('clientes' in allowedGroups) ? 'clientes' : 'default')
-    if (!(group in allowedGroups)) throw new BackendError('Seleccioná un grupo válido.', 400)
+    const group = payload.group?.trim() || 'clientes'
+    const knownGroups = new Set(['default', 'clientes', 'claude'])
+    if (!(group in allowedGroups) && !knownGroups.has(group)) throw new BackendError('Seleccioná un grupo válido.', 400)
     const selectedClaudeModels = selectedModels.filter((model) => model.includes('claude'))
     if (group === 'claude' && selectedClaudeModels.length !== selectedModels.length) {
       throw new BackendError('El grupo Claude solo puede usar modelos Claude.', 400)
