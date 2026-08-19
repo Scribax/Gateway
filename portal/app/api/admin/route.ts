@@ -82,12 +82,16 @@ function providerCostUsd(log: AdminLog, upstreamFactor: number) {
   if (!model) return billed * upstreamFactor
 
   const meta = parseMeta(log.other)
-  const cacheTokens = Number(meta.cache_tokens || 0)
-  const promptTokens = Math.max(0, (log.prompt_tokens || 0) - cacheTokens)
+  const cacheReadTokens = Number(meta.cache_read_tokens ?? meta.cache_tokens ?? 0)
+  const cacheCreationTokens = Number(
+    meta.cache_creation_tokens ?? meta.cache_creation_input_tokens ?? meta.cache_write_tokens ?? 0,
+  )
+  const promptTokens = Math.max(0, (log.prompt_tokens || 0) - cacheReadTokens - cacheCreationTokens)
   const tokenCost = (
     (promptTokens * model.input) +
     ((log.completion_tokens || 0) * model.output) +
-    (cacheTokens * model.cacheRead)
+    (cacheReadTokens * model.cacheRead) +
+    (cacheCreationTokens * model.cacheWrite)
   ) / 1_000_000
 
   return (tokenCost > 0 ? tokenCost : billed) * upstreamFactor
