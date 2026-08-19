@@ -1106,7 +1106,7 @@ function ModelsView({ data }: { data: DashboardData }) {
               <span className={`model-family family-${visual.family.toLowerCase()}`}>{visual.family}</span>
             </div>
             <div className="model-chip-row">
-              <span className="model-chip">OpenAI</span>
+              <span className="model-chip">{model.id.includes('claude') ? 'Anthropic' : 'OpenAI'}</span>
               <span className="model-chip">{visual.mode}</span>
             </div>
             <div className="model-price-grid">
