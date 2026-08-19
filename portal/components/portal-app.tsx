@@ -40,6 +40,7 @@ import {
   Server,
   ShieldCheck,
   Sparkles,
+  Terminal,
   Trash2,
   TrendingUp,
   Users,
@@ -512,9 +513,116 @@ function SecretModal({ secret, onClose }: { secret: string; onClose: () => void 
   return <div className="modal-backdrop"><div className="modal secret-modal"><div className="modal-header"><div><p className="eyebrow">API Key</p><h3>Credencial lista</h3></div><button className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div><div className="modal-body"><div className="secret-box"><code>{secret}</code><button className="icon-button" onClick={copy} aria-label="Copiar">{copied ? <Check size={19} /> : <Copy size={19} />}</button></div><p className="security-note"><ShieldCheck size={17} />Guardala en un gestor de secretos y no la incluyas en código público.</p></div><div className="modal-footer"><button className="primary-button" onClick={onClose}>Listo</button></div></div></div>
 }
 
+type SetupTarget = 'codex' | 'codex-ws' | 'opencode'
+type SetupAuthMode = 'compatibility' | 'api-key'
+type SetupOs = 'unix' | 'windows'
+
+function codexConfig(base: string, provider: string) {
+  return `model_provider = "${provider}"
+model = "gpt-5.5"
+review_model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+disable_response_storage = true
+network_access = "enabled"
+windows_wsl_setup_acknowledged = true
+
+[model_providers.${provider}]
+name = "${provider}"
+base_url = "${base}"
+wire_api = "responses"
+requires_openai_auth = true
+
+[features]
+goals = true`
+}
+
+function setupFiles(target: SetupTarget, os: SetupOs, base: string, key: string, authMode: SetupAuthMode) {
+  const apiKey = key || 'sk-tu-api-key'
+  const provider = 'Orbiqen'
+  const configPath = os === 'windows' ? '%USERPROFILE%\\.codex\\config.toml' : '~/.codex/config.toml'
+  const authPath = os === 'windows' ? '%USERPROFILE%\\.codex\\auth.json' : '~/.codex/auth.json'
+  if (target === 'opencode') {
+    return [{
+      path: os === 'windows' ? '%USERPROFILE%\\.config\\opencode\\opencode.json' : '~/.config/opencode/opencode.json',
+      content: JSON.stringify({
+        $schema: 'https://opencode.ai/config.json',
+        provider: {
+          orbiqen: {
+            npm: '@ai-sdk/openai-compatible',
+            name: 'Orbiqen',
+            options: { baseURL: base, apiKey },
+            models: { 'gpt-5.5': { name: 'GPT-5.5' } },
+          },
+        },
+        model: 'orbiqen/gpt-5.5',
+      }, null, 2),
+    }]
+  }
+  const wireComment = target === 'codex-ws'
+    ? '# Configuracion para Codex CLI (WebSocket); conserva wire_api=responses para el gateway compatible'
+    : ''
+  return [
+    { path: configPath, content: `${wireComment ? `${wireComment}\n` : ''}${codexConfig(base, provider)}` },
+    { path: authPath, content: JSON.stringify({ OPENAI_API_KEY: apiKey }, null, 2) },
+  ]
+}
+
+function UseApiKeyModal({ data, keyInfo, onClose }: { data: DashboardData; keyInfo: ApiKey; onClose: () => void }) {
+  const [target, setTarget] = useState<SetupTarget>('codex')
+  const [authMode, setAuthMode] = useState<SetupAuthMode>('compatibility')
+  const [os, setOs] = useState<SetupOs>('unix')
+  const [secret, setSecret] = useState('')
+  const [copied, setCopied] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadSecret() {
+      try {
+        const body = await readJson(await fetch(`/api/keys/${keyInfo.id}/reveal`, { method: 'POST' }))
+        if (!cancelled) setSecret(body.data.key)
+      } catch (cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'No se pudo cargar la clave.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void loadSecret()
+    return () => { cancelled = true }
+  }, [keyInfo.id])
+
+  const files = setupFiles(target, os, data.gatewayUrl, secret, authMode)
+  async function copy(path: string, content: string) {
+    await navigator.clipboard.writeText(content)
+    setCopied(path)
+    setTimeout(() => setCopied(''), 1800)
+  }
+
+  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <div className="modal setup-modal">
+      <div className="modal-header"><div><p className="eyebrow">Usar API Key · {keyInfo.name}</p><h3>Configuración de cliente</h3></div><button className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div>
+      <div className="setup-controls">
+        <div className="setup-segment"><span>Cliente</span><div>{([['codex', 'Codex CLI'], ['codex-ws', 'Codex CLI (WebSocket)'], ['opencode', 'OpenCode']] as const).map(([value, label]) => <button key={value} className={target === value ? 'active' : ''} onClick={() => setTarget(value)}>{label}</button>)}</div></div>
+        <div className="setup-segment"><span>Autenticación</span><div>{([['compatibility', 'Compatibility mode'], ['api-key', 'API Key Mode']] as const).map(([value, label]) => <button key={value} className={authMode === value ? 'active' : ''} onClick={() => setAuthMode(value)}>{label}</button>)}</div></div>
+        <div className="setup-segment"><span>Sistema</span><div>{([['unix', 'macOS / Linux'], ['windows', 'Windows']] as const).map(([value, label]) => <button key={value} className={os === value ? 'active' : ''} onClick={() => setOs(value)}>{label}</button>)}</div></div>
+      </div>
+      <p className="setup-mode-note">{authMode === 'api-key' ? 'API Key Mode usa la credencial directa del cliente para autorizar el gateway.' : 'Compatibility mode genera el formato OPENAI_API_KEY para clientes existentes.'}</p>
+      <div className="modal-body setup-body">
+        {loading && <div className="setup-loading"><LoaderCircle className="spin" size={19} />Cargando la credencial de esta clave...</div>}
+        {error && <div className="form-error">{error}</div>}
+        {!loading && !error && files.map((file) => <section className="setup-file" key={file.path}><div className="setup-file-head"><code>{file.path}</code><button className="copy-code" onClick={() => copy(file.path, file.content)}>{copied === file.path ? <Check size={16} /> : <Copy size={16} />}{copied === file.path ? 'Copiado' : 'Copiar'}</button></div><pre><code>{file.content}</code></pre></section>)}
+        <p className="security-note"><ShieldCheck size={17} />La clave se revela solo para generar esta configuración. No la compartas ni la subas a Git.</p>
+      </div>
+      <div className="modal-footer"><button className="primary-button" onClick={onClose}>Listo</button></div>
+    </div>
+  </div>
+}
+
 function KeysView({ data, reload }: { data: DashboardData; reload: () => Promise<void> }) {
   const [creating, setCreating] = useState(false)
   const [secret, setSecret] = useState('')
+  const [setupKey, setSetupKey] = useState<ApiKey | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [error, setError] = useState('')
 
@@ -532,7 +640,7 @@ function KeysView({ data, reload }: { data: DashboardData; reload: () => Promise
     finally { setBusyId(null) }
   }
 
-  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} activas</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />Crear API Key</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Credencial</th><th>Modelos</th><th>Saldo</th><th>Último uso</th><th className="right">Acciones</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={6}><div className="empty-row"><KeyRound size={20} />No hay claves creadas</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : 'Todos'}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label="Revelar clave">{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label="Eliminar clave"><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} onClose={() => setSecret('')} />}</div>
+  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} activas</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />Crear API Key</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Credencial</th><th>Modelos</th><th>Saldo</th><th>Último uso</th><th className="right">Acciones</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={6}><div className="empty-row"><KeyRound size={20} />No hay claves creadas</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : 'Todos'}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="secondary-button key-use-button" onClick={() => setSetupKey(key)}><Terminal size={16} />Usar API Key</button><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label="Revelar clave">{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label="Eliminar clave"><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} onClose={() => setSecret('')} />}{setupKey && <UseApiKeyModal data={data} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}</div>
 }
 
 type UsageRange = '24h' | '7d' | '30d'
