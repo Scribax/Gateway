@@ -137,6 +137,7 @@ type DashboardData = {
   logs: UsageLog[]
   logTotal: number
   models: ModelPrice[]
+  keyModels: ModelPrice[]
   channels: ChannelStatus[]
   statusWindows: number[]
   statusLastCheckedAt: number
@@ -479,7 +480,7 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
   ]
   const [group, setGroup] = useState<string | null>(null)
   const selectedGroup = groupOptions.find((option) => option.id === group) || null
-  const groupModels = selectedGroup ? data.models.filter((model) => selectedGroup.matches(model.id)) : []
+  const groupModels = selectedGroup ? data.keyModels.filter((model) => selectedGroup.matches(model.id)) : []
   const [models, setModels] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -487,7 +488,7 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
   function selectGroup(nextGroup: string) {
     setGroup(nextGroup)
     const nextOption = groupOptions.find((option) => option.id === nextGroup)
-    setModels(nextOption ? data.models.filter((model) => nextOption.matches(model.id)).map((model) => model.id) : [])
+    setModels(nextOption ? data.keyModels.filter((model) => nextOption.matches(model.id)).map((model) => model.id) : [])
   }
 
   function toggleModel(id: string) {
@@ -512,7 +513,7 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
       <div className="modal-body">
         <label>Nombre<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} required /></label>
         <label>Límite de consumo (USD)<input type="number" min="0.01" step="0.01" value={quota} onChange={(event) => setQuota(Number(event.target.value))} required /></label>
-        <fieldset><legend>1. Elegí un grupo</legend><div className="group-choice-grid">{groupOptions.map((option) => { const available = data.models.some((model) => option.matches(model.id)); return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span><strong>{option.label}</strong><small>{available ? option.description : 'Sin modelos disponibles ahora'}</small></span></label> })}</div></fieldset>
+        <fieldset><legend>1. Elegí un grupo</legend><div className="group-choice-grid">{groupOptions.map((option) => { const available = data.keyModels.some((model) => option.matches(model.id)); return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span><strong>{option.label}</strong><small>{available ? option.description : 'Sin modelos disponibles ahora'}</small></span></label> })}</div></fieldset>
         {selectedGroup ? <fieldset><legend>2. Elegí los modelos de {selectedGroup.label}</legend>{groupModels.length > 0 ? <div className="model-check-grid">{groupModels.map((model) => <label className={`check-row ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span>{model.label}</label>)}</div> : <p className="field-note">No hay modelos disponibles en este grupo.</p>}</fieldset> : <div className="group-prompt"><Sparkles size={17} /><span>Elegí ChatGPT o Claude para ver sus modelos.</span></div>}
         {error && <div className="form-error">{error}</div>}
       </div>

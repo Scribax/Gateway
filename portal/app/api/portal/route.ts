@@ -103,6 +103,9 @@ export async function GET() {
     const visibleModels = MODEL_CATALOG.filter((model) => (
       enabledModels.includes(model.id) && (!hasHealthState || modelHealth[model.id]?.ok)
     ))
+    const keyModels = MODEL_CATALOG.filter((model) => (
+      visibleModels.some((visible) => visible.id === model.id) || model.id.includes('claude')
+    ))
     const statusModels = MODEL_CATALOG.filter((model) => enabledModels.includes(model.id))
     const requestLogs = logs.items || []
     const statusWindows = [7, 15, 30]
@@ -141,6 +144,7 @@ export async function GET() {
         logs: logs.items || [],
         logTotal: logs.total || 0,
         models: visibleModels,
+        keyModels,
         groups,
         channels,
         statusWindows,
