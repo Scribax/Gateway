@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Orbiqen - Activador para Codex y Claude
+title Orbiqen | Configuracion automatica
 
 set "SCRIPT_DIR=%~dp0"
 set "PS1=%SCRIPT_DIR%activar-orbiqen.ps1"
@@ -22,7 +22,7 @@ if %errorlevel%==0 (
   set "POWERSHELL=powershell"
 )
 
-echo Iniciando activador Orbiqen...
+echo Iniciando configuracion automatica de Orbiqen...
 echo Guardando log en: "%LOG%"
 echo.
 

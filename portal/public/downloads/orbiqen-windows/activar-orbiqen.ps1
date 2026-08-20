@@ -34,12 +34,12 @@ function Write-Log {
 
 function Write-Title {
   Write-Host ""
-  Write-Host "  ===============================================" -ForegroundColor DarkCyan
-  Write-Host "   ORBIQEN - Activador para Codex y Claude" -ForegroundColor Cyan
-  Write-Host "  ===============================================" -ForegroundColor DarkCyan
+  Write-Host "  =====================================================" -ForegroundColor DarkCyan
+  Write-Host "   ORBIQEN | Configuracion automatica" -ForegroundColor Cyan
+  Write-Host "  =====================================================" -ForegroundColor DarkCyan
   Write-Host ""
-  Write-Host "  Este asistente configura tus apps para usar Orbiqen." -ForegroundColor White
-  Write-Host "  Solo vas a pegar tu API key. No se muestra ni se envia a nadie mas." -ForegroundColor Gray
+  Write-Host "  Configura Codex y Claude para usar tu cuenta Orbiqen." -ForegroundColor White
+  Write-Host "  Solo necesitas pegar la API key correspondiente." -ForegroundColor Gray
   Write-Host ""
 }
 
@@ -67,7 +67,7 @@ function Read-PlainKey {
     Write-Host ""
     Write-Host "  $Prompt" -ForegroundColor White
     Write-Host "  $GroupHint" -ForegroundColor DarkGray
-    $value = Read-Host "  API key"
+    $value = Read-Host "  Pega la key y presiona ENTER"
     if ($null -eq $value) {
       $value = ""
     }
@@ -289,12 +289,18 @@ function Main {
   Write-Log "Inicio del activador Orbiqen"
   Write-Title
 
-  Write-Host "  Que queres configurar?" -ForegroundColor White
-  Write-Host "    1. Codex con ChatGPT de Orbiqen"
-  Write-Host "    2. Claude con modelos Claude de Orbiqen"
-  Write-Host "    3. Ambos"
+  Write-Host "  Elegi que queres configurar:" -ForegroundColor White
   Write-Host ""
-  $choice = Read-Host "  Elegi una opcion (1/2/3)"
+  Write-Host "    [1] Codex / GPT" -ForegroundColor Green
+  Write-Host "        Para usar Codex con los modelos GPT de Orbiqen." -ForegroundColor DarkGray
+  Write-Host ""
+  Write-Host "    [2] Claude" -ForegroundColor Magenta
+  Write-Host "        Para usar Claude Code o Claude Desktop." -ForegroundColor DarkGray
+  Write-Host ""
+  Write-Host "    [3] Codex / GPT + Claude" -ForegroundColor Cyan
+  Write-Host "        Configura las dos aplicaciones." -ForegroundColor DarkGray
+  Write-Host ""
+  $choice = Read-Host "  Opcion (1/2/3)"
 
   $configureCodex = $choice.Trim() -eq "1" -or $choice.Trim() -eq "3"
   $configureClaude = $choice.Trim() -eq "2" -or $choice.Trim() -eq "3"
@@ -304,18 +310,22 @@ function Main {
   }
 
   if ($configureCodex) {
-    $codexKey = Read-PlainKey -Prompt "Pega tu key para Codex / ChatGPT." -GroupHint "Debe ser una key creada en el grupo ChatGPT economico o ChatGPT estable."
+    $codexKey = Read-PlainKey -Prompt "KEY DE CODEX / GPT" -GroupHint "Usa una key creada en el grupo ChatGPT economico o ChatGPT estable."
     Configure-Codex -ApiKey $codexKey
   }
 
   if ($configureClaude) {
-    $claudeKey = Read-PlainKey -Prompt "Pega tu key para Claude." -GroupHint "Debe ser una key creada en el grupo Claude."
+    $claudeKey = Read-PlainKey -Prompt "KEY DE CLAUDE" -GroupHint "Usa una key creada en el grupo Claude."
     Configure-ClaudeEnvironment -ApiKey $claudeKey
   }
 
   Write-Host ""
-  Write-Host "  Todo listo." -ForegroundColor Green
-  Write-Host "  Cierra y vuelve a abrir Codex, Claude o tu editor para que tomen la nueva configuracion." -ForegroundColor White
+  Write-Host "  =====================================================" -ForegroundColor DarkGreen
+  Write-Host "   CONFIGURACION COMPLETADA" -ForegroundColor Green
+  Write-Host "  =====================================================" -ForegroundColor DarkGreen
+  Write-Host ""
+  Write-Host "  Cierra y vuelve a abrir Codex, Claude o tu editor." -ForegroundColor White
+  Write-Host "  Tus aplicaciones ya tomaran la configuracion de Orbiqen." -ForegroundColor Gray
   Write-Host "  Diagnostico: $DiagPath" -ForegroundColor DarkGray
   Write-Log "Activador finalizado correctamente"
 }

@@ -23,8 +23,11 @@ COMO USARLO
 -----------
 1. Extrae la carpeta completa.
 2. Ejecuta activar-orbiqen.bat con doble click.
-3. Elegi que queres configurar: Codex, Claude o ambos.
-4. Pega tu API key cuando el asistente la pida.
+3. Elegi una opcion:
+   - Codex / GPT.
+   - Claude.
+   - Codex / GPT + Claude.
+4. Pega la key correspondiente cuando el asistente la pida.
 5. Cierra y vuelve a abrir Codex, Claude o tu editor.
 
 QUE CONFIGURA
