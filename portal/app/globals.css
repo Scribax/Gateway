@@ -84,6 +84,9 @@ code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospac
 .public-brand { color: var(--text) !important; font-size: 19px; font-weight: 790 !important; }
 .public-nav > div { display: flex; align-items: center; gap: 18px; }
 .public-nav-cta { min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 7px; display: inline-flex; align-items: center; background: #fff; color: var(--text) !important; }
+.public-language-switch { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 800; }
+.public-language-switch a { color: #8b9690; text-decoration: none; }
+.public-language-switch a.active { color: var(--green); }
 .public-hero { padding: clamp(54px, 8vw, 96px) clamp(18px, 5vw, 72px) clamp(38px, 6vw, 72px); max-width: 1160px; margin: 0 auto; }
 .public-hero.compact { padding-bottom: 34px; }
 .public-eyebrow { margin: 0 0 13px; color: var(--green); font-size: 12px; font-weight: 800; letter-spacing: 0; }
@@ -551,6 +554,9 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .landing-brand-mark { display: inline-flex; align-items: center; width: 132px; height: 40px; overflow: hidden; }
 .landing-brand-mark img { display: block; width: 132px; height: auto; filter: grayscale(1) brightness(0) invert(1); }
 .landing-nav-actions { display: flex; align-items: center; gap: 10px; }
+.landing-nav-actions .public-language-switch { color: #9eaea8; }
+.landing-nav-actions .public-language-switch a { color: #9eaea8; }
+.landing-nav-actions .public-language-switch a.active { color: #ffb06d; }
 .landing-link, .landing-button { min-height: 40px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 720; }
 .landing-link { color: #edf3ef !important; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); }
 .landing-button { background: #ff8a22; color: #fff !important; }

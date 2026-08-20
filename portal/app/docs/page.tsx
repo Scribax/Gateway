@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { PublicNav } from '@/components/public-nav'
 
 export const metadata: Metadata = {
   title: 'Documentación de API',
@@ -14,15 +15,12 @@ const openAiExample = `curl https://orbiqen.com/v1/chat/completions \\
 export default function DocsPage() {
   return (
     <main className="public-page">
-      <nav className="public-nav">
-        <a className="public-brand" href="/">Orbiqen</a>
-        <div><a href="/precios">Precios</a><a href="/docs">Documentación</a><a className="public-nav-cta" href="/">Ingresar</a></div>
-      </nav>
+      <PublicNav locale="es" englishPath="/en/docs" />
       <section className="public-hero">
         <p className="public-eyebrow">ORBIQEN API</p>
         <h1>Conectá tus aplicaciones con modelos GPT y Claude.</h1>
         <p>Una API compatible para tus herramientas de desarrollo, con keys por cliente, saldo prepago y seguimiento del consumo.</p>
-        <div className="public-actions"><a className="public-primary" href="/">Crear una cuenta</a><a className="public-secondary" href="#quickstart">Ver quickstart</a></div>
+        <div className="public-actions"><a className="public-primary" href="/login?mode=register">Crear una cuenta</a><a className="public-secondary" href="#quickstart">Ver quickstart</a></div>
       </section>
       <section className="public-content" id="quickstart">
         <div className="public-section-heading"><p className="public-eyebrow">QUICKSTART</p><h2>Empezá en pocos minutos</h2><p>Creá una API key desde tu panel y usá la Base URL de Orbiqen en tu aplicación.</p></div>

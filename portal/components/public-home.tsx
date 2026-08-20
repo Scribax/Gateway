@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowRight, BadgeCheck, ChevronRight, Coins, LayoutDashboard, ShieldCheck, Sparkles, WalletCards } from 'lucide-react'
+import { PublicLanguageSwitch } from './public-nav'
 
 const openAiExample = `curl https://orbiqen.com/v1/chat/completions \\
   -H "Authorization: Bearer TU_API_KEY" \\
@@ -38,6 +39,7 @@ export default function PublicHome() {
           <a href="/docs">Docs</a>
         </nav>
         <div className="landing-nav-actions">
+          <PublicLanguageSwitch locale="es" englishPath="/en" />
           <a className="landing-link" href="/login">Ingresar</a>
           <a className="landing-button" href="/login?mode=register">Crear cuenta</a>
         </div>

@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   description: 'Accedé a modelos GPT y Claude desde una API compatible, con saldo prepago, métricas de uso y configuración automática.',
   applicationName: 'Orbiqen',
   keywords: ['API de inteligencia artificial', 'API GPT', 'API Claude', 'gateway de IA', 'OpenAI compatible', 'Claude API'],
-  alternates: { canonical: '/' },
+  alternates: {
+    canonical: '/',
+    languages: { es: '/', en: '/en' },
+  },
   openGraph: {
     type: 'website',
     locale: 'es_AR',
