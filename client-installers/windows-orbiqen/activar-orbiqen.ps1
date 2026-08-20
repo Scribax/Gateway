@@ -33,7 +33,6 @@ function Write-Log {
 }
 
 function Write-Title {
-  Clear-Host
   Write-Host ""
   Write-Host "  ===============================================" -ForegroundColor DarkCyan
   Write-Host "   ORBIQEN - Activador para Codex y Claude" -ForegroundColor Cyan
