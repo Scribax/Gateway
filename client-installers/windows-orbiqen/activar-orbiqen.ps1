@@ -35,7 +35,7 @@ function Write-Log {
 function Write-Title {
   Write-Host ""
   Write-Host "  =====================================================" -ForegroundColor DarkCyan
-  Write-Host "   ORBIQEN | Configuracion automatica" -ForegroundColor Cyan
+  Write-Host "   ORBIQEN - Configuracion automatica" -ForegroundColor Cyan
   Write-Host "  =====================================================" -ForegroundColor DarkCyan
   Write-Host ""
   Write-Host "  Configura Codex y Claude para usar tu cuenta Orbiqen." -ForegroundColor White
@@ -49,11 +49,16 @@ function Write-Step {
   Write-Host "  $Text" -ForegroundColor Cyan
 }
 
+function Write-SubStep {
+  param([string]$Text)
+  Write-Host "    -> $Text" -ForegroundColor DarkGray
+}
+
 function Pause-End {
   if (-not $NoPause) {
     Write-Host ""
-    Write-Host "  Presiona ENTER para cerrar..." -ForegroundColor DarkGray
-    [void][Console]::ReadLine()
+    Write-Host "  Presiona ENTER para cerrar esta ventana..." -ForegroundColor DarkCyan
+    $null = Read-Host
   }
 }
 
@@ -129,7 +134,7 @@ function Test-OrbiqenModels {
     [string]$Label
   )
 
-  Write-Host "  Verificando conexion con Orbiqen ($Label)..." -ForegroundColor Gray
+  Write-Host "  [1/4] Verificando conexion con Orbiqen ($Label)..." -ForegroundColor Gray
 
   try {
     $headers = @{
@@ -138,29 +143,49 @@ function Test-OrbiqenModels {
     }
     $response = Invoke-WebRequest -Uri "$OpenAiBaseUrl/models" -Headers $headers -Method GET -TimeoutSec 25 -UseBasicParsing
     if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
-      Write-Host "  Conexion correcta." -ForegroundColor Green
+      Write-Host "        Conexion correcta y API key valida." -ForegroundColor Green
       Write-Log "Validacion $Label OK HTTP $($response.StatusCode)"
       return $true
     }
   } catch {
-    Write-Host "  No se pudo validar automaticamente: $($_.Exception.Message)" -ForegroundColor Yellow
-    Write-Host "  Si la key es nueva o tiene modelos limitados, igual podemos configurar." -ForegroundColor DarkGray
+    Write-Host "        No se pudo validar automaticamente: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "        Si la key es nueva o tiene modelos limitados, igual podemos configurar." -ForegroundColor DarkGray
     Write-Log "Validacion $Label fallo: $($_.Exception.Message)"
   }
 
   $answer = Read-Host "  Queres continuar de todos modos? (S/N)"
+  if ($null -eq $answer) {
+    $answer = ""
+  }
   return ($answer.Trim().ToUpperInvariant() -eq "S")
+}
+
+function Set-UserEnvBulk {
+  param([hashtable]$Vars)
+
+  foreach ($k in $Vars.Keys) {
+    $v = $Vars[$k]
+    if ($null -eq $v) {
+      Remove-ItemProperty -Path "HKCU:\Environment" -Name $k -ErrorAction SilentlyContinue
+    } else {
+      Set-ItemProperty -Path "HKCU:\Environment" -Name $k -Value $v -Type String
+    }
+  }
+
+  # Broadcast WM_SETTINGCHANGE to notify Windows of changes
+  [Environment]::SetEnvironmentVariable("ORBIQEN_ACTIVE", "1", "User")
 }
 
 function Configure-Codex {
   param([string]$ApiKey)
 
-  Write-Step "Configurando Codex CLI"
+  Write-Step "Configurando Codex CLI..."
 
   if (-not (Test-OrbiqenModels -Key $ApiKey -Label "Codex / ChatGPT")) {
     throw "Configuracion de Codex cancelada."
   }
 
+  Write-Host "  [2/4] Preparando directorios y respaldos..." -ForegroundColor Gray
   $codexDir = Join-Path $env:USERPROFILE ".codex"
   $configPath = Join-Path $codexDir "config.toml"
   $authPath = Join-Path $codexDir "auth.json"
@@ -169,6 +194,7 @@ function Configure-Codex {
   Backup-File -Path $authPath
   New-Item -ItemType Directory -Force -Path $codexDir | Out-Null
 
+  Write-Host "  [3/4] Escribiendo configuracion de Orbiqen en config.toml..." -ForegroundColor Gray
   $toml = @"
 model_provider = "orbiqen"
 model = "$DefaultCodexModel"
@@ -189,32 +215,40 @@ goals = true
 "@
 
   Write-Utf8NoBom -Path $configPath -Content ($toml + [Environment]::NewLine)
+
+  Write-Host "  [4/4] Guardando autenticacion en auth.json..." -ForegroundColor Gray
   Write-JsonNoBom -Path $authPath -Data @{ OPENAI_API_KEY = $ApiKey }
 
-  Write-Host "  Codex quedo configurado con Orbiqen." -ForegroundColor Green
-  Write-Host "  Modelo inicial: $DefaultCodexModel" -ForegroundColor DarkGray
+  Write-Host ""
+  Write-Host "  Codex quedo configurado exitosamente con Orbiqen." -ForegroundColor Green
+  Write-Host "  Modelo predeterminado: $DefaultCodexModel" -ForegroundColor DarkGray
   Write-Log "Codex configurado en $codexDir"
 }
 
 function Configure-ClaudeEnvironment {
   param([string]$ApiKey)
 
-  Write-Step "Configurando Claude"
+  Write-Step "Configurando Claude..."
 
   if (-not (Test-OrbiqenModels -Key $ApiKey -Label "Claude")) {
     throw "Configuracion de Claude cancelada."
   }
 
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", $ClaudeBaseUrl, "User")
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_AUTH_TOKEN", $ApiKey, "User")
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", $null, "User")
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_DEFAULT_SONNET_MODEL", $DefaultClaudeModel, "User")
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_DEFAULT_OPUS_MODEL", $DefaultClaudeOpusModel, "User")
-  [Environment]::SetEnvironmentVariable("ANTHROPIC_SMALL_FAST_MODEL", $DefaultClaudeFastModel, "User")
-  [Environment]::SetEnvironmentVariable("CLAUDE_CODE_SKIP_AUTH_LOGIN", "1", "User")
-  [Environment]::SetEnvironmentVariable("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1", "User")
-  [Environment]::SetEnvironmentVariable("CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY", "1", "User")
+  Write-Host "  [2/4] Aplicando variables de entorno de Windows en segundo plano..." -ForegroundColor Gray
+  $envMap = @{
+    "ANTHROPIC_BASE_URL" = $ClaudeBaseUrl
+    "ANTHROPIC_AUTH_TOKEN" = $ApiKey
+    "ANTHROPIC_API_KEY" = $null
+    "ANTHROPIC_DEFAULT_SONNET_MODEL" = $DefaultClaudeModel
+    "ANTHROPIC_DEFAULT_OPUS_MODEL" = $DefaultClaudeOpusModel
+    "ANTHROPIC_SMALL_FAST_MODEL" = $DefaultClaudeFastModel
+    "CLAUDE_CODE_SKIP_AUTH_LOGIN" = "1"
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC" = "1"
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY" = "1"
+  }
+  Set-UserEnvBulk -Vars $envMap
 
+  Write-Host "  [3/4] Generando archivo de configuracion .claude\settings.json..." -ForegroundColor Gray
   $claudeDir = Join-Path $env:USERPROFILE ".claude"
   $settingsPath = Join-Path $claudeDir "settings.json"
   Backup-File -Path $settingsPath
@@ -236,10 +270,13 @@ function Configure-ClaudeEnvironment {
   }
 
   Write-JsonNoBom -Path $settingsPath -Data $settings
+
+  Write-Host "  [4/4] Verificando perfiles de Claude Desktop..." -ForegroundColor Gray
   Configure-ClaudeDesktop3p -ApiKey $ApiKey
 
-  Write-Host "  Claude quedo configurado con Orbiqen." -ForegroundColor Green
-  Write-Host "  Modelo inicial: $DefaultClaudeModel" -ForegroundColor DarkGray
+  Write-Host ""
+  Write-Host "  Claude quedo configurado exitosamente con Orbiqen." -ForegroundColor Green
+  Write-Host "  Modelo predeterminado: $DefaultClaudeModel" -ForegroundColor DarkGray
   Write-Log "Claude configurado en $claudeDir"
 }
 
@@ -301,6 +338,9 @@ function Main {
   Write-Host "        Configura las dos aplicaciones." -ForegroundColor DarkGray
   Write-Host ""
   $choice = Read-Host "  Opcion (1/2/3)"
+  if ($null -eq $choice) {
+    $choice = ""
+  }
 
   $configureCodex = $choice.Trim() -eq "1" -or $choice.Trim() -eq "3"
   $configureClaude = $choice.Trim() -eq "2" -or $choice.Trim() -eq "3"
@@ -321,11 +361,12 @@ function Main {
 
   Write-Host ""
   Write-Host "  =====================================================" -ForegroundColor DarkGreen
-  Write-Host "   CONFIGURACION COMPLETADA" -ForegroundColor Green
+  Write-Host "   [OK] CONFIGURACION FINALIZADA CON EXITO" -ForegroundColor Green
   Write-Host "  =====================================================" -ForegroundColor DarkGreen
   Write-Host ""
-  Write-Host "  Cierra y vuelve a abrir Codex, Claude o tu editor." -ForegroundColor White
-  Write-Host "  Tus aplicaciones ya tomaran la configuracion de Orbiqen." -ForegroundColor Gray
+  Write-Host "  Los cambios ya fueron aplicados en el sistema." -ForegroundColor White
+  Write-Host "  1. Ya podes cerrar esta ventana." -ForegroundColor Gray
+  Write-Host "  2. Si tenias abierto Codex, Claude o tu editor, reinicialos." -ForegroundColor Gray
   Write-Host "  Diagnostico: $DiagPath" -ForegroundColor DarkGray
   Write-Log "Activador finalizado correctamente"
 }
@@ -334,11 +375,12 @@ try {
   Main
 } catch {
   Write-Host ""
-  Write-Host "  No se pudo completar la configuracion." -ForegroundColor Red
-  Write-Host "  $($_.Exception.Message)" -ForegroundColor Yellow
+  Write-Host "  =====================================================" -ForegroundColor DarkRed
+  Write-Host "   NO SE PUDO COMPLETAR LA CONFIGURACION" -ForegroundColor Red
+  Write-Host "  =====================================================" -ForegroundColor DarkRed
+  Write-Host "  Detalle: $($_.Exception.Message)" -ForegroundColor Yellow
   Write-Host "  Diagnostico: $DiagPath" -ForegroundColor DarkGray
   Write-Log "ERROR: $($_.Exception.Message)"
-  exit 1
 } finally {
   Pause-End
 }
