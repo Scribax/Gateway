@@ -28,6 +28,8 @@ services:
       NOWPAYMENTS_API_KEY: ${NOWPAYMENTS_API_KEY:-}
       NOWPAYMENTS_IPN_SECRET: ${NOWPAYMENTS_IPN_SECRET:-}
       NOWPAYMENTS_API_URL: ${NOWPAYMENTS_API_URL:-https://api.nowpayments.io/v1}
+      2328_API_KEY: ${2328_API_KEY:-}
+      2328_PROJECT_ID: ${2328_PROJECT_ID:-}
       NEW_API_ADMIN_TOKEN: ${NEW_API_ADMIN_TOKEN:-}
       TZ: ${TZ:-America/Argentina/Buenos_Aires}
     depends_on:

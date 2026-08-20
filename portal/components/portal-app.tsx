@@ -51,8 +51,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 
 type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup' | 'admin'
 type PaymentReturn = 'success' | 'pending' | 'failure'
-type PaymentMethod = 'mercadopago' | 'crypto'
-const MINIMUM_CRYPTO_PAYMENT_USD = 10
+type PaymentMethod = 'mercadopago' | 'crypto2328'
+const MINIMUM_CRYPTO_PAYMENT_USD = 1
 type ChannelWindow = {
   days: number
   availability: number
@@ -1556,14 +1556,14 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { dat
   const [redeemCode, setRedeemCode] = useState('')
   const [redeeming, setRedeeming] = useState(false)
   const customAmountValue = Number(customAmount)
-  const minimumAmount = paymentMethod === 'crypto' ? MINIMUM_CRYPTO_PAYMENT_USD : 1
+  const minimumAmount = paymentMethod === 'crypto2328' ? MINIMUM_CRYPTO_PAYMENT_USD : 1
   const customAmountValid = customAmount.trim() !== '' && Number.isFinite(customAmountValue) && customAmountValue >= minimumAmount && customAmountValue <= 10_000 && Math.round((customAmountValue + Number.EPSILON) * 100) / 100 === customAmountValue
   async function checkout(amount: number) {
     setBusyAmount(amount); setMessage('')
     try {
       const body = await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, provider: paymentMethod }) }))
-      const paymentUrl = paymentMethod === 'crypto' ? body.data?.invoiceUrl : body.data?.initPoint
-      if (!paymentUrl) throw new Error(paymentMethod === 'crypto' ? 'NOWPayments no devolvió el enlace de pago.' : 'Mercado Pago no devolvió el enlace de pago.')
+      const paymentUrl = paymentMethod === 'crypto2328' ? body.data?.invoiceUrl : body.data?.initPoint
+      if (!paymentUrl) throw new Error(paymentMethod === 'crypto2328' ? '2328.io no devolvió el enlace de pago.' : 'Mercado Pago no devolvió el enlace de pago.')
       window.location.assign(paymentUrl)
     } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Pagos no disponibles.') }
     finally { setBusyAmount(null) }
@@ -1598,7 +1598,7 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { dat
   return <div className="view-stack">
     {paymentReturn && <section className={`payment-result ${paymentReturn}`} role="status">
       <span className="payment-result-icon">{paymentReturn === 'success' ? <Check size={20} /> : paymentReturn === 'pending' ? <Clock3 size={20} /> : <AlertTriangle size={20} />}</span>
-      <div><strong>{paymentReturn === 'success' ? 'Pago aprobado' : paymentReturn === 'pending' ? 'Pago pendiente' : 'Pago no completado'}</strong><p>{paymentReturn === 'success' ? 'Mercado Pago confirmó la operación. El saldo se acredita automáticamente; actualizá el panel si todavía no aparece.' : paymentReturn === 'pending' ? 'Mercado Pago todavía está procesando la operación. El saldo se acreditará cuando se confirme.' : 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.'}</p></div>
+      <div><strong>{paymentReturn === 'success' ? 'Pago aprobado' : paymentReturn === 'pending' ? 'Pago pendiente' : 'Pago no completado'}</strong><p>{paymentReturn === 'success' ? 'El proveedor confirmó la operación. El saldo se acredita automáticamente; actualizá el panel si todavía no aparece.' : paymentReturn === 'pending' ? 'El proveedor todavía está procesando la operación. El saldo se acreditará cuando se confirme.' : 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.'}</p></div>
       <button className="icon-button" onClick={onDismissPayment} aria-label="Cerrar estado del pago"><X size={17} /></button>
     </section>}
     <section className="wallet-hero">
@@ -1609,19 +1609,19 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { dat
       <div className="section-heading"><div><h3>Métodos de pago</h3><p>Elegí cómo cargar crédito en tu cuenta</p></div></div>
       <div className="payment-method-grid">
         <button className={`payment-method ${paymentMethod === 'mercadopago' ? 'active' : ''}`} onClick={() => setPaymentMethod('mercadopago')}><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>ARS · US$ 1.600 por dólar</small></span>{paymentMethod === 'mercadopago' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
-        <button className={`payment-method crypto-method ${paymentMethod === 'crypto' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · NOWPayments</strong><small>BTC, USDT y más monedas · mín. US$ 10</small></span>{paymentMethod === 'crypto' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
+        <button className={`payment-method crypto-method featured-payment ${paymentMethod === 'crypto2328' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto2328')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · 2328.io <em className="payment-featured-badge">Recomendado</em></strong><small>USDT, BTC, ETH y más · mínimo US$ 1</small></span>{paymentMethod === 'crypto2328' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
       </div>
     </section>
     <section className="section-block">
-      <div className="section-heading"><div><h3>Cargar saldo</h3><p>{paymentMethod === 'crypto' ? 'Pago crypto seguro · mínimo US$ 10 por límites de red y conversión' : 'Pago seguro con Mercado Pago · mínimo US$ 1'}</p></div></div>
-      <div className="package-grid">{[1, 5, 10, 25].filter((amount) => amount >= minimumAmount).map((amount) => <button className={`package-card ${amount === 10 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === minimumAmount ? 'Recarga mínima' : amount === 10 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>{paymentMethod === 'crypto' ? 'Pago único en crypto' : `AR$ ${(amount * 1600).toLocaleString('es-AR')} · Pago único`}</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
+      <div className="section-heading"><div><h3>Cargar saldo</h3><p>{paymentMethod === 'crypto2328' ? 'Pago crypto seguro · mínimo US$ 1 · conversión automática a USDT' : 'Pago seguro con Mercado Pago · mínimo US$ 1'}</p></div></div>
+      <div className="package-grid">{[1, 5, 10, 25].filter((amount) => amount >= minimumAmount).map((amount) => <button className={`package-card ${amount === 10 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === minimumAmount ? 'Recarga mínima' : amount === 10 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>{paymentMethod === 'crypto2328' ? 'Pago único en crypto' : `AR$ ${(amount * 1600).toLocaleString('es-AR')} · Pago único`}</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
       <div className="custom-topup">
         <div className="custom-topup-copy"><strong>Otro importe</strong><small>Recargá desde US$ {minimumAmount}, hasta US$ 10.000.</small></div>
         <form className="custom-topup-form" onSubmit={submitCustomAmount}>
-          <label className="currency-input"><span>US$</span><input type="number" min={minimumAmount} max="10000" step="0.01" inputMode="decimal" placeholder={paymentMethod === 'crypto' ? '12,50' : '1,50'} value={customAmount} onChange={(event) => { setCustomAmount(event.target.value); setMessage('') }} aria-label="Importe personalizado en dólares" /></label>
+          <label className="currency-input"><span>US$</span><input type="number" min={minimumAmount} max="10000" step="0.01" inputMode="decimal" placeholder={paymentMethod === 'crypto2328' ? '1,50' : '1,50'} value={customAmount} onChange={(event) => { setCustomAmount(event.target.value); setMessage('') }} aria-label="Importe personalizado en dólares" /></label>
           <button className="primary-button" type="submit" disabled={busyAmount !== null || !customAmountValid}><CreditCard size={17} />Continuar al pago</button>
         </form>
-        {customAmountValid && <small className="custom-topup-total">{paymentMethod === 'crypto' ? `Total a pagar: US$ ${customAmountValue.toFixed(2)} en crypto.` : `Total a pagar: AR$ ${(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}`}</small>}
+        {customAmountValid && <small className="custom-topup-total">{paymentMethod === 'crypto2328' ? `Total a pagar: US$ ${customAmountValue.toFixed(2)} en crypto.` : `Total a pagar: AR$ ${(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}`}</small>}
         {customAmount && !customAmountValid && <small className="custom-topup-error">Usá un importe desde US$ {minimumAmount}, con hasta 2 decimales.</small>}
       </div>
       {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
