@@ -3,7 +3,12 @@ FROM alpine/git:2.49.1 AS source
 ARG NEW_API_VERSION=v1.0.0-rc.24
 RUN git clone --depth 1 --branch "${NEW_API_VERSION}" https://github.com/Calcium-Ion/new-api.git /source
 COPY deploy/new-api/email-template.patch /tmp/email-template.patch
-RUN cd /source && git apply --check /tmp/email-template.patch && git apply /tmp/email-template.patch
+COPY deploy/new-api/quota-message.patch /tmp/quota-message.patch
+RUN cd /source \
+    && git apply --check /tmp/email-template.patch \
+    && git apply /tmp/email-template.patch \
+    && git apply --check /tmp/quota-message.patch \
+    && git apply /tmp/quota-message.patch
 
 FROM oven/bun:1@sha256:0733e50325078969732ebe3b15ce4c4be5082f18c4ac1a0f0ca4839c2e4e42a7 AS web-builder
 
