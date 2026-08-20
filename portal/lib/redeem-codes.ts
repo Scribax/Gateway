@@ -2,7 +2,6 @@ import { randomBytes, randomUUID } from 'node:crypto'
 
 import { QUOTA_PER_USD } from '@/lib/catalog'
 import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
-import { deletePendingTopUp, insertPendingTopUp } from '@/lib/payment-topups'
 import { getPortalPool } from '@/lib/portal-db'
 
 export type RedeemCode = {
@@ -135,16 +134,15 @@ export async function redeemCodeForUser(userId: number, rawCode: unknown) {
   }
 
   try {
-    await insertPendingTopUp(userId, Number(codeRow.amount_usd), tradeNo, 'redeem_code', 'orbiqen')
-    const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/user/topup/complete', {
+    const quotaAmount = Number(codeRow.quota_amount)
+    const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/user/manage', {
       method: 'POST',
-      body: JSON.stringify({ trade_no: tradeNo }),
+      body: JSON.stringify({ id: userId, action: 'add_quota', mode: 'add', value: quotaAmount }),
     }, required('NEW_API_ADMIN_TOKEN'))
     requireSuccess(body)
     await getPortalPool().query(`UPDATE portal_redeem_codes SET status = 'redeemed' WHERE code = $1`, [code])
     return { code, amountUsd: Number(codeRow.amount_usd) }
   } catch (error) {
-    await deletePendingTopUp(tradeNo).catch(() => undefined)
     await getPortalPool().query(
       `UPDATE portal_redeem_codes
        SET status = 'active', redeemed_by = NULL, redeemed_at = NULL, trade_no = NULL
