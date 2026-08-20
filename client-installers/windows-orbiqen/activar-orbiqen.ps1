@@ -338,6 +338,7 @@ try {
   Write-Host "  $($_.Exception.Message)" -ForegroundColor Yellow
   Write-Host "  Diagnostico: $DiagPath" -ForegroundColor DarkGray
   Write-Log "ERROR: $($_.Exception.Message)"
+  exit 1
 } finally {
   Pause-End
 }

@@ -22,20 +22,21 @@ if %errorlevel%==0 (
   set "POWERSHELL=powershell"
 )
 
+echo.
 echo Iniciando configuracion automatica de Orbiqen...
-echo Guardando log en: "%LOG%"
 echo.
 
-"%POWERSHELL%" -NoProfile -ExecutionPolicy Bypass -File "%PS1%" > "%LOG%" 2>&1
+"%POWERSHELL%" -NoProfile -ExecutionPolicy Bypass -File "%PS1%" -NoPause
 set "CODE=%ERRORLEVEL%"
 
-type "%LOG%"
 echo.
 if not "%CODE%"=="0" (
   echo El activador termino con codigo %CODE%.
-  echo Revisa el log del escritorio o contacta soporte de Orbiqen.
+  echo Revisa el diagnostico del escritorio o contacta soporte de Orbiqen.
   pause
   exit /b %CODE%
 )
 
+echo Configuracion finalizada. Presiona una tecla para cerrar.
+pause >nul
 exit /b 0
