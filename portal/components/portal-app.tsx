@@ -321,8 +321,8 @@ async function readJson(response: Response) {
   return body
 }
 
-function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+function AuthScreen({ onAuthenticated, initialMode = 'login' }: { onAuthenticated: () => void; initialMode?: 'login' | 'register' }) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [email, setEmail] = useState('')
@@ -1662,7 +1662,7 @@ function LoadingScreen() {
   return <main className="loading-screen"><div className="brand"><BrandLogo /></div><LoaderCircle className="spin" size={25} /></main>
 }
 
-export function PortalApp() {
+export function PortalApp({ initialMode = 'login' }: { initialMode?: 'login' | 'register' } = {}) {
   const [auth, setAuth] = useState<'loading' | 'anonymous' | 'authenticated'>('loading')
   const [data, setData] = useState<DashboardData | null>(null)
   const [view, setView] = useState<View>('overview')
@@ -1715,7 +1715,7 @@ export function PortalApp() {
   }
 
   if (auth === 'loading') return <LoadingScreen />
-  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} />
+  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} />
   if (!data) return <LoadingScreen />
 
   const title = viewTitles[view]
