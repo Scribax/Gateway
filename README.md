@@ -357,6 +357,15 @@ sudo BUILD_NEW_API=true ./deploy/update-vps.sh
 
 En VPS chicos, cree swap o construya la imagen custom fuera del servidor antes de usar `BUILD_NEW_API=true`.
 
+La forma recomendada para New API custom es compilar fuera del VPS con GitHub Actions. El workflow `.github/workflows/new-api-image.yml` publica la imagen en `ghcr.io/scribax/gateway-new-api:latest`. Cuando esa imagen exista y el paquete GHCR sea accesible para el VPS, despliegue así:
+
+```bash
+cd /opt/gateway
+USE_PREBUILT_NEW_API=true sudo -E ./deploy/update-vps.sh
+```
+
+Con ese modo, el VPS ejecuta `docker compose pull new-api` y evita el build pesado de Bun/Go.
+
 El cambio de proveedor madre no se guarda en Git: pegue la clave Wluvyh en **Channels / Canales** desde el panel administrativo de New API. La Base URL del canal debe ser `https://api.wluvyh.cloud`.
 
 Mientras todavia no haya dominios, puede usar `deploy/nginx/gateway-ip.conf.example`: publica el portal en la IP y dirige exclusivamente `/v1/` al relay. Es una configuracion temporal sin HTTPS; reemplácela por `gateway.conf.example` antes de recibir clientes reales.

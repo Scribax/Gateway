@@ -8,6 +8,8 @@ PUBLIC_PORTAL_URL_DEFAULT="${PUBLIC_PORTAL_URL_DEFAULT:-https://orbiqen.com}"
 UPSTREAM_BASE_URL="${UPSTREAM_BASE_URL:-https://api.wluvyh.cloud}"
 UPSTREAM_SITE_URL="${UPSTREAM_SITE_URL:-https://www.wluvyh.cloud/}"
 BUILD_NEW_API="${BUILD_NEW_API:-false}"
+USE_PREBUILT_NEW_API="${USE_PREBUILT_NEW_API:-false}"
+PREBUILT_NEW_API_IMAGE="${PREBUILT_NEW_API_IMAGE:-ghcr.io/scribax/gateway-new-api:latest}"
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -71,7 +73,11 @@ ensure_env_value "PUBLIC_PORTAL_URL" "$PUBLIC_PORTAL_URL_DEFAULT" ".env"
 ensure_env_value "PORTAL_COOKIE_SECURE" "true" ".env"
 ensure_env_value "GIN_MODE" "release" ".env"
 ensure_env_value "DEBUG" "false" ".env"
-ensure_env_value "NEW_API_IMAGE" "orbiqen/new-api:v1.0.0-rc.24-2" ".env"
+if [ "$USE_PREBUILT_NEW_API" = "true" ]; then
+  ensure_env_value "NEW_API_IMAGE" "$PREBUILT_NEW_API_IMAGE" ".env"
+else
+  ensure_env_value "NEW_API_IMAGE" "orbiqen/new-api:v1.0.0-rc.24-2" ".env"
+fi
 ensure_env_value "NEW_API_VERSION" "v1.0.0-rc.24" ".env"
 
 log "Validando compose"
@@ -91,7 +97,11 @@ if [ "$BUILD_NEW_API" = "true" ]; then
   log "Construyendo New API y portal"
   docker compose up -d --build
 else
-  log "Construyendo solo portal y reutilizando la imagen existente de New API"
+  if [ "$USE_PREBUILT_NEW_API" = "true" ]; then
+    log "Descargando imagen precompilada de New API"
+    docker compose pull new-api
+  fi
+  log "Construyendo solo portal y reutilizando/descargando la imagen de New API"
   docker compose build portal
   docker compose up -d --no-build
 fi
