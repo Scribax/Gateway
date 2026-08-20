@@ -1,0 +1,63 @@
+ORBIQEN - ACTIVADOR PARA CODEX Y CLAUDE
+========================================
+
+Este paquete deja Codex y Claude configurados para usar tu cuenta de Orbiqen.
+
+QUE NECESITAS
+-------------
+1. Una cuenta de Orbiqen con saldo.
+2. Una API key creada desde el portal.
+3. Elegir correctamente el grupo al crear la key:
+   - Para Codex: ChatGPT economico o ChatGPT estable.
+   - Para Claude: Claude.
+
+IMPORTANTE
+----------
+Las keys de Orbiqen trabajan por grupo. Si queres usar Codex y Claude al mismo
+tiempo, lo mas recomendable es crear dos keys:
+
+- Una key del grupo ChatGPT para Codex.
+- Una key del grupo Claude para Claude.
+
+COMO USARLO
+-----------
+1. Extrae la carpeta completa.
+2. Ejecuta activar-orbiqen.bat con doble click.
+3. Elegi que queres configurar: Codex, Claude o ambos.
+4. Pega tu API key cuando el asistente la pida.
+5. Cierra y vuelve a abrir Codex, Claude o tu editor.
+
+QUE CONFIGURA
+-------------
+Codex:
+- %USERPROFILE%\.codex\config.toml
+- %USERPROFILE%\.codex\auth.json
+- Endpoint: https://orbiqen.com/v1
+- Modelo inicial: gpt-5.5
+
+Claude:
+- Variables de entorno de usuario para Anthropic/Claude.
+- %USERPROFILE%\.claude\settings.json
+- Configuracion Claude 3p cuando esta disponible.
+- Endpoint: https://orbiqen.com
+- Modelo inicial: claude-sonnet-5
+
+SEGURIDAD
+---------
+El instalador no trae keys guardadas. La key solo se escribe en tu propio equipo
+porque Codex y Claude la necesitan para conectarse.
+
+Antes de modificar archivos, el instalador crea backups en:
+%USERPROFILE%\.orbiqen\backups
+
+SI ALGO SALE MAL
+----------------
+Ejecuta volver-a-oficial.bat para quitar la configuracion de Orbiqen.
+Tambien se genera un diagnostico en el escritorio:
+Orbiqen-activador-diagnostico.txt
+
+SOPORTE
+-------
+Si ves errores de saldo insuficiente, recarga saldo en Orbiqen.
+Si ves errores de modelo no disponible, revisa que tu API key pertenezca al
+grupo correcto y que ese modelo este habilitado en tu key.
