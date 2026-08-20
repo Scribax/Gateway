@@ -8,7 +8,7 @@ PUBLIC_PORTAL_URL_DEFAULT="${PUBLIC_PORTAL_URL_DEFAULT:-https://orbiqen.com}"
 UPSTREAM_BASE_URL="${UPSTREAM_BASE_URL:-https://api.wluvyh.cloud}"
 UPSTREAM_SITE_URL="${UPSTREAM_SITE_URL:-https://www.wluvyh.cloud/}"
 BUILD_NEW_API="${BUILD_NEW_API:-false}"
-USE_PREBUILT_NEW_API="${USE_PREBUILT_NEW_API:-false}"
+USE_PREBUILT_NEW_API="${USE_PREBUILT_NEW_API:-true}"
 PREBUILT_NEW_API_IMAGE="${PREBUILT_NEW_API_IMAGE:-ghcr.io/scribax/gateway-new-api:latest}"
 
 log() {

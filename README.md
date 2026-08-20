@@ -349,7 +349,7 @@ git pull --ff-only origin main
 sudo ./deploy/update-vps.sh
 ```
 
-Por defecto, `deploy/update-vps.sh` reconstruye solo el portal y reutiliza la imagen existente de New API para evitar errores `137`/`SIGKILL` por falta de RAM durante el build web de New API. Si necesita recompilar New API en el VPS, use:
+Por defecto, `deploy/update-vps.sh` descarga la imagen precompilada de New API desde GHCR y reconstruye solo el portal para evitar errores `137`/`SIGKILL` por falta de RAM durante el build web de New API. Si necesita recompilar New API en el VPS, use:
 
 ```bash
 sudo BUILD_NEW_API=true ./deploy/update-vps.sh
@@ -357,11 +357,11 @@ sudo BUILD_NEW_API=true ./deploy/update-vps.sh
 
 En VPS chicos, cree swap o construya la imagen custom fuera del servidor antes de usar `BUILD_NEW_API=true`.
 
-La forma recomendada para New API custom es compilar fuera del VPS con GitHub Actions. El workflow `.github/workflows/new-api-image.yml` publica la imagen en `ghcr.io/scribax/gateway-new-api:latest`. Cuando esa imagen exista y el paquete GHCR sea accesible para el VPS, despliegue así:
+La forma recomendada para New API custom es compilar fuera del VPS con GitHub Actions. El workflow `.github/workflows/new-api-image.yml` publica la imagen en `ghcr.io/scribax/gateway-new-api:latest`. El deploy normal ya usa esa imagen:
 
 ```bash
 cd /opt/gateway
-USE_PREBUILT_NEW_API=true sudo -E ./deploy/update-vps.sh
+sudo ./deploy/update-vps.sh
 ```
 
 Con ese modo, el VPS ejecuta `docker compose pull new-api` y evita el build pesado de Bun/Go.
