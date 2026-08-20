@@ -124,7 +124,7 @@ export default function PublicHome() {
           <PricingCard title="ChatGPT Estable" subtitle="Grupo 0.25" price="Desde US$ 0,139 input / US$ 0,835 output" note="Más disponibilidad" accent="tone-blue" href="/precios">
             Una opción equilibrada cuando querés priorizar continuidad de servicio y margen sano.
           </PricingCard>
-          <PricingCard title="Claude" subtitle="Anthropic" price="Desde US$ 0,150 input / US$ 0,750 output" note="Recomendado" accent="tone-coral" href="/precios">
+          <PricingCard title="Claude" subtitle="Anthropic" price="Desde US$ 0,30 input / US$ 1,50 output" note="Recomendado" accent="tone-coral" href="/precios">
             Pensado para clientes que quieren Claude Code, Sonnet, Haiku y un flujo profesional de uso.
           </PricingCard>
         </div>
