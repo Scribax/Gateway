@@ -35,7 +35,7 @@ function publicOrigin() {
 
 function signBody(body: string) {
   const base64 = Buffer.from(body, 'utf8').toString('base64')
-  return createHmac('sha256', required('2328_API_KEY')).update(base64).digest('hex')
+  return createHmac('sha256', required('PAYMENTS_2328_API_KEY')).update(base64).digest('hex')
 }
 
 async function apiFetch<T>(path: string, body: Record<string, unknown>) {
@@ -46,7 +46,7 @@ async function apiFetch<T>(path: string, body: Record<string, unknown>) {
       Accept: 'application/json',
       'Content-Type': 'application/json',
       'User-Agent': 'Orbiqen/1.0 (+https://orbiqen.com)',
-      project: required('2328_PROJECT_ID'),
+      project: required('PAYMENTS_2328_PROJECT_ID'),
       sign: signBody(serialized),
     },
     body: serialized,
@@ -97,7 +97,7 @@ function signatureIsValid(payload: Record<string, unknown>) {
   const unsigned = { ...payload }
   delete unsigned.sign
   const serialized = JSON.stringify(unsigned)
-  const expected = signBodyWithKey(serialized, required('2328_API_KEY'))
+  const expected = signBodyWithKey(serialized, required('PAYMENTS_2328_API_KEY'))
   const actual = Buffer.from(received, 'utf8')
   const wanted = Buffer.from(expected, 'utf8')
   return actual.length === wanted.length && timingSafeEqual(actual, wanted)
