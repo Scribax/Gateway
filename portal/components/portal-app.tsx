@@ -459,11 +459,12 @@ function Overview({ data, setView }: { data: DashboardData; setView: (view: View
   const available = data.user.quota / data.quotaPerUsd
   const spent = data.user.used_quota / data.quotaPerUsd
   const activeKeys = data.keys.filter((key) => key.status === 1).length
+  const billableLogs = data.logs.filter((log) => Boolean(log.model_name) && Boolean(log.token_name) && (((log.prompt_tokens || 0) + (log.completion_tokens || 0)) > 0 || (log.quota || 0) > 0))
   return (
     <div className="view-stack">
       <section className="stats-grid">
         <Stat label="Saldo disponible" value={money(available, available < 1 ? 4 : 2)} hint="Crédito actual" icon={CircleDollarSign} tone="green" />
-        <Stat label="Consumo histórico" value={money(spent, spent < 1 ? 4 : 2)} hint={`${data.logTotal} operaciones`} icon={Activity} tone="coral" />
+        <Stat label="Consumo histórico" value={money(spent, spent < 1 ? 4 : 2)} hint={`${data.logTotal} solicitudes con consumo`} icon={Activity} tone="coral" />
         <Stat label="Solicitudes" value={compactNumber(data.user.request_count)} hint="Procesadas correctamente" icon={Gauge} tone="blue" />
         <Stat label="Claves activas" value={String(activeKeys)} hint={`${data.keys.length} creadas`} icon={KeyRound} tone="charcoal" />
       </section>
@@ -471,16 +472,14 @@ function Overview({ data, setView }: { data: DashboardData; setView: (view: View
         <div><span className="quick-icon"><Server size={20} /></span><div><strong>Tu endpoint está listo</strong><code>{data.gatewayUrl}</code></div></div>
         <button className="secondary-button" onClick={() => setView('setup')}>Ver configuración <ChevronRight size={17} /></button>
       </section>
-      <section className="section-block">
-        <div className="section-heading"><div><h3>Actividad reciente</h3><p>Últimas solicitudes procesadas</p></div><button className="text-action" onClick={() => setView('keys')}>Gestionar claves <ArrowUpRight size={16} /></button></div>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Fecha</th><th>Modelo</th><th>API Key</th><th>Tokens</th><th className="right">Costo</th></tr></thead>
-            <tbody>
-              {data.logs.length === 0 && <tr><td colSpan={5}><div className="empty-row"><Activity size={20} />Todavía no hay actividad</div></td></tr>}
-              {data.logs.map((log) => <tr key={log.id}><td>{formatDate(log.created_at)}</td><td><span className="model-name">{log.model_name || 'N/D'}</span></td><td>{log.token_name || 'Sin nombre'}</td><td>{(log.prompt_tokens || 0) + (log.completion_tokens || 0)}</td><td className="right strong">{money((log.quota || 0) / data.quotaPerUsd, 6)}</td></tr>)}
-            </tbody>
-          </table>
+      <section className="section-block activity-card">
+        <div className="section-heading"><div><h3>Actividad reciente</h3><p>Solo mostramos solicitudes con consumo real.</p></div><button className="text-action" onClick={() => setView('usage')}>Ver usage <ArrowUpRight size={16} /></button></div>
+        <div className="activity-list">
+          {billableLogs.length === 0 && <div className="empty-row"><Activity size={20} />Todavía no hay consumo registrado</div>}
+          {billableLogs.slice(0, 8).map((log) => {
+            const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+            return <article className="activity-item" key={log.id}><span className="activity-icon"><Bot size={17} /></span><div><strong>{log.model_name}</strong><small>{formatDate(log.created_at)} · {log.token_name}</small></div><div className="activity-metrics"><span>{compactNumber(tokens)} tokens</span><strong>{money((log.quota || 0) / data.quotaPerUsd, 6)}</strong></div></article>
+          })}
         </div>
       </section>
     </div>

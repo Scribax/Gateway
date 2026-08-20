@@ -152,6 +152,17 @@ code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospac
 .quick-band { min-height: 84px; padding: 15px 18px; border: 1px solid #c6ddd3; background: #edf8f3; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .quick-band > div { display: flex; align-items: center; min-width: 0; gap: 13px; }.quick-band strong, .quick-band code { display: block; }.quick-band strong { font-size: 13px; }.quick-band code { margin-top: 5px; color: var(--green); font-size: 12px; overflow-wrap: anywhere; }
 .quick-icon { width: 38px; height: 38px; border-radius: 7px; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.activity-card { overflow: hidden; }
+.activity-list { display: flex; flex-direction: column; }
+.activity-item { min-height: 68px; padding: 13px 18px; display: grid; grid-template-columns: 38px minmax(0,1fr) auto; align-items: center; gap: 12px; border-top: 1px solid var(--line); }
+.activity-icon { width: 36px; height: 36px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
+.activity-item strong, .activity-item small { display: block; }
+.activity-item > div:nth-child(2) { min-width: 0; }
+.activity-item > div:nth-child(2) strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.activity-item small { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.activity-metrics { text-align: right; }
+.activity-metrics span { display: block; color: var(--muted); font-size: 11px; }
+.activity-metrics strong { margin-top: 4px; font-size: 13px; }
 .section-block { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; overflow: hidden; }
 .section-heading { min-height: 68px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); }
 .section-heading h3 { margin: 0; font-size: 15px; }.section-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
@@ -483,6 +494,8 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
   .stat-card { min-height: 122px; padding: 14px; flex-direction: column; gap: 9px; }.stat-card strong { font-size: 20px; }.stat-card span { margin-top: 6px; }
   .quick-band { align-items: flex-start; flex-direction: column; }.quick-band .secondary-button { width: 100%; }
+  .activity-item { grid-template-columns: 34px minmax(0,1fr); align-items: flex-start; }
+  .activity-metrics { grid-column: 2; text-align: left; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .section-heading { align-items: flex-start; }.text-action { font-size: 0; }.text-action svg { width: 18px; height: 18px; }
   .catalog-summary { display: grid; grid-template-columns: 1fr 1fr; }.catalog-summary > div { min-width: 0; }
   .payment-method-grid, .package-grid { grid-template-columns: 1fr; }

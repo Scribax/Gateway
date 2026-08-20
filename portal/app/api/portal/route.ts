@@ -83,6 +83,11 @@ function buildWindow(logs: LogItem[], modelId: string, windowDays: number) {
   }
 }
 
+function isBillableLog(log: LogItem) {
+  const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+  return Boolean(log.model_name) && Boolean(log.token_name) && (tokens > 0 || (log.quota || 0) > 0)
+}
+
 export async function GET() {
   try {
     const [selfBody, keysBody, logsBody, groupsBody, modelHealth, enabledCatalog] = await Promise.all([
@@ -103,7 +108,7 @@ export async function GET() {
     const visibleModels = enabledCatalog
     const keyModels = enabledCatalog
     const statusModels = enabledCatalog
-    const requestLogs = logs.items || []
+    const requestLogs = (logs.items || []).filter(isBillableLog)
     const statusWindows = [7, 15, 30]
     const channels = statusModels.map((model) => {
       const health = modelHealth[model.id]
@@ -137,8 +142,8 @@ export async function GET() {
       data: {
         user,
         keys: keys.items || [],
-        logs: logs.items || [],
-        logTotal: logs.total || 0,
+        logs: requestLogs.slice(0, 12),
+        logTotal: requestLogs.length,
         models: visibleModels,
         keyModels,
         groups,
