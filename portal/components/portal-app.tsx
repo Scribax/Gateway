@@ -199,6 +199,17 @@ type AdminResponse = {
   truncated: boolean
 }
 
+type RedeemCodeRow = {
+  id: number
+  code: string
+  amount_usd: string
+  created_at: string
+  redeemed_at: string | null
+  status: 'active' | 'processing' | 'redeemed' | 'disabled'
+  redeemed_by: number | null
+  note: string | null
+}
+
 type UsageMeta = {
   reasoning_effort?: string
   request_path?: string
@@ -1103,19 +1114,28 @@ function UsageView({ data }: { data: DashboardData }) {
 
 function AdminView() {
   const [admin, setAdmin] = useState<AdminResponse | null>(null)
+  const [redeemCodes, setRedeemCodes] = useState<RedeemCodeRow[]>([])
   const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [savingModel, setSavingModel] = useState('')
+  const [redeemCount, setRedeemCount] = useState(1)
+  const [redeemAmount, setRedeemAmount] = useState('0.50')
+  const [redeemNote, setRedeemNote] = useState('Prueba demo')
+  const [creatingRedeem, setCreatingRedeem] = useState(false)
 
   useEffect(() => {
     let alive = true
     async function loadAdmin() {
       setLoading(true); setError('')
       try {
-        const body = await readJson(await fetch(`/api/admin?range=${range}`, { cache: 'no-store' }))
+        const [body, redeemBody] = await Promise.all([
+          readJson(await fetch(`/api/admin?range=${range}`, { cache: 'no-store' })),
+          readJson(await fetch('/api/admin/redeem-codes', { cache: 'no-store' })),
+        ])
         if (alive) setAdmin(body.data)
+        if (alive) setRedeemCodes(redeemBody.data.codes || [])
       } catch (cause) {
         if (alive) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el panel administrativo.')
       } finally {
@@ -1158,6 +1178,23 @@ function AdminView() {
     }
   }
 
+  async function createRedeemCodes(event: FormEvent) {
+    event.preventDefault()
+    setCreatingRedeem(true); setError('')
+    try {
+      const body = await readJson(await fetch('/api/admin/redeem-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountUsd: Number(redeemAmount), count: redeemCount, note: redeemNote }),
+      }))
+      setRedeemCodes((current) => [...(body.data.codes || []), ...current])
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudieron crear los códigos.')
+    } finally {
+      setCreatingRedeem(false)
+    }
+  }
+
   const margin = admin?.totals.revenueUsd
     ? (admin.totals.netProfitUsd / admin.totals.revenueUsd) * 100
     : 0
@@ -1194,6 +1231,20 @@ function AdminView() {
       </section>
 
       {admin.truncated && <div className="admin-warning"><AlertTriangle size={17} />El rango supera 2.000 registros por categoría; las tablas muestran una muestra limitada.</div>}
+
+      <section className="section-block redeem-admin-section">
+        <div className="section-heading"><div><h3>Códigos demo</h3><p>Generá crédito de prueba para nuevos clientes. Valor recomendado: US$ 0.50.</p></div><span className="info-chip"><ReceiptText size={15} />{redeemCodes.filter((code) => code.status === 'active').length} activos</span></div>
+        <form className="redeem-admin-form" onSubmit={createRedeemCodes}>
+          <label>Monto USD<input type="number" min="0.01" max="100" step="0.01" value={redeemAmount} onChange={(event) => setRedeemAmount(event.target.value)} /></label>
+          <label>Cantidad<input type="number" min="1" max="100" step="1" value={redeemCount} onChange={(event) => setRedeemCount(Number(event.target.value))} /></label>
+          <label>Nota<input value={redeemNote} onChange={(event) => setRedeemNote(event.target.value)} placeholder="Campaña o cliente" /></label>
+          <button className="primary-button" disabled={creatingRedeem}>{creatingRedeem ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />}Generar códigos</button>
+        </form>
+        <div className="table-wrap"><table className="admin-table redeem-table"><thead><tr><th>Código</th><th>Monto</th><th>Estado</th><th>Nota</th><th>Creado</th><th className="right">Acción</th></tr></thead><tbody>
+          {redeemCodes.length === 0 && <tr><td colSpan={6}><div className="empty-row"><ReceiptText size={18} />Todavía no hay códigos demo</div></td></tr>}
+          {redeemCodes.slice(0, 40).map((code) => <tr key={code.id}><td><code>{code.code}</code></td><td>{money(Number(code.amount_usd), 2)}</td><td><span className={`admin-state ${code.status === 'active' ? 'active' : code.status === 'redeemed' ? 'blocked' : ''}`}>{code.status === 'active' ? 'Disponible' : code.status === 'redeemed' ? 'Canjeado' : code.status}</span></td><td>{code.note || '-'}</td><td>{formatDate(Number(code.created_at))}</td><td className="right"><button className="secondary-button key-use-button" onClick={() => navigator.clipboard.writeText(code.code)} type="button"><Copy size={15} />Copiar</button></td></tr>)}
+        </tbody></table></div>
+      </section>
 
       <section className="section-block model-control-section">
         <div className="section-heading"><div><h3>Catálogo y grupos de venta</h3><p>La selección es manual. El estado HTTP solo se muestra como diagnóstico.</p></div><span className="info-chip"><Sparkles size={15} />{admin.modelControls.filter((model) => model.enabled).length} publicados</span></div>
@@ -1498,11 +1549,13 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
   )
 }
 
-function WalletView({ data, paymentReturn, onDismissPayment }: { data: DashboardData; paymentReturn: PaymentReturn | null; onDismissPayment: () => void }) {
+function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { data: DashboardData; paymentReturn: PaymentReturn | null; onDismissPayment: () => void; onRedeemed: () => Promise<void> }) {
   const [message, setMessage] = useState('')
   const [busyAmount, setBusyAmount] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mercadopago')
   const [customAmount, setCustomAmount] = useState('')
+  const [redeemCode, setRedeemCode] = useState('')
+  const [redeeming, setRedeeming] = useState(false)
   const customAmountValue = Number(customAmount)
   const minimumAmount = paymentMethod === 'crypto' ? MINIMUM_CRYPTO_PAYMENT_USD : 1
   const customAmountValid = customAmount.trim() !== '' && Number.isFinite(customAmountValue) && customAmountValue >= minimumAmount && customAmountValue <= 10_000 && Math.round((customAmountValue + Number.EPSILON) * 100) / 100 === customAmountValue
@@ -1523,6 +1576,24 @@ function WalletView({ data, paymentReturn, onDismissPayment }: { data: Dashboard
       return
     }
     void checkout(customAmountValue)
+  }
+  async function submitRedeem(event: FormEvent) {
+    event.preventDefault()
+    setRedeeming(true); setMessage('')
+    try {
+      const body = await readJson(await fetch('/api/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: redeemCode }),
+      }))
+      setRedeemCode('')
+      setMessage(`Código canjeado. Se acreditaron ${money(body.data.amountUsd, 2)} en tu cuenta.`)
+      await onRedeemed()
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : 'No se pudo canjear el código.')
+    } finally {
+      setRedeeming(false)
+    }
   }
   const balance = data.user.quota / data.quotaPerUsd
   return <div className="view-stack">
@@ -1555,6 +1626,13 @@ function WalletView({ data, paymentReturn, onDismissPayment }: { data: Dashboard
         {customAmount && !customAmountValid && <small className="custom-topup-error">Usá un importe desde US$ {minimumAmount}, con hasta 2 decimales.</small>}
       </div>
       {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
+    </section>
+    <section className="section-block">
+      <div className="section-heading"><div><h3>Canjear código</h3><p>Usá un código demo o promocional para acreditar saldo en tu cuenta.</p></div><ReceiptText size={19} /></div>
+      <form className="redeem-form" onSubmit={submitRedeem}>
+        <label><span>Código</span><input value={redeemCode} onChange={(event) => { setRedeemCode(event.target.value.toUpperCase()); setMessage('') }} placeholder="ORB-XXXX-XXXX-XXXX" /></label>
+        <button className="primary-button" disabled={redeeming || !redeemCode.trim()}>{redeeming ? <LoaderCircle className="spin" size={17} /> : <ReceiptText size={17} />}Canjear código</button>
+      </form>
     </section>
   </div>
 }
@@ -1624,7 +1702,7 @@ export function PortalApp() {
     if (view === 'status') return <StatusView data={data} refresh={load} />
     if (view === 'keys') return <KeysView data={data} reload={load} />
     if (view === 'models') return <ModelsView data={data} />
-    if (view === 'wallet') return <WalletView data={data} paymentReturn={paymentReturn} onDismissPayment={() => setPaymentReturn(null)} />
+    if (view === 'wallet') return <WalletView data={data} paymentReturn={paymentReturn} onDismissPayment={() => setPaymentReturn(null)} onRedeemed={load} />
     return <SetupView data={data} />
   }, [data, view, load, paymentReturn])
 
