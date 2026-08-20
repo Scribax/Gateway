@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 
 import { QUOTA_PER_USD } from '@/lib/catalog'
-import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
+import { BackendError, newApiFetch, type NewApiEnvelope } from '@/lib/new-api'
 import { getPortalPool } from '@/lib/portal-db'
 
 export type RedeemCode = {
@@ -139,7 +139,7 @@ export async function redeemCodeForUser(userId: number, rawCode: unknown) {
       method: 'POST',
       body: JSON.stringify({ id: userId, action: 'add_quota', mode: 'add', value: quotaAmount }),
     }, required('NEW_API_ADMIN_TOKEN'))
-    requireSuccess(body)
+    if (body.success === false) throw new BackendError(body.message || 'New API rechazó la operación.', 400)
     await getPortalPool().query(`UPDATE portal_redeem_codes SET status = 'redeemed' WHERE code = $1`, [code])
     return { code, amountUsd: Number(codeRow.amount_usd) }
   } catch (error) {
