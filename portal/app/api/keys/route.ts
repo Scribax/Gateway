@@ -1,5 +1,6 @@
 import { BackendError, errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
-import { MODEL_CATALOG, QUOTA_PER_USD } from '@/lib/catalog'
+import { QUOTA_PER_USD } from '@/lib/catalog'
+import { getEnabledModelCatalog } from '@/lib/model-availability'
 
 type KeyItem = { id: number; name: string; [key: string]: unknown }
 type KeyPage = { items: KeyItem[]; total: number; page: number; page_size: number }
@@ -19,16 +20,11 @@ export async function POST(request: Request) {
       throw new BackendError('Ingresá un límite de saldo válido.', 400)
     }
 
-    const [modelsBody, groupsBody, beforeBody] = await Promise.all([
-      newApiFetch<NewApiEnvelope<string[]>>('/api/user/models'),
+    const [groupsBody, beforeBody] = await Promise.all([
       newApiFetch<NewApiEnvelope<Record<string, unknown>>>('/api/user/self/groups'),
       newApiFetch<NewApiEnvelope<KeyPage>>('/api/token/?p=1&size=100'),
     ])
-    const userModels = requireSuccess(modelsBody)
-    const allowedModels = new Set([
-      ...userModels,
-      ...MODEL_CATALOG.filter((model) => model.id.includes('claude')).map((model) => model.id),
-    ])
+    const allowedModels = new Set((await getEnabledModelCatalog()).map((model) => model.id))
     const allowedGroups = requireSuccess(groupsBody)
     const selectedModels = (payload.models || []).filter((model) => allowedModels.has(model))
     if (selectedModels.length === 0) throw new BackendError('Seleccioná al menos un modelo.', 400)

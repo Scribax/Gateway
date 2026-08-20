@@ -192,6 +192,7 @@ type AdminResponse = {
     creditedUsd: number
   }
   customers: AdminCustomer[]
+  modelControls: Array<{ modelId: string; label: string; group: 'clientes' | 'claude'; enabled: boolean }>
   models: Array<AdminMetricRow & { model: string }>
   keys: Array<AdminMetricRow & { key: string; username: string }>
   suspicious: Array<AdminCustomer & { reason: string }>
@@ -1098,6 +1099,7 @@ function AdminView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [savingModel, setSavingModel] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -1123,6 +1125,29 @@ function AdminView() {
       ...admin.customers.map((customer) => [customer.username, customer.group, customer.status === 1 ? 'Activo' : 'Bloqueado', customer.balanceUsd, customer.requests, customer.tokens, customer.revenueUsd, customer.costUsd, customer.errors]),
     ]
     downloadText(`admin_clientes_${range}.csv`, `${rows.map((row) => row.map(csvEscape).join(',')).join('\n')}\n`)
+  }
+
+  async function toggleModel(modelId: string, enabled: boolean) {
+    if (!admin) return
+    setSavingModel(modelId); setError('')
+    try {
+      const body = await readJson(await fetch('/api/admin/models', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ models: [{ modelId, enabled }] }),
+      }))
+      setAdmin((current) => current ? {
+        ...current,
+        modelControls: body.data.map((next: { modelId: string; group: 'clientes' | 'claude'; enabled: boolean }) => ({
+          ...next,
+          label: current.modelControls.find((model) => model.modelId === next.modelId)?.label || next.modelId,
+        })),
+      } : current)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo actualizar el modelo.')
+    } finally {
+      setSavingModel('')
+    }
   }
 
   const margin = admin?.totals.revenueUsd
@@ -1161,6 +1186,13 @@ function AdminView() {
       </section>
 
       {admin.truncated && <div className="admin-warning"><AlertTriangle size={17} />El rango supera 2.000 registros por categoría; las tablas muestran una muestra limitada.</div>}
+
+      <section className="section-block model-control-section">
+        <div className="section-heading"><div><h3>Catálogo y grupos de venta</h3><p>La selección es manual. El estado HTTP solo se muestra como diagnóstico.</p></div><span className="info-chip"><Sparkles size={15} />{admin.modelControls.filter((model) => model.enabled).length} publicados</span></div>
+        <div className="model-control-groups">
+          {(['clientes', 'claude'] as const).map((group) => <div className="model-control-group" key={group}><div className="model-control-group-title"><strong>{group === 'claude' ? 'Claude' : 'ChatGPT'}</strong><span>{group === 'claude' ? 'Modelos Anthropic' : 'Modelos GPT, Codex y otros'}</span></div><div className="model-control-list">{admin.modelControls.filter((model) => model.group === group).map((model) => <div className="model-control-row" key={model.modelId}><div><strong>{model.label}</strong><code>{model.modelId}</code></div><button type="button" className={`model-toggle ${model.enabled ? 'enabled' : ''}`} aria-pressed={model.enabled} onClick={() => toggleModel(model.modelId, !model.enabled)} disabled={savingModel === model.modelId}>{savingModel === model.modelId ? <LoaderCircle className="spin" size={16} /> : model.enabled ? <><Check size={15} />Publicado</> : 'Oculto'}</button></div>)}</div></div>)}
+        </div>
+      </section>
 
       <section className="section-block">
         <div className="section-heading"><div><h3>Clientes registrados</h3><p>Saldo, consumo y rentabilidad por cuenta</p></div><span className="info-chip"><Users size={15} />{admin.customers.length} clientes</span></div>

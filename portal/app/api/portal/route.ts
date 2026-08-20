@@ -1,6 +1,7 @@
 import { errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
-import { MODEL_CATALOG, QUOTA_PER_USD } from '@/lib/catalog'
+import { QUOTA_PER_USD } from '@/lib/catalog'
 import { readModelHealth } from '@/lib/model-health'
+import { getEnabledModelCatalog } from '@/lib/model-availability'
 
 type PageData<T> = { items: T[]; total: number; page: number; page_size: number }
 type LogItem = {
@@ -84,29 +85,24 @@ function buildWindow(logs: LogItem[], modelId: string, windowDays: number) {
 
 export async function GET() {
   try {
-    const [selfBody, keysBody, logsBody, modelsBody, groupsBody, modelHealth] = await Promise.all([
+    const [selfBody, keysBody, logsBody, groupsBody, modelHealth, enabledCatalog] = await Promise.all([
       newApiFetch<NewApiEnvelope<Record<string, unknown>>>('/api/user/self'),
       newApiFetch<NewApiEnvelope<PageData<Record<string, unknown>>>>('/api/token/?p=1&size=100'),
       newApiFetch<NewApiEnvelope<PageData<Record<string, unknown>>>>('/api/log/self?p=1&size=12'),
-      newApiFetch<NewApiEnvelope<string[]>>('/api/user/models'),
       newApiFetch<NewApiEnvelope<Record<string, { desc: string; ratio: number | string }>>>('/api/user/self/groups'),
       readModelHealth(),
+      getEnabledModelCatalog(),
     ])
 
     const user = requireSuccess(selfBody)
     const keys = requireSuccess(keysBody)
     const logs = requireSuccess(logsBody) as PageData<LogItem>
-    const enabledModels = requireSuccess(modelsBody)
     const groups = requireSuccess(groupsBody)
     const hasHealthState = Object.keys(modelHealth).length > 0
     const statusLastCheckedAt = Object.values(modelHealth).reduce((max, value) => Math.max(max, value.checkedAt || 0), 0)
-    const visibleModels = MODEL_CATALOG.filter((model) => (
-      enabledModels.includes(model.id) && (!hasHealthState || modelHealth[model.id]?.ok)
-    ))
-    const keyModels = MODEL_CATALOG.filter((model) => (
-      visibleModels.some((visible) => visible.id === model.id) || model.id.includes('claude')
-    ))
-    const statusModels = MODEL_CATALOG.filter((model) => enabledModels.includes(model.id))
+    const visibleModels = enabledCatalog
+    const keyModels = enabledCatalog
+    const statusModels = enabledCatalog
     const requestLogs = logs.items || []
     const statusWindows = [7, 15, 30]
     const channels = statusModels.map((model) => {

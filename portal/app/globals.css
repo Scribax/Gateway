@@ -297,6 +297,23 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .admin-split-grid { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(320px,.65fr); gap: 12px; }
 .admin-panel { min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow: hidden; }
 .admin-panel > .section-heading > svg { color: var(--muted); }
+.model-control-section { padding-bottom: 0; }
+.model-control-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.model-control-group { min-width: 0; }
+.model-control-group + .model-control-group { border-left: 1px solid var(--line); }
+.model-control-group-title { padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface-soft); }
+.model-control-group-title strong, .model-control-group-title span { display: block; }
+.model-control-group-title strong { font-size: 14px; }
+.model-control-group-title span { margin-top: 3px; color: var(--muted); font-size: 11px; }
+.model-control-list { display: flex; flex-direction: column; }
+.model-control-row { min-height: 58px; padding: 9px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+.model-control-row > div { min-width: 0; }
+.model-control-row strong, .model-control-row code { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-control-row strong { font-size: 12px; }
+.model-control-row code { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.model-toggle { min-width: 88px; height: 30px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.model-toggle.enabled { border-color: #8fcab2; background: #edf9f3; color: var(--green); }
+.model-toggle:disabled { cursor: wait; opacity: .7; }
 .admin-ranking, .admin-risk-list { min-height: 300px; padding: 7px 16px; }
 .admin-rank-row { min-height: 62px; border-bottom: 1px solid #edf0ee; display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 10px; }
 .admin-rank-row:last-child { border-bottom: 0; }
@@ -385,6 +402,7 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
   .usage-donut { width: 190px; height: 190px; }
   .usage-bars { grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); }
   .admin-command-bar { align-items: flex-start; flex-direction: column; }
+  .model-control-groups { grid-template-columns: 1fr; }.model-control-group + .model-control-group { border-top: 1px solid var(--line); border-left: 0; }
   .admin-actions { width: 100%; justify-content: flex-start; }
   .admin-ledger-strip { grid-template-columns: 1fr 1fr; }
   .admin-ledger-strip > div:nth-child(2) { border-right: 0; }
