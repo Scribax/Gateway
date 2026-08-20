@@ -476,7 +476,8 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
   const [name, setName] = useState('mi-aplicacion')
   const [quota, setQuota] = useState(Math.min(10, Math.max(1, Math.floor(data.user.quota / data.quotaPerUsd))))
   const groupOptions = [
-    { id: 'clientes', label: 'ChatGPT', description: 'Modelos GPT y Codex', matches: (id: string) => !id.includes('claude') },
+    { id: 'clientes', label: 'ChatGPT economico', description: 'Grupo 0.1, menor precio', matches: (id: string) => !id.includes('claude') },
+    { id: 'clientes_025', label: 'ChatGPT estable', description: 'Grupo 0.25, mayor disponibilidad', matches: (id: string) => !id.includes('claude') },
     { id: 'claude', label: 'Claude', description: 'Modelos Anthropic', matches: (id: string) => id.includes('claude') },
   ]
   const [group, setGroup] = useState<string | null>(null)
