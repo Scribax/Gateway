@@ -548,8 +548,8 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .landing-nav nav { display: flex; align-items: center; gap: 24px; }
 .landing-nav a { color: #c0cdc7; text-decoration: none; font-weight: 650; }
 .landing-brand { display: inline-flex; align-items: center; gap: 10px; color: #fff !important; font-weight: 800; font-size: 18px; }
-.landing-brand-mark { display: inline-flex; align-items: center; width: 34px; height: 34px; overflow: hidden; }
-.landing-brand-mark img { display: block; width: 34px; height: auto; filter: grayscale(1) brightness(0) invert(1); }
+.landing-brand-mark { display: inline-flex; align-items: center; width: 132px; height: 40px; overflow: hidden; }
+.landing-brand-mark img { display: block; width: 132px; height: auto; filter: grayscale(1) brightness(0) invert(1); }
 .landing-nav-actions { display: flex; align-items: center; gap: 10px; }
 .landing-link, .landing-button { min-height: 40px; padding: 0 14px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; font-weight: 720; }
 .landing-link { color: #edf3ef !important; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); }

@@ -31,7 +31,7 @@ export default function PublicHome() {
   return (
     <main className="landing-page">
       <header className="landing-nav">
-        <a className="landing-brand" href="/"><BrandMark /><span>Orbiqen</span></a>
+        <a className="landing-brand" href="/"><BrandMark /></a>
         <nav>
           <a href="#how">Cómo funciona</a>
           <a href="#pricing">Precios</a>
