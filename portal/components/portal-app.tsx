@@ -249,6 +249,10 @@ function money(value: number, digits = 2) {
   }).format(value)
 }
 
+function tokenPrice(value: number) {
+  return money(value, value < 0.1 ? 4 : value < 1 ? 3 : 2)
+}
+
 function compactNumber(value: number) {
   return new Intl.NumberFormat('es-AR', { notation: 'compact', maximumFractionDigits: 1 }).format(value || 0)
 }
@@ -476,13 +480,16 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
   const [name, setName] = useState('mi-aplicacion')
   const [quota, setQuota] = useState(Math.min(10, Math.max(1, Math.floor(data.user.quota / data.quotaPerUsd))))
   const groupOptions = [
-    { id: 'clientes', label: 'ChatGPT economico', description: 'Grupo 0.1, menor precio', matches: (id: string) => !id.includes('claude') },
-    { id: 'clientes_025', label: 'ChatGPT estable', description: 'Grupo 0.25, mayor disponibilidad', matches: (id: string) => !id.includes('claude') },
-    { id: 'claude', label: 'Claude', description: 'Modelos Anthropic', matches: (id: string) => id.includes('claude') },
+    { id: 'clientes', label: 'ChatGPT economico', description: 'Grupo 0.1', note: 'Menor precio para tareas comunes', multiplier: 1, matches: (id: string) => !id.includes('claude') },
+    { id: 'clientes_025', label: 'ChatGPT estable', description: 'Grupo 0.25', note: 'Mayor disponibilidad si el barato falla', multiplier: 2.5, matches: (id: string) => !id.includes('claude') },
+    { id: 'claude', label: 'Claude', description: 'Anthropic', note: 'Opus, Sonnet, Haiku y Fable', multiplier: 1, matches: (id: string) => id.includes('claude') },
   ]
   const [group, setGroup] = useState<string | null>(null)
   const selectedGroup = groupOptions.find((option) => option.id === group) || null
   const groupModels = selectedGroup ? data.keyModels.filter((model) => selectedGroup.matches(model.id)) : []
+  const pricedGroupModels = groupModels.filter((model) => model.input > 0 || model.output > 0)
+  const groupInputFrom = pricedGroupModels.length > 0 ? Math.min(...pricedGroupModels.map((model) => model.input * (selectedGroup?.multiplier || 1))) : 0
+  const groupOutputFrom = pricedGroupModels.length > 0 ? Math.min(...pricedGroupModels.map((model) => model.output * (selectedGroup?.multiplier || 1))) : 0
   const [models, setModels] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -510,13 +517,13 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
   }
 
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <form className="modal" onSubmit={create}>
+    <form className="modal key-modal" onSubmit={create}>
       <div className="modal-header"><div><p className="eyebrow">Nueva credencial</p><h3>Crear API Key</h3></div><button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div>
       <div className="modal-body">
         <label>Nombre<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} required /></label>
         <label>Límite de consumo (USD)<input type="number" min="0.01" step="0.01" value={quota} onChange={(event) => setQuota(Number(event.target.value))} required /></label>
-        <fieldset><legend>1. Elegí un grupo</legend><div className="group-choice-grid">{groupOptions.map((option) => { const available = data.keyModels.some((model) => option.matches(model.id)); return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span><strong>{option.label}</strong><small>{available ? option.description : 'Sin modelos disponibles ahora'}</small></span></label> })}</div></fieldset>
-        {selectedGroup ? <fieldset><legend>2. Elegí los modelos de {selectedGroup.label}</legend>{groupModels.length > 0 ? <div className="model-check-grid">{groupModels.map((model) => <label className={`check-row ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span>{model.label}</label>)}</div> : <p className="field-note">No hay modelos disponibles en este grupo.</p>}</fieldset> : <div className="group-prompt"><Sparkles size={17} /><span>Elegí ChatGPT o Claude para ver sus modelos.</span></div>}
+        <fieldset><legend>1. Elegí como querés enrutar esta key</legend><div className="group-choice-grid">{groupOptions.map((option) => { const availableModels = data.keyModels.filter((model) => option.matches(model.id)); const pricedModels = availableModels.filter((model) => model.input > 0 || model.output > 0); const inputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.input * option.multiplier)) : 0; const outputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.output * option.multiplier)) : 0; const available = availableModels.length > 0; return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span className="group-choice-copy"><strong>{option.label}</strong><small>{available ? option.note : 'Sin modelos disponibles ahora'}</small><span className="group-price-line"><b>{option.description}</b><em>Input desde {tokenPrice(inputFrom)} · Salida desde {tokenPrice(outputFrom)}</em></span></span></label> })}</div></fieldset>
+        {selectedGroup ? <fieldset><div className="model-field-head"><strong>2. Elegí los modelos de {selectedGroup.label}</strong><span>{groupModels.length} disponibles</span></div><div className="selected-group-summary"><div><small>Input desde</small><strong>{tokenPrice(groupInputFrom)}</strong></div><div><small>Salida desde</small><strong>{tokenPrice(groupOutputFrom)}</strong></div><div><small>Precio</small><strong>{selectedGroup.multiplier === 1 ? 'Base' : `${selectedGroup.multiplier}x`}</strong></div></div>{groupModels.length > 0 ? <div className="model-check-grid priced">{groupModels.map((model) => <label className={`check-row priced ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span><div><strong>{model.label}</strong><small>Input {tokenPrice(model.input * selectedGroup.multiplier)} · Salida {tokenPrice(model.output * selectedGroup.multiplier)}{model.cacheWrite > 0 ? ` · Cache ${tokenPrice(model.cacheWrite * selectedGroup.multiplier)}` : ''}</small></div></label>)}</div> : <p className="field-note">No hay modelos disponibles en este grupo.</p>}</fieldset> : <div className="group-prompt"><Sparkles size={17} /><span>Elegí un grupo para ver modelos y precios.</span></div>}
         {error && <div className="form-error">{error}</div>}
       </div>
       <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button" disabled={loading || !group || models.length === 0}>{loading ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}Crear clave</button></div>
