@@ -38,6 +38,10 @@ code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospac
 .brand-logo img { display: block; width: 154px; height: auto; }
 .brand-logo-light img { filter: grayscale(1) brightness(0) invert(1); }
 .icon-button { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.portal-language-toggle { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--muted); font-size: 11px; font-weight: 800; }
+.portal-language-toggle button { border: 0; padding: 3px 2px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 800; }
+.portal-language-toggle button.active { color: var(--green); }
+.portal-language-toggle span { color: var(--line-strong); }
 .icon-button:hover { color: var(--text); border-color: var(--line-strong); background: var(--surface-soft); }
 .icon-button.danger:hover { color: var(--danger); border-color: #e7bbb8; background: #fff5f4; }
 .primary-button, .secondary-button { min-height: 40px; border-radius: 7px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 650; border: 1px solid transparent; white-space: nowrap; }

@@ -230,26 +230,40 @@ function BrandLogo({ light = false }: { light?: boolean }) {
   return <span className={`brand-logo${light ? ' brand-logo-light' : ''}`}><img src="/orbiqen-logo.png" alt="Orbiqen" /></span>
 }
 
-const navItems: Array<{ id: View; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean }> = [
-  { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
-  { id: 'usage', label: 'Usage', icon: BarChart3 },
-  { id: 'status', label: 'Estado', icon: Server },
-  { id: 'keys', label: 'API Keys', icon: KeyRound },
-  { id: 'models', label: 'Modelos', icon: Sparkles },
-  { id: 'wallet', label: 'Saldo', icon: WalletCards },
-  { id: 'setup', label: 'Conectar', icon: Code2 },
-  { id: 'admin', label: 'Administración', icon: Users, adminOnly: true },
-]
+type PortalLocale = 'es' | 'en'
 
-const viewTitles: Record<View, { title: string; subtitle: string }> = {
-  overview: { title: 'Resumen', subtitle: 'Tu actividad y saldo en un solo lugar' },
-  usage: { title: 'Usage Records', subtitle: 'Uso real por cliente y por modelo' },
-  status: { title: 'Channel Status', subtitle: 'Estado y actividad de tus canales comerciales' },
-  keys: { title: 'API Keys', subtitle: 'Credenciales para tus aplicaciones' },
-  models: { title: 'Modelos', subtitle: 'Precios finales por millón de tokens' },
-  wallet: { title: 'Saldo', subtitle: 'Crédito disponible para tus consumos' },
-  setup: { title: 'Conectar', subtitle: 'Configuración lista para tu entorno' },
-  admin: { title: 'Administración', subtitle: 'Clientes, costos y rentabilidad del gateway' },
+function tr(locale: PortalLocale, spanish: string, english: string) {
+  return locale === 'en' ? english : spanish
+}
+
+function getNavItems(locale: PortalLocale): Array<{ id: View; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean }> {
+  return [
+    { id: 'overview', label: tr(locale, 'Resumen', 'Overview'), icon: LayoutDashboard },
+    { id: 'usage', label: 'Usage', icon: BarChart3 },
+    { id: 'status', label: tr(locale, 'Estado', 'Status'), icon: Server },
+    { id: 'keys', label: 'API Keys', icon: KeyRound },
+    { id: 'models', label: tr(locale, 'Modelos', 'Models'), icon: Sparkles },
+    { id: 'wallet', label: tr(locale, 'Saldo', 'Balance'), icon: WalletCards },
+    { id: 'setup', label: tr(locale, 'Conectar', 'Connect'), icon: Code2 },
+    { id: 'admin', label: tr(locale, 'Administración', 'Administration'), icon: Users, adminOnly: true },
+  ]
+}
+
+function getViewTitles(locale: PortalLocale): Record<View, { title: string; subtitle: string }> {
+  return {
+    overview: { title: tr(locale, 'Resumen', 'Overview'), subtitle: tr(locale, 'Tu actividad y saldo en un solo lugar', 'Your activity and balance in one place') },
+    usage: { title: 'Usage Records', subtitle: tr(locale, 'Uso real por cliente y por modelo', 'Real usage by customer and model') },
+    status: { title: 'Channel Status', subtitle: tr(locale, 'Estado y actividad de tus canales comerciales', 'Status and activity across your commercial channels') },
+    keys: { title: 'API Keys', subtitle: tr(locale, 'Credenciales para tus aplicaciones', 'Credentials for your applications') },
+    models: { title: tr(locale, 'Modelos', 'Models'), subtitle: tr(locale, 'Precios finales por millón de tokens', 'Final prices per million tokens') },
+    wallet: { title: tr(locale, 'Saldo', 'Balance'), subtitle: tr(locale, 'Crédito disponible para tus consumos', 'Credit available for your usage') },
+    setup: { title: tr(locale, 'Conectar', 'Connect'), subtitle: tr(locale, 'Configuración lista para tu entorno', 'Setup ready for your environment') },
+    admin: { title: tr(locale, 'Administración', 'Administration'), subtitle: tr(locale, 'Clientes, costos y rentabilidad del gateway', 'Customers, costs and gateway profitability') },
+  }
+}
+
+function PortalLanguageToggle({ locale, onChange }: { locale: PortalLocale; onChange: (locale: PortalLocale) => void }) {
+  return <div className="portal-language-toggle" aria-label="Language"><button type="button" className={locale === 'es' ? 'active' : ''} onClick={() => onChange('es')}>ES</button><span>/</span><button type="button" className={locale === 'en' ? 'active' : ''} onClick={() => onChange('en')}>EN</button></div>
 }
 
 function money(value: number, digits = 2) {
@@ -471,7 +485,7 @@ function UsageStat({ label, value, hint, icon: Icon, tone }: { label: string; va
   )
 }
 
-function Overview({ data, setView }: { data: DashboardData; setView: (view: View) => void }) {
+function Overview({ data, setView, locale }: { data: DashboardData; setView: (view: View) => void; locale: PortalLocale }) {
   const available = data.user.quota / data.quotaPerUsd
   const spent = data.user.used_quota / data.quotaPerUsd
   const activeKeys = data.keys.filter((key) => key.status === 1).length
@@ -486,12 +500,12 @@ function Overview({ data, setView }: { data: DashboardData; setView: (view: View
       </section>
       <section className="quick-band">
         <div><span className="quick-icon"><Server size={20} /></span><div><strong>Tu endpoint está listo</strong><code>{data.gatewayUrl}</code></div></div>
-        <button className="secondary-button" onClick={() => setView('setup')}>Ver configuración <ChevronRight size={17} /></button>
+        <button className="secondary-button" onClick={() => setView('setup')}>{tr(locale, 'Ver configuración', 'View setup')} <ChevronRight size={17} /></button>
       </section>
       <section className="section-block activity-card">
-        <div className="section-heading"><div><h3>Actividad reciente</h3><p>Solo mostramos solicitudes con consumo real.</p></div><button className="text-action" onClick={() => setView('usage')}>Ver usage <ArrowUpRight size={16} /></button></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Actividad reciente', 'Recent activity')}</h3><p>{tr(locale, 'Solo mostramos solicitudes con consumo real.', 'Only requests with real usage are shown.')}</p></div><button className="text-action" onClick={() => setView('usage')}>{tr(locale, 'Ver usage', 'View usage')} <ArrowUpRight size={16} /></button></div>
         <div className="activity-list">
-          {billableLogs.length === 0 && <div className="empty-row"><Activity size={20} />Todavía no hay consumo registrado</div>}
+          {billableLogs.length === 0 && <div className="empty-row"><Activity size={20} />{tr(locale, 'Todavía no hay consumo registrado', 'No usage recorded yet')}</div>}
           {billableLogs.slice(0, 8).map((log) => {
             const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
             return <article className="activity-item" key={log.id}><span className="activity-icon"><Bot size={17} /></span><div><strong>{log.model_name}</strong><small>{formatDate(log.created_at)} · {log.token_name}</small></div><div className="activity-metrics"><span>{compactNumber(tokens)} tokens</span><strong>{money((log.quota || 0) / data.quotaPerUsd, 6)}</strong></div></article>
@@ -502,7 +516,7 @@ function Overview({ data, setView }: { data: DashboardData; setView: (view: View
   )
 }
 
-function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: () => void; onCreated: (key: string) => void }) {
+function KeyModal({ data, onClose, onCreated, locale }: { data: DashboardData; onClose: () => void; onCreated: (key: string) => void; locale: PortalLocale }) {
   const [name, setName] = useState('mi-aplicacion')
   const [quota, setQuota] = useState(Math.min(10, Math.max(1, Math.floor(data.user.quota / data.quotaPerUsd))))
   const groupOptions = [
@@ -544,23 +558,23 @@ function KeyModal({ data, onClose, onCreated }: { data: DashboardData; onClose: 
 
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <form className="modal key-modal" onSubmit={create}>
-      <div className="modal-header"><div><p className="eyebrow">Nueva credencial</p><h3>Crear API Key</h3></div><button type="button" className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div>
+      <div className="modal-header"><div><p className="eyebrow">{tr(locale, 'Nueva credencial', 'New credential')}</p><h3>Crear API Key</h3></div><button type="button" className="icon-button" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button></div>
       <div className="modal-body">
-        <label>Nombre<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} required /></label>
-        <label>Límite de consumo (USD)<input type="number" min="0.01" step="0.01" value={quota} onChange={(event) => setQuota(Number(event.target.value))} required /></label>
-        <fieldset><legend>1. Elegí como querés enrutar esta key</legend><div className="group-choice-grid">{groupOptions.map((option) => { const availableModels = data.keyModels.filter((model) => option.matches(model.id)); const pricedModels = availableModels.filter((model) => model.input > 0 || model.output > 0); const inputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.input * option.multiplier)) : 0; const outputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.output * option.multiplier)) : 0; const available = availableModels.length > 0; return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span className="group-choice-copy"><strong>{option.label}</strong><small>{available ? option.note : 'Sin modelos disponibles ahora'}</small><span className="group-price-line"><b>{option.description}</b><em>Input desde {tokenPrice(inputFrom)} · Salida desde {tokenPrice(outputFrom)}</em></span></span></label> })}</div></fieldset>
-        {selectedGroup ? <fieldset><div className="model-field-head"><strong>2. Elegí los modelos de {selectedGroup.label}</strong><span>{groupModels.length} disponibles</span></div><div className="selected-group-summary"><div><small>Input desde</small><strong>{tokenPrice(groupInputFrom)}</strong></div><div><small>Salida desde</small><strong>{tokenPrice(groupOutputFrom)}</strong></div><div><small>Precio</small><strong>{selectedGroup.multiplier === 1 ? 'Base' : `${selectedGroup.multiplier}x`}</strong></div></div>{groupModels.length > 0 ? <div className="model-check-grid priced">{groupModels.map((model) => <label className={`check-row priced ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span><div><strong>{model.label}</strong><small>Input {tokenPrice(model.input * selectedGroup.multiplier)} · Salida {tokenPrice(model.output * selectedGroup.multiplier)}{model.cacheWrite > 0 ? ` · Cache ${tokenPrice(model.cacheWrite * selectedGroup.multiplier)}` : ''}</small></div></label>)}</div> : <p className="field-note">No hay modelos disponibles en este grupo.</p>}</fieldset> : <div className="group-prompt"><Sparkles size={17} /><span>Elegí un grupo para ver modelos y precios.</span></div>}
+        <label>{tr(locale, 'Nombre', 'Name')}<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} required /></label>
+        <label>{tr(locale, 'Límite de consumo (USD)', 'Usage limit (USD)')}<input type="number" min="0.01" step="0.01" value={quota} onChange={(event) => setQuota(Number(event.target.value))} required /></label>
+        <fieldset><legend>{tr(locale, '1. Elegí como querés enrutar esta key', '1. Choose how this key should route requests')}</legend><div className="group-choice-grid">{groupOptions.map((option) => { const availableModels = data.keyModels.filter((model) => option.matches(model.id)); const pricedModels = availableModels.filter((model) => model.input > 0 || model.output > 0); const inputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.input * option.multiplier)) : 0; const outputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.output * option.multiplier)) : 0; const available = availableModels.length > 0; return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span className="group-choice-copy"><strong>{option.label}</strong><small>{available ? option.note : tr(locale, 'Sin modelos disponibles ahora', 'No models available right now')}</small><span className="group-price-line"><b>{option.description}</b><em>Input {tr(locale, 'desde', 'from')} {tokenPrice(inputFrom)} · {tr(locale, 'Salida desde', 'Output from')} {tokenPrice(outputFrom)}</em></span></span></label> })}</div></fieldset>
+        {selectedGroup ? <fieldset><div className="model-field-head"><strong>2. {tr(locale, 'Elegí los modelos de', 'Choose models for')} {selectedGroup.label}</strong><span>{groupModels.length} {tr(locale, 'disponibles', 'available')}</span></div><div className="selected-group-summary"><div><small>Input {tr(locale, 'desde', 'from')}</small><strong>{tokenPrice(groupInputFrom)}</strong></div><div><small>{tr(locale, 'Salida desde', 'Output from')}</small><strong>{tokenPrice(groupOutputFrom)}</strong></div><div><small>{tr(locale, 'Precio', 'Price')}</small><strong>{selectedGroup.multiplier === 1 ? tr(locale, 'Base', 'Base') : `${selectedGroup.multiplier}x`}</strong></div></div>{groupModels.length > 0 ? <div className="model-check-grid priced">{groupModels.map((model) => <label className={`check-row priced ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span><div><strong>{model.label}</strong><small>Input {tokenPrice(model.input * selectedGroup.multiplier)} · {tr(locale, 'Salida', 'Output')} {tokenPrice(model.output * selectedGroup.multiplier)}{model.cacheWrite > 0 ? ` · Cache ${tokenPrice(model.cacheWrite * selectedGroup.multiplier)}` : ''}</small></div></label>)}</div> : <p className="field-note">{tr(locale, 'No hay modelos disponibles en este grupo.', 'No models are available in this group.')}</p>}</fieldset> : <div className="group-prompt"><Sparkles size={17} /><span>{tr(locale, 'Elegí un grupo para ver modelos y precios.', 'Choose a group to see models and prices.')}</span></div>}
         {error && <div className="form-error">{error}</div>}
       </div>
-      <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancelar</button><button className="primary-button" disabled={loading || !group || models.length === 0}>{loading ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}Crear clave</button></div>
+      <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>{tr(locale, 'Cancelar', 'Cancel')}</button><button className="primary-button" disabled={loading || !group || models.length === 0}>{loading ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}{tr(locale, 'Crear clave', 'Create key')}</button></div>
     </form>
   </div>
 }
 
-function SecretModal({ secret, onClose }: { secret: string; onClose: () => void }) {
+function SecretModal({ secret, onClose, locale }: { secret: string; onClose: () => void; locale: PortalLocale }) {
   const [copied, setCopied] = useState(false)
   async function copy() { await navigator.clipboard.writeText(secret); setCopied(true); setTimeout(() => setCopied(false), 1800) }
-  return <div className="modal-backdrop"><div className="modal secret-modal"><div className="modal-header"><div><p className="eyebrow">API Key</p><h3>Credencial lista</h3></div><button className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div><div className="modal-body"><div className="secret-box"><code>{secret}</code><button className="icon-button" onClick={copy} aria-label="Copiar">{copied ? <Check size={19} /> : <Copy size={19} />}</button></div><p className="security-note"><ShieldCheck size={17} />Guardala en un gestor de secretos y no la incluyas en código público.</p></div><div className="modal-footer"><button className="primary-button" onClick={onClose}>Listo</button></div></div></div>
+  return <div className="modal-backdrop"><div className="modal secret-modal"><div className="modal-header"><div><p className="eyebrow">API Key</p><h3>{tr(locale, 'Credencial lista', 'Credential ready')}</h3></div><button className="icon-button" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button></div><div className="modal-body"><div className="secret-box"><code>{secret}</code><button className="icon-button" onClick={copy} aria-label={tr(locale, 'Copiar', 'Copy')}>{copied ? <Check size={19} /> : <Copy size={19} />}</button></div><p className="security-note"><ShieldCheck size={17} />{tr(locale, 'Guardala en un gestor de secretos y no la incluyas en código público.', 'Store it in a secrets manager and never include it in public code.')}</p></div><div className="modal-footer"><button className="primary-button" onClick={onClose}>{tr(locale, 'Listo', 'Done')}</button></div></div></div>
 }
 
 type SetupTarget = 'codex' | 'codex-ws' | 'opencode'
@@ -617,7 +631,7 @@ function setupFiles(target: SetupTarget, os: SetupOs, base: string, key: string,
   ]
 }
 
-function UseApiKeyModal({ data, keyInfo, onClose }: { data: DashboardData; keyInfo: ApiKey; onClose: () => void }) {
+function UseApiKeyModal({ data, keyInfo, onClose, locale }: { data: DashboardData; keyInfo: ApiKey; onClose: () => void; locale: PortalLocale }) {
   const [target, setTarget] = useState<SetupTarget>('codex')
   const [authMode, setAuthMode] = useState<SetupAuthMode>('compatibility')
   const [os, setOs] = useState<SetupOs>('unix')
@@ -651,25 +665,25 @@ function UseApiKeyModal({ data, keyInfo, onClose }: { data: DashboardData; keyIn
 
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <div className="modal setup-modal">
-      <div className="modal-header"><div><p className="eyebrow">Usar API Key · {keyInfo.name}</p><h3>Configuración de cliente</h3></div><button className="icon-button" onClick={onClose} aria-label="Cerrar"><X size={20} /></button></div>
+      <div className="modal-header"><div><p className="eyebrow">{tr(locale, 'Usar API Key', 'Use API Key')} · {keyInfo.name}</p><h3>{tr(locale, 'Configuración de cliente', 'Client setup')}</h3></div><button className="icon-button" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button></div>
       <div className="setup-controls">
-        <div className="setup-segment"><span>Cliente</span><div>{([['codex', 'Codex CLI'], ['codex-ws', 'Codex CLI (WebSocket)'], ['opencode', 'OpenCode']] as const).map(([value, label]) => <button key={value} className={target === value ? 'active' : ''} onClick={() => setTarget(value)}>{label}</button>)}</div></div>
-        <div className="setup-segment"><span>Autenticación</span><div>{([['compatibility', 'Compatibility mode'], ['api-key', 'API Key Mode']] as const).map(([value, label]) => <button key={value} className={authMode === value ? 'active' : ''} onClick={() => setAuthMode(value)}>{label}</button>)}</div></div>
-        <div className="setup-segment"><span>Sistema</span><div>{([['unix', 'macOS / Linux'], ['windows', 'Windows']] as const).map(([value, label]) => <button key={value} className={os === value ? 'active' : ''} onClick={() => setOs(value)}>{label}</button>)}</div></div>
+        <div className="setup-segment"><span>{tr(locale, 'Cliente', 'Client')}</span><div>{([['codex', 'Codex CLI'], ['codex-ws', 'Codex CLI (WebSocket)'], ['opencode', 'OpenCode']] as const).map(([value, label]) => <button key={value} className={target === value ? 'active' : ''} onClick={() => setTarget(value)}>{label}</button>)}</div></div>
+        <div className="setup-segment"><span>{tr(locale, 'Autenticación', 'Authentication')}</span><div>{([['compatibility', 'Compatibility mode'], ['api-key', 'API Key Mode']] as const).map(([value, label]) => <button key={value} className={authMode === value ? 'active' : ''} onClick={() => setAuthMode(value)}>{label}</button>)}</div></div>
+        <div className="setup-segment"><span>{tr(locale, 'Sistema', 'System')}</span><div>{([['unix', 'macOS / Linux'], ['windows', 'Windows']] as const).map(([value, label]) => <button key={value} className={os === value ? 'active' : ''} onClick={() => setOs(value)}>{label}</button>)}</div></div>
       </div>
-      <p className="setup-mode-note">{authMode === 'api-key' ? 'API Key Mode usa la credencial directa del cliente para autorizar el gateway.' : 'Compatibility mode genera el formato OPENAI_API_KEY para clientes existentes.'}</p>
+      <p className="setup-mode-note">{authMode === 'api-key' ? tr(locale, 'API Key Mode usa la credencial directa del cliente para autorizar el gateway.', 'API Key Mode uses the client credential to authorize the gateway.') : tr(locale, 'Compatibility mode genera el formato OPENAI_API_KEY para clientes existentes.', 'Compatibility mode generates the OPENAI_API_KEY format for existing clients.')}</p>
       <div className="modal-body setup-body">
-        {loading && <div className="setup-loading"><LoaderCircle className="spin" size={19} />Cargando la credencial de esta clave...</div>}
+        {loading && <div className="setup-loading"><LoaderCircle className="spin" size={19} />{tr(locale, 'Cargando la credencial de esta clave...', 'Loading this key credential...')}</div>}
         {error && <div className="form-error">{error}</div>}
-        {!loading && !error && files.map((file) => <section className="setup-file" key={file.path}><div className="setup-file-head"><code>{file.path}</code><button className="copy-code" onClick={() => copy(file.path, file.content)}>{copied === file.path ? <Check size={16} /> : <Copy size={16} />}{copied === file.path ? 'Copiado' : 'Copiar'}</button></div><pre><code>{file.content}</code></pre></section>)}
-        <p className="security-note"><ShieldCheck size={17} />La clave se revela solo para generar esta configuración. No la compartas ni la subas a Git.</p>
+        {!loading && !error && files.map((file) => <section className="setup-file" key={file.path}><div className="setup-file-head"><code>{file.path}</code><button className="copy-code" onClick={() => copy(file.path, file.content)}>{copied === file.path ? <Check size={16} /> : <Copy size={16} />}{copied === file.path ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</button></div><pre><code>{file.content}</code></pre></section>)}
+        <p className="security-note"><ShieldCheck size={17} />{tr(locale, 'La clave se revela solo para generar esta configuración. No la compartas ni la subas a Git.', 'The key is revealed only to generate this setup. Do not share it or upload it to Git.')}</p>
       </div>
-      <div className="modal-footer"><button className="primary-button" onClick={onClose}>Listo</button></div>
+      <div className="modal-footer"><button className="primary-button" onClick={onClose}>{tr(locale, 'Listo', 'Done')}</button></div>
     </div>
   </div>
 }
 
-function KeysView({ data, reload }: { data: DashboardData; reload: () => Promise<void> }) {
+function KeysView({ data, reload, locale }: { data: DashboardData; reload: () => Promise<void>; locale: PortalLocale }) {
   const [creating, setCreating] = useState(false)
   const [secret, setSecret] = useState('')
   const [setupKey, setSetupKey] = useState<ApiKey | null>(null)
@@ -683,14 +697,14 @@ function KeysView({ data, reload }: { data: DashboardData; reload: () => Promise
     finally { setBusyId(null) }
   }
   async function remove(id: number) {
-    if (!confirm('¿Eliminar esta API Key? Las aplicaciones que la usen dejarán de funcionar.')) return
+    if (!confirm(tr(locale, '¿Eliminar esta API Key? Las aplicaciones que la usen dejarán de funcionar.', 'Delete this API Key? Applications using it will stop working.'))) return
     setBusyId(id); setError('')
     try { await readJson(await fetch(`/api/keys/${id}`, { method: 'DELETE' })); await reload() }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo eliminar la clave.') }
     finally { setBusyId(null) }
   }
 
-  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} activas</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />Crear API Key</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>Nombre</th><th>Credencial</th><th>Modelos</th><th>Saldo</th><th>Último uso</th><th className="right">Acciones</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={6}><div className="empty-row"><KeyRound size={20} />No hay claves creadas</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : 'Todos'}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="secondary-button key-use-button" onClick={() => setSetupKey(key)}><Terminal size={16} />Usar API Key</button><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label="Revelar clave">{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label="Eliminar clave"><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} onClose={() => setSecret('')} />}{setupKey && <UseApiKeyModal data={data} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}</div>
+  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} {tr(locale, 'activas', 'active')}</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />{tr(locale, 'Crear API Key', 'Create API Key')}</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>{tr(locale, 'Nombre', 'Name')}</th><th>{tr(locale, 'Credencial', 'Credential')}</th><th>{tr(locale, 'Modelos', 'Models')}</th><th>{tr(locale, 'Saldo', 'Balance')}</th><th>{tr(locale, 'Último uso', 'Last use')}</th><th className="right">{tr(locale, 'Acciones', 'Actions')}</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={6}><div className="empty-row"><KeyRound size={20} />{tr(locale, 'No hay claves creadas', 'No keys created')}</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : tr(locale, 'Todos', 'All')}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="secondary-button key-use-button" onClick={() => setSetupKey(key)}><Terminal size={16} />{tr(locale, 'Usar API Key', 'Use API Key')}</button><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Revelar clave', 'Reveal key')}>{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Eliminar clave', 'Delete key')}><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} locale={locale} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} locale={locale} onClose={() => setSecret('')} />}{setupKey && <UseApiKeyModal data={data} locale={locale} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}</div>
 }
 
 type UsageRange = '24h' | '7d' | '30d'
@@ -782,7 +796,7 @@ function Donut({ items, total, tone }: { items: Array<{ label: string; value: nu
   )
 }
 
-function UsageView({ data }: { data: DashboardData }) {
+function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale }) {
   const [usage, setUsage] = useState<UsageResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -917,8 +931,8 @@ function UsageView({ data }: { data: DashboardData }) {
       <section className="usage-hero">
         <div>
           <p className="eyebrow">Usage Records</p>
-          <h2>Uso real por cliente</h2>
-          <span>Todo el consumo que ve este usuario sale de sus propios logs en New API.</span>
+          <h2>{tr(locale, 'Uso real por cliente', 'Real customer usage')}</h2>
+          <span>{tr(locale, 'Todo el consumo que ve este usuario sale de sus propios logs en New API.', 'All usage shown here comes from this user’s own New API logs.')}</span>
         </div>
         <div className="usage-hero-meta">
           <div><small>Cuenta</small><strong>{usage?.user.display_name || usage?.user.username || data.user.username}</strong></div>
@@ -1127,7 +1141,7 @@ function UsageView({ data }: { data: DashboardData }) {
   )
 }
 
-function AdminView() {
+function AdminView({ locale }: { locale: PortalLocale }) {
   const [admin, setAdmin] = useState<AdminResponse | null>(null)
   const [redeemCodes, setRedeemCodes] = useState<RedeemCodeRow[]>([])
   const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
@@ -1218,8 +1232,8 @@ function AdminView() {
     <section className="admin-command-bar">
       <div>
         <p className="eyebrow">Control financiero</p>
-        <h2>Rentabilidad del gateway</h2>
-        <span>Datos administrativos de New API</span>
+        <h2>{tr(locale, 'Rentabilidad del gateway', 'Gateway profitability')}</h2>
+        <span>{tr(locale, 'Datos administrativos de New API', 'New API administrative data')}</span>
       </div>
       <div className="admin-actions">
         <label><CalendarRange size={16} /><select value={range} onChange={(event) => setRange(event.target.value as typeof range)}><option value="7d">7 días</option><option value="30d">30 días</option><option value="90d">90 días</option><option value="all">Histórico</option></select></label>
@@ -1298,13 +1312,13 @@ function AdminView() {
   </div>
 }
 
-function ModelsView({ data }: { data: DashboardData }) {
+function ModelsView({ data, locale }: { data: DashboardData; locale: PortalLocale }) {
   return <div className="view-stack">
     <section className="models-hero">
       <div>
         <p className="eyebrow">Catálogo comercial</p>
-        <h2>Modelos disponibles</h2>
-        <p>Vista compacta con identidad visual real, precios y estado de venta en una sola pantalla.</p>
+        <h2>{tr(locale, 'Modelos disponibles', 'Available models')}</h2>
+        <p>{tr(locale, 'Vista compacta con identidad visual real, precios y estado de venta en una sola pantalla.', 'A compact view with model identity, prices and sales status in one place.')}</p>
       </div>
       <div className="catalog-summary">
         <div><Sparkles size={20} /><span><strong>{data.models.length} modelos</strong><small>Plan Profesional</small></span></div>
@@ -1395,7 +1409,7 @@ function formatRelativeHours(timestamp: number) {
   return hours === 0 ? 'ahora' : `hace ${hours}h`
 }
 
-function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Promise<void> }) {
+function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: () => Promise<void>; locale: PortalLocale }) {
   const [windowDays, setWindowDays] = useState<7 | 15 | 30>(7)
   const [probing, setProbing] = useState(false)
   const [probeError, setProbeError] = useState('')
@@ -1456,7 +1470,7 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
       <section className="status-topbar">
         <div className="status-title">
           <h2>Channel Status</h2>
-          <p>Vista de disponibilidad, actividad y salud por modelo.</p>
+          <p>{tr(locale, 'Vista de disponibilidad, actividad y salud por modelo.', 'Availability, activity and health by model.')}</p>
         </div>
         <div className="status-actions">
           <div className="window-switch">
@@ -1564,7 +1578,7 @@ function StatusView({ data, refresh }: { data: DashboardData; refresh: () => Pro
   )
 }
 
-function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { data: DashboardData; paymentReturn: PaymentReturn | null; onDismissPayment: () => void; onRedeemed: () => Promise<void> }) {
+function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale }: { data: DashboardData; paymentReturn: PaymentReturn | null; onDismissPayment: () => void; onRedeemed: () => Promise<void>; locale: PortalLocale }) {
   const [message, setMessage] = useState('')
   const [busyAmount, setBusyAmount] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mercadopago')
@@ -1618,18 +1632,18 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { dat
       <button className="icon-button" onClick={onDismissPayment} aria-label="Cerrar estado del pago"><X size={17} /></button>
     </section>}
     <section className="wallet-hero">
-      <div><p>Saldo disponible</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>Cuenta {data.user.username}</span></div>
+      <div><p>{tr(locale, 'Saldo disponible', 'Available balance')}</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>{tr(locale, 'Cuenta', 'Account')} {data.user.username}</span></div>
       <span className="wallet-icon"><WalletCards size={28} /></span>
     </section>
     <section className="section-block">
-      <div className="section-heading"><div><h3>Métodos de pago</h3><p>Elegí cómo cargar crédito en tu cuenta</p></div></div>
+      <div className="section-heading"><div><h3>{tr(locale, 'Métodos de pago', 'Payment methods')}</h3><p>{tr(locale, 'Elegí cómo cargar crédito en tu cuenta', 'Choose how to add credit to your account')}</p></div></div>
       <div className="payment-method-grid">
         <button className={`payment-method ${paymentMethod === 'mercadopago' ? 'active' : ''}`} onClick={() => setPaymentMethod('mercadopago')}><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>ARS · US$ 1.600 por dólar</small></span>{paymentMethod === 'mercadopago' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
         <button className={`payment-method crypto-method featured-payment ${paymentMethod === 'crypto2328' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto2328')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · 2328.io <em className="payment-featured-badge">Recomendado</em></strong><small>USDT, BTC, ETH y más · mínimo US$ 1</small></span>{paymentMethod === 'crypto2328' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
       </div>
     </section>
     <section className="section-block">
-      <div className="section-heading"><div><h3>Cargar saldo</h3><p>{paymentMethod === 'crypto2328' ? 'Pago crypto seguro · mínimo US$ 1 · conversión automática a USDT' : 'Pago seguro con Mercado Pago · mínimo US$ 1'}</p></div></div>
+      <div className="section-heading"><div><h3>{tr(locale, 'Cargar saldo', 'Add balance')}</h3><p>{paymentMethod === 'crypto2328' ? tr(locale, 'Pago crypto seguro · mínimo US$ 1 · conversión automática a USDT', 'Secure crypto payment · US$ 1 minimum · automatic USDT conversion') : tr(locale, 'Pago seguro con Mercado Pago · mínimo US$ 1', 'Secure Mercado Pago payment · US$ 1 minimum')}</p></div></div>
       <div className="package-grid">{[1, 5, 10, 25].filter((amount) => amount >= minimumAmount).map((amount) => <button className={`package-card ${amount === 10 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === minimumAmount ? 'Recarga mínima' : amount === 10 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>{paymentMethod === 'crypto2328' ? 'Pago único en crypto' : `AR$ ${(amount * 1600).toLocaleString('es-AR')} · Pago único`}</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
       <div className="custom-topup">
         <div className="custom-topup-copy"><strong>Otro importe</strong><small>Recargá desde US$ {minimumAmount}, hasta US$ 10.000.</small></div>
@@ -1643,7 +1657,7 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed }: { dat
       {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
     </section>
     <section className="section-block">
-      <div className="section-heading"><div><h3>Canjear código</h3><p>Usá un código demo o promocional para acreditar saldo en tu cuenta.</p></div><ReceiptText size={19} /></div>
+      <div className="section-heading"><div><h3>{tr(locale, 'Canjear código', 'Redeem code')}</h3><p>{tr(locale, 'Usá un código demo o promocional para acreditar saldo en tu cuenta.', 'Use a demo or promotional code to add credit to your account.')}</p></div><ReceiptText size={19} /></div>
       <form className="redeem-form" onSubmit={submitRedeem}>
         <label><span>Código</span><input value={redeemCode} onChange={(event) => { setRedeemCode(event.target.value.toUpperCase()); setMessage('') }} placeholder="ORB-XXXX-XXXX-XXXX" /></label>
         <button className="primary-button" disabled={redeeming || !redeemCode.trim()}>{redeeming ? <LoaderCircle className="spin" size={17} /> : <ReceiptText size={17} />}Canjear código</button>
@@ -1659,7 +1673,7 @@ const snippets = {
   curl: (base: string, key: string) => `curl ${base}/chat/completions \\\n  -H "Authorization: Bearer ${key || 'sk-tu-api-key'}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"gpt-5.4-mini","messages":[{"role":"user","content":"Hola"}]}'`,
 }
 
-function SetupView({ data }: { data: DashboardData }) {
+function SetupView({ data, locale }: { data: DashboardData; locale: PortalLocale }) {
   const [tab, setTab] = useState<keyof typeof snippets>('env')
   const [selectedKey, setSelectedKey] = useState('')
   const [revealed, setRevealed] = useState('')
@@ -1671,7 +1685,7 @@ function SetupView({ data }: { data: DashboardData }) {
   }
   const code = snippets[tab](data.gatewayUrl, revealed)
   async function copy() { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1800) }
-  return <div className="view-stack"><section className="connection-bar"><div><span className="connection-status"><span />API operativa</span><code>{data.gatewayUrl}</code></div><button className="icon-button" onClick={() => navigator.clipboard.writeText(data.gatewayUrl)} aria-label="Copiar Base URL"><Copy size={18} /></button></section><section className="section-block"><div className="section-heading"><div><h3>Configuración automática</h3><p>Descargá el asistente y pegá tu key una sola vez. Configura Codex, Claude o ambos.</p></div><Download size={20} /></div><div className="quick-band"><div><strong>Orbiqen para Windows</strong><small>Incluye activador, backups y restaurador de configuración oficial.</small></div><div className="quick-band-actions"><a className="primary-button" href="/downloads/orbiqen-windows/Orbiqen-Windows.rar" download><Download size={17} />Descargar asistente</a><a className="secondary-button" href="/downloads/orbiqen-windows/LEEME-PRIMERO.txt" target="_blank" rel="noreferrer">Leer instrucciones</a></div></div></section><section className="code-workspace"><div className="code-toolbar"><div className="code-tabs">{(['env', 'python', 'node', 'curl'] as const).map((item) => <button className={tab === item ? 'active' : ''} key={item} onClick={() => setTab(item)}>{item === 'env' ? '.env' : item}</button>)}</div><button className="copy-code" onClick={copy}>{copied ? <Check size={16} /> : <Clipboard size={16} />}{copied ? 'Copiado' : 'Copiar'}</button></div><pre><code>{code}</code></pre></section><section className="key-selector"><div><KeyRound size={19} /><span><strong>Usar una API Key</strong><small>La clave se muestra solo en este navegador</small></span></div><select value={selectedKey} onChange={(event) => { setSelectedKey(event.target.value); setRevealed('') }}><option value="">Seleccionar clave</option>{data.keys.map((key) => <option key={key.id} value={key.id}>{key.name}</option>)}</select><button className="secondary-button" onClick={reveal} disabled={!selectedKey}>Insertar</button></section></div>
+  return <div className="view-stack"><section className="connection-bar"><div><span className="connection-status"><span />{tr(locale, 'API operativa', 'API operational')}</span><code>{data.gatewayUrl}</code></div><button className="icon-button" onClick={() => navigator.clipboard.writeText(data.gatewayUrl)} aria-label="Copiar Base URL"><Copy size={18} /></button></section><section className="section-block"><div className="section-heading"><div><h3>{tr(locale, 'Configuración automática', 'Automatic setup')}</h3><p>{tr(locale, 'Descargá el asistente y pegá tu key una sola vez. Configura Codex, Claude o ambos.', 'Download the assistant and paste your key once. It configures Codex, Claude or both.')}</p></div><Download size={20} /></div><div className="quick-band"><div><strong>Orbiqen para Windows</strong><small>{tr(locale, 'Incluye activador, backups y restaurador de configuración oficial.', 'Includes activator, backups and official configuration restore.')}</small></div><div className="quick-band-actions"><a className="primary-button" href="/downloads/orbiqen-windows/Orbiqen-Windows.rar" download><Download size={17} />{tr(locale, 'Descargar asistente', 'Download assistant')}</a><a className="secondary-button" href="/downloads/orbiqen-windows/LEEME-PRIMERO.txt" target="_blank" rel="noreferrer">{tr(locale, 'Leer instrucciones', 'Read instructions')}</a></div></div></section><section className="code-workspace"><div className="code-toolbar"><div className="code-tabs">{(['env', 'python', 'node', 'curl'] as const).map((item) => <button className={tab === item ? 'active' : ''} key={item} onClick={() => setTab(item)}>{item === 'env' ? '.env' : item}</button>)}</div><button className="copy-code" onClick={copy}>{copied ? <Check size={16} /> : <Clipboard size={16} />}{copied ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</button></div><pre><code>{code}</code></pre></section><section className="key-selector"><div><KeyRound size={19} /><span><strong>{tr(locale, 'Usar una API Key', 'Use an API Key')}</strong><small>{tr(locale, 'La clave se muestra solo en este navegador', 'The key is shown only in this browser')}</small></span></div><select value={selectedKey} onChange={(event) => { setSelectedKey(event.target.value); setRevealed('') }}><option value="">{tr(locale, 'Seleccionar clave', 'Select key')}</option>{data.keys.map((key) => <option key={key.id} value={key.id}>{key.name}</option>)}</select><button className="secondary-button" onClick={reveal} disabled={!selectedKey}>{tr(locale, 'Insertar', 'Insert')}</button></section></div>
 }
 
 function LoadingScreen() {
@@ -1679,6 +1693,7 @@ function LoadingScreen() {
 }
 
 export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMode?: 'login' | 'register'; locale?: 'es' | 'en' } = {}) {
+  const [portalLocale, setPortalLocale] = useState<PortalLocale>(locale)
   const [auth, setAuth] = useState<'loading' | 'anonymous' | 'authenticated'>('loading')
   const [data, setData] = useState<DashboardData | null>(null)
   const [view, setView] = useState<View>('overview')
@@ -1706,6 +1721,16 @@ export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMod
   useEffect(() => { void load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    const saved = window.localStorage.getItem('orbiqen-portal-locale')
+    if (saved === 'es' || saved === 'en') setPortalLocale(saved)
+  }, [])
+
+  function changeLocale(nextLocale: PortalLocale) {
+    setPortalLocale(nextLocale)
+    window.localStorage.setItem('orbiqen-portal-locale', nextLocale)
+  }
+
+  useEffect(() => {
     const payment = new URLSearchParams(window.location.search).get('payment')
     if (payment !== 'success' && payment !== 'pending' && payment !== 'failure') return
     setPaymentReturn(payment)
@@ -1715,15 +1740,15 @@ export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMod
 
   const content = useMemo(() => {
     if (!data) return null
-    if (view === 'overview') return <Overview data={data} setView={setView} />
-    if (view === 'usage') return <UsageView data={data} />
-    if (view === 'admin') return <AdminView />
-    if (view === 'status') return <StatusView data={data} refresh={load} />
-    if (view === 'keys') return <KeysView data={data} reload={load} />
-    if (view === 'models') return <ModelsView data={data} />
-    if (view === 'wallet') return <WalletView data={data} paymentReturn={paymentReturn} onDismissPayment={() => setPaymentReturn(null)} onRedeemed={load} />
-    return <SetupView data={data} />
-  }, [data, view, load, paymentReturn])
+    if (view === 'overview') return <Overview data={data} locale={portalLocale} setView={setView} />
+    if (view === 'usage') return <UsageView data={data} locale={portalLocale} />
+    if (view === 'admin') return <AdminView locale={portalLocale} />
+    if (view === 'status') return <StatusView data={data} locale={portalLocale} refresh={load} />
+    if (view === 'keys') return <KeysView data={data} locale={portalLocale} reload={load} />
+    if (view === 'models') return <ModelsView data={data} locale={portalLocale} />
+    if (view === 'wallet') return <WalletView data={data} locale={portalLocale} paymentReturn={paymentReturn} onDismissPayment={() => setPaymentReturn(null)} onRedeemed={load} />
+    return <SetupView data={data} locale={portalLocale} />
+  }, [data, view, load, paymentReturn, portalLocale])
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -1731,11 +1756,11 @@ export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMod
   }
 
   if (auth === 'loading') return <LoadingScreen />
-  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} locale={locale} />
+  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} locale={portalLocale} />
   if (!data) return <LoadingScreen />
 
-  const title = viewTitles[view]
-  const visibleNav = navItems.filter((item) => !item.adminOnly || Number(data.user.role || 0) >= 10)
+  const title = getViewTitles(portalLocale)[view]
+  const visibleNav = getNavItems(portalLocale).filter((item) => !item.adminOnly || Number(data.user.role || 0) >= 10)
   const initials = (data.user.display_name || data.user.username).slice(0, 2).toUpperCase()
   return <main className="app-shell">
     <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -1745,7 +1770,7 @@ export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMod
     </aside>
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Cerrar menú" />}
     <section className="main-area">
-      <header className="topbar"><button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú"><Menu size={21} /></button><div><h1>{title.title}</h1><p>{title.subtitle}</p></div><div className="top-actions"><button className="icon-button" onClick={load} disabled={refreshing} aria-label="Actualizar"><RefreshCw className={refreshing ? 'spin' : ''} size={18} /></button><button className="balance-pill" onClick={() => setView('wallet')}><WalletCards size={17} /><span>{money(data.user.quota / data.quotaPerUsd, 2)}</span></button></div></header>
+      <header className="topbar"><button className="icon-button menu-button" onClick={() => setSidebarOpen(true)} aria-label={tr(portalLocale, 'Abrir menú', 'Open menu')}><Menu size={21} /></button><div><h1>{title.title}</h1><p>{title.subtitle}</p></div><div className="top-actions"><PortalLanguageToggle locale={portalLocale} onChange={changeLocale} /><button className="icon-button" onClick={load} disabled={refreshing} aria-label={tr(portalLocale, 'Actualizar', 'Refresh')}><RefreshCw className={refreshing ? 'spin' : ''} size={18} /></button><button className="balance-pill" onClick={() => setView('wallet')}><WalletCards size={17} /><span>{money(data.user.quota / data.quotaPerUsd, 2)}</span></button></div></header>
       <div className="content-area">{error && <div className="form-error">{error}</div>}{content}</div>
       <nav className="mobile-nav">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={19} /><span>{label}</span></button>)}</nav>
     </section>
