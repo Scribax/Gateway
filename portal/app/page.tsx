@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
-import PublicHome from '@/components/public-home'
+import { EnglishHome } from './en/page'
 
 export const metadata: Metadata = {
-  title: 'Gateway de IA para vender GPT y Claude',
-  description: 'Una API compatible con OpenAI para vender acceso a GPT y Claude con saldo prepago, control de uso y panel por cliente.',
-  alternates: { canonical: '/' },
+  title: 'AI API Gateway for GPT and Claude',
+  description: 'Connect GPT and Claude through one OpenAI-compatible API with prepaid balance, usage tracking and customer API keys.',
+  alternates: { canonical: '/', languages: { es: '/es', en: '/' } },
 }
 
 export default function Home() {
-  return <PublicHome />
+  return <EnglishHome />
 }

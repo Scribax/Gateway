@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   keywords: ['API de inteligencia artificial', 'API GPT', 'API Claude', 'gateway de IA', 'OpenAI compatible', 'Claude API'],
   alternates: {
     canonical: '/',
-    languages: { es: '/', en: '/en' },
+    languages: { es: '/es', en: '/' },
   },
   openGraph: {
     type: 'website',

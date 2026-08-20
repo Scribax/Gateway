@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <main className="public-page">
-      <PublicNav locale="es" englishPath="/en/pricing" />
+      <PublicNav locale="es" englishPath="/en/pricing" spanishPath="/precios" />
       <section className="public-hero compact">
         <p className="public-eyebrow">PRECIOS CLAROS</p>
         <h1>Pagá solo por lo que usás.</h1>

@@ -15,7 +15,7 @@ const openAiExample = `curl https://orbiqen.com/v1/chat/completions \\
 export default function DocsPage() {
   return (
     <main className="public-page">
-      <PublicNav locale="es" englishPath="/en/docs" />
+      <PublicNav locale="es" englishPath="/en/docs" spanishPath="/docs" />
       <section className="public-hero">
         <p className="public-eyebrow">ORBIQEN API</p>
         <h1>Conectá tus aplicaciones con modelos GPT y Claude.</h1>

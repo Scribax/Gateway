@@ -39,7 +39,7 @@ export default function PublicHome() {
           <a href="/docs">Docs</a>
         </nav>
         <div className="landing-nav-actions">
-          <PublicLanguageSwitch locale="es" englishPath="/en" />
+          <PublicLanguageSwitch locale="es" englishPath="/" spanishPath="/es" />
           <a className="landing-link" href="/login">Ingresar</a>
           <a className="landing-button" href="/login?mode=register">Crear cuenta</a>
         </div>

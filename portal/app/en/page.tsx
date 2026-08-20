@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 
 const example = 'curl https://orbiqen.com/v1/chat/completions -H "Authorization: Bearer YOUR_API_KEY" -d \'{"model":"gpt-5.5","messages":[{"role":"user","content":"Hello"}]}\''
 
-export default function EnglishHome() {
+export function EnglishHome() {
   return (
     <main className="landing-page">
       <header className="landing-nav">
-        <a className="landing-brand" href="/en"><span className="landing-brand-mark"><img src="/orbiqen-logo.png" alt="Orbiqen" /></span></a>
+        <a className="landing-brand" href="/"><span className="landing-brand-mark"><img src="/orbiqen-logo.png" alt="Orbiqen" /></span></a>
         <nav><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="/en/docs">Docs</a></nav>
-        <div className="landing-nav-actions"><PublicLanguageSwitch locale="en" englishPath="/en" /><a className="landing-link" href="/login">Sign in</a><a className="landing-button" href="/login?mode=register">Create account</a></div>
+        <div className="landing-nav-actions"><PublicLanguageSwitch locale="en" englishPath="/" spanishPath="/es" /><a className="landing-link" href="/login">Sign in</a><a className="landing-button" href="/login?mode=register">Create account</a></div>
       </header>
       <section className="landing-hero">
         <div className="landing-hero-copy"><p className="landing-eyebrow">AI API GATEWAY FOR BUILDERS</p><h1>One API for GPT, Claude and your customers.</h1><p className="landing-lead">Sell prepaid access, manage keys and track real usage with a simple OpenAI-compatible integration.</p><div className="landing-actions"><a className="landing-primary" href="/login?mode=register">Get started free</a><a className="landing-secondary" href="#pricing">View pricing</a></div><div className="landing-badges"><span><BadgeCheck size={16} />OpenAI compatible</span><span><WalletCards size={16} />Balance from US$ 1</span><span><ShieldCheck size={16} />Isolated customer keys</span></div></div>
@@ -31,3 +31,5 @@ export default function EnglishHome() {
     </main>
   )
 }
+
+export default EnglishHome
