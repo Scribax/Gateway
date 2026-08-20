@@ -14,6 +14,13 @@ type UsageLog = {
   use_time: number
 }
 
+function isBillableLog(log: UsageLog) {
+  const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+  return Boolean(log.model_name?.trim()) &&
+    Boolean(log.token_name?.trim()) &&
+    (tokens > 0 || (log.quota || 0) > 0)
+}
+
 async function loadAllLogs() {
   const pageSize = 100
   const maxPages = 10
@@ -26,7 +33,7 @@ async function loadAllLogs() {
     if (!data.items || data.items.length < pageSize) break
   }
 
-  return logs.sort((a, b) => b.created_at - a.created_at)
+  return logs.filter(isBillableLog).sort((a, b) => b.created_at - a.created_at)
 }
 
 export async function GET() {

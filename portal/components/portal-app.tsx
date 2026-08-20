@@ -797,7 +797,7 @@ function UsageView({ data }: { data: DashboardData }) {
   }, [])
 
   const quotaPerUsd = usage?.quotaPerUsd || data.quotaPerUsd
-  const logs = usage?.logs || []
+  const logs = (usage?.logs || []).filter((log) => Boolean(log.model_name?.trim()) && Boolean(log.token_name?.trim()) && (((log.prompt_tokens || 0) + (log.completion_tokens || 0)) > 0 || (log.quota || 0) > 0))
   const filtered = useMemo(() => {
     const floor = rangeFloor(range)
     return logs.filter((log) => log.created_at >= floor).sort((a, b) => b.created_at - a.created_at)
