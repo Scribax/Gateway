@@ -40,8 +40,8 @@ export default function PublicHome() {
         </nav>
         <div className="landing-nav-actions">
           <PublicLanguageSwitch locale="es" englishPath="/" spanishPath="/es" />
-          <a className="landing-link" href="/login">Ingresar</a>
-          <a className="landing-button" href="/login?mode=register">Crear cuenta</a>
+          <a className="landing-link" href="/login?lang=es">Ingresar</a>
+          <a className="landing-button" href="/login?lang=es&mode=register">Crear cuenta</a>
         </div>
       </header>
 
@@ -51,7 +51,7 @@ export default function PublicHome() {
           <h1>Una API para GPT, Claude y tus clientes en un mismo panel.</h1>
           <p className="landing-lead">Cobrá en saldo prepago, controlá el uso por key y ofrecé modelos listos para producción con una experiencia clara para tus clientes.</p>
           <div className="landing-actions">
-            <a className="landing-primary" href="/login?mode=register">Empezar gratis</a>
+            <a className="landing-primary" href="/login?lang=es&mode=register">Empezar gratis</a>
             <a className="landing-secondary" href="#pricing">Ver precios</a>
           </div>
           <div className="landing-badges">
@@ -156,7 +156,7 @@ export default function PublicHome() {
       <footer className="landing-footer">
         <span>Orbiqen</span>
         <span>Gateway de IA para vender acceso, medir uso y cobrar por saldo.</span>
-        <a href="/login">Ingresar al panel</a>
+        <a href="/login?lang=es">Ingresar al panel</a>
       </footer>
     </main>
   )

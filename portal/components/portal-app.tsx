@@ -48,6 +48,7 @@ import {
   X,
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { PublicLanguageSwitch } from './public-nav'
 
 type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup' | 'admin'
 type PaymentReturn = 'success' | 'pending' | 'failure'
@@ -321,7 +322,7 @@ async function readJson(response: Response) {
   return body
 }
 
-function AuthScreen({ onAuthenticated, initialMode = 'login' }: { onAuthenticated: () => void; initialMode?: 'login' | 'register' }) {
+function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: { onAuthenticated: () => void; initialMode?: 'login' | 'register'; locale?: 'es' | 'en' }) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -333,6 +334,20 @@ function AuthScreen({ onAuthenticated, initialMode = 'login' }: { onAuthenticate
   const [codeSent, setCodeSent] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [error, setError] = useState('')
+  const english = locale === 'en'
+  const copy = english ? {
+    welcome: 'Welcome', newAccount: 'New account', loginTitle: 'Sign in to your dashboard', registerTitle: 'Create your account',
+    username: 'Username', usernamePlaceholder: 'your_username', email: 'Email address', emailPlaceholder: 'you@yourcompany.com',
+    verification: 'Verification code', sendCode: 'Send code', resend: 'Resend', password: 'Password', passwordPlaceholder: 'At least 8 characters',
+    sent: 'Code sent. Check your inbox and spam folder.', signIn: 'Sign in', create: 'Create account', createNew: 'Create a new account', already: 'I already have an account',
+    heroTitle: <>One API.<br />All your models.</>, heroText: 'Manage balance, keys and usage from a dashboard built for work.', proof: 'Isolated keys and usage control',
+  } : {
+    welcome: 'Bienvenido', newAccount: 'Nueva cuenta', loginTitle: 'Ingresá a tu panel', registerTitle: 'Creá tu cuenta',
+    username: 'Usuario', usernamePlaceholder: 'tu_usuario', email: 'Correo electrónico', emailPlaceholder: 'vos@tuempresa.com',
+    verification: 'Código de verificación', sendCode: 'Enviar código', resend: 'Reenviar', password: 'Contraseña', passwordPlaceholder: 'Mínimo 8 caracteres',
+    sent: 'Código enviado. Revisá también la carpeta de spam.', signIn: 'Ingresar', create: 'Crear cuenta', createNew: 'Crear una cuenta nueva', already: 'Ya tengo una cuenta',
+    heroTitle: <>Una API.<br />Todos tus modelos.</>, heroText: 'Administrá saldo, claves y consumo desde un panel hecho para trabajar.', proof: 'Claves aisladas y control de consumo',
+  }
   useEffect(() => {
     if (cooldown <= 0) return
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000)
@@ -382,50 +397,51 @@ function AuthScreen({ onAuthenticated, initialMode = 'login' }: { onAuthenticate
         <div className="brand brand-light"><BrandLogo light /></div>
         <div className="auth-brand-content">
           <div className="auth-signal"><span /><span /><span /></div>
-          <h1>Una API.<br />Todos tus modelos.</h1>
-          <p>Administrá saldo, claves y consumo desde un panel hecho para trabajar.</p>
+          <h1>{copy.heroTitle}</h1>
+          <p>{copy.heroText}</p>
         </div>
-        <div className="auth-proof"><ShieldCheck size={18} /><span>Claves aisladas y control de consumo</span></div>
+        <div className="auth-proof"><ShieldCheck size={18} /><span>{copy.proof}</span></div>
       </section>
       <section className="auth-form-panel">
         <div className="auth-mobile-brand brand"><BrandLogo /></div>
+        <div className="auth-language"><PublicLanguageSwitch locale={locale} englishPath={`/login?lang=en${mode === 'register' ? '&mode=register' : ''}`} spanishPath={`/login?lang=es${mode === 'register' ? '&mode=register' : ''}`} /></div>
         <form className="auth-form" onSubmit={submit}>
           <div>
-            <p className="eyebrow">{mode === 'login' ? 'Bienvenido' : 'Nueva cuenta'}</p>
-            <h2>{mode === 'login' ? 'Ingresá a tu panel' : 'Creá tu cuenta'}</h2>
+            <p className="eyebrow">{mode === 'login' ? copy.welcome : copy.newAccount}</p>
+            <h2>{mode === 'login' ? copy.loginTitle : copy.registerTitle}</h2>
           </div>
           <label>
-            Usuario
-            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder="tu_usuario" required />
+            {copy.username}
+            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder={copy.usernamePlaceholder} required />
           </label>
           {mode === 'register' && <>
             <label>
-              Correo electrónico
-              <input value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }} type="email" autoComplete="email" placeholder="vos@tuempresa.com" required />
+              {copy.email}
+              <input value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }} type="email" autoComplete="email" placeholder={copy.emailPlaceholder} required />
             </label>
             <label>
-              Código de verificación
+              {copy.verification}
               <span className="verification-field">
                 <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/[^a-fA-F0-9]/g, '').toLowerCase().slice(0, 6))} inputMode="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={6} placeholder="a1b2c3" pattern="[a-fA-F0-9]{6}" required />
                 <button className="secondary-button verification-send" type="button" onClick={sendVerificationCode} disabled={sendingCode || cooldown > 0 || !email}>
                   {sendingCode ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />}
-                  {cooldown > 0 ? `${cooldown}s` : codeSent ? 'Reenviar' : 'Enviar código'}
+                  {cooldown > 0 ? `${cooldown}s` : codeSent ? copy.resend : copy.sendCode}
                 </button>
               </span>
             </label>
-            {codeSent && <p className="form-success">Código enviado. Revisá también la carpeta de spam.</p>}
+            {codeSent && <p className="form-success">{copy.sent}</p>}
           </>}
           <label>
-            Contraseña
+            {copy.password}
             <span className="password-field">
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="Mínimo 8 caracteres" required />
+              <input value={password} onChange={(event) => setPassword(event.target.value)} type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={copy.passwordPlaceholder} required />
               <button type="button" className="icon-button inline-icon" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button>
             </span>
           </label>
           {error && <div className="form-error">{error}</div>}
-          <button className="primary-button auth-submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}{mode === 'login' ? 'Ingresar' : 'Crear cuenta'}</button>
+          <button className="primary-button auth-submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}{mode === 'login' ? copy.signIn : copy.create}</button>
           <button className="text-button" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setCodeSent(false); setCooldown(0) }}>
-            {mode === 'login' ? 'Crear una cuenta nueva' : 'Ya tengo una cuenta'}
+            {mode === 'login' ? copy.createNew : copy.already}
           </button>
         </form>
       </section>
@@ -1662,7 +1678,7 @@ function LoadingScreen() {
   return <main className="loading-screen"><div className="brand"><BrandLogo /></div><LoaderCircle className="spin" size={25} /></main>
 }
 
-export function PortalApp({ initialMode = 'login' }: { initialMode?: 'login' | 'register' } = {}) {
+export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMode?: 'login' | 'register'; locale?: 'es' | 'en' } = {}) {
   const [auth, setAuth] = useState<'loading' | 'anonymous' | 'authenticated'>('loading')
   const [data, setData] = useState<DashboardData | null>(null)
   const [view, setView] = useState<View>('overview')
@@ -1715,7 +1731,7 @@ export function PortalApp({ initialMode = 'login' }: { initialMode?: 'login' | '
   }
 
   if (auth === 'loading') return <LoadingScreen />
-  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} />
+  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} locale={locale} />
   if (!data) return <LoadingScreen />
 
   const title = viewTitles[view]

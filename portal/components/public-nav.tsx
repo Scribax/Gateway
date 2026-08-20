@@ -19,7 +19,7 @@ export function PublicNav({ locale = 'es', englishPath = '/', spanishPath = '/' 
         <a href={english ? '/en/pricing' : '/precios'}>{english ? 'Pricing' : 'Precios'}</a>
         <a href={english ? '/en/docs' : '/docs'}>{english ? 'Documentation' : 'Documentación'}</a>
         <PublicLanguageSwitch locale={locale} englishPath={englishPath} spanishPath={spanishPath} />
-        <a className="public-nav-cta" href="/login">{english ? 'Sign in' : 'Ingresar'}</a>
+        <a className="public-nav-cta" href={english ? '/login?lang=en' : '/login?lang=es'}>{english ? 'Sign in' : 'Ingresar'}</a>
       </div>
     </nav>
   )

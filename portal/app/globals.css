@@ -61,7 +61,10 @@ code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospac
 .auth-signal span { width: 6px; background: #5ed2a5; border-radius: 2px; }
 .auth-signal span:nth-child(1) { height: 9px; }.auth-signal span:nth-child(2) { height: 16px; }.auth-signal span:nth-child(3) { height: 24px; }
 .auth-proof { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; color: #b9c6c0; font-size: 13px; }
-.auth-form-panel { display: flex; align-items: center; justify-content: center; padding: 50px; }
+.auth-form-panel { position: relative; display: flex; align-items: center; justify-content: center; padding: 50px; }
+.auth-language { position: absolute; top: 28px; right: 34px; }
+.auth-language .public-language-switch a { color: var(--muted); }
+.auth-language .public-language-switch a.active { color: var(--green); }
 .auth-mobile-brand { display: none; }
 .auth-form { width: min(100%, 410px); display: flex; flex-direction: column; gap: 22px; }
 .auth-form h2 { margin: 6px 0 0; font-size: 30px; }
