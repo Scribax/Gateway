@@ -43,3 +43,21 @@ diff --git a/service/quota.go b/service/quota.go
  	}
  	err = model.DecreaseTokenQuota(relayInfo.TokenId, relayInfo.TokenKey, quota)
  	if err != nil {
+diff --git a/i18n/locales/en.yaml b/i18n/locales/en.yaml
+--- a/i18n/locales/en.yaml
++++ b/i18n/locales/en.yaml
+@@ -265,12 +265,12 @@ common.uuid_duplicate: "Please retry, the system generated a duplicate UUID!"
+ common.invalid_input: "Invalid input"
+ 
+ # Distributor messages
+ distributor.invalid_request: "Invalid request: {{.Error}}"
+ distributor.invalid_channel_id: "Invalid channel ID"
+ distributor.channel_disabled: "This channel has been disabled"
+ distributor.affinity_channel_disabled: "The channel selected by channel affinity has been disabled, and retry was stopped by rule. Please contact the administrator"
+-distributor.token_no_model_access: "This token has no access to any models"
+-distributor.token_model_forbidden: "This token has no access to model {{.Model}}"
++distributor.token_no_model_access: "Esta API key no tiene modelos habilitados. Creá una nueva key en Orbiqen, elegí el grupo correcto y seleccioná los modelos que querés usar."
++distributor.token_model_forbidden: "Esta API key no tiene acceso al modelo {{.Model}}. Revisá que la key sea del grupo correcto y que el modelo esté seleccionado al crear la key."
+ distributor.model_name_required: "Model name not specified, model name cannot be empty"
+ distributor.invalid_playground_request: "Invalid playground request: {{.Error}}"
+ distributor.group_access_denied: "No permission to access this group"
