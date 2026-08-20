@@ -1673,7 +1673,11 @@ export function PortalApp() {
   const load = useCallback(async () => {
     setRefreshing(true); setError('')
     try {
-      const response = await fetch('/api/portal', { cache: 'no-store' })
+      let response = await fetch('/api/portal', { cache: 'no-store' })
+      if (response.status === 401) {
+        const refreshed = await fetch('/api/auth/refresh', { method: 'POST', cache: 'no-store' })
+        if (refreshed.ok) response = await fetch('/api/portal', { cache: 'no-store' })
+      }
       if (response.status === 401) { setAuth('anonymous'); setData(null); return }
       const body = await readJson(response)
       setData(body.data); setAuth('authenticated')

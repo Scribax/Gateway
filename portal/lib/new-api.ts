@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 
 export const SESSION_COOKIE = 'gateway_portal_session'
+export const REFRESH_COOKIE = 'gateway_portal_refresh'
 
 const INTERNAL_URL = (process.env.NEW_API_INTERNAL_URL || 'http://127.0.0.1:3000').replace(/\/$/, '')
 
