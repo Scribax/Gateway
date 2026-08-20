@@ -9,14 +9,14 @@ export type ModelPrice = {
 }
 
 export const MODEL_CATALOG: ModelPrice[] = [
-  { id: 'claude-fable-5', label: 'Claude Fable 5', input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 1, accent: 'coral' },
-  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', input: 0.15, output: 0.75, cacheRead: 0.015, cacheWrite: 0.2, accent: 'green' },
-  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 1, accent: 'coral' },
-  { id: 'claude-opus-4-7', label: 'Claude Opus 4.7', input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 1, accent: 'coral' },
-  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 1, accent: 'coral' },
-  { id: 'claude-opus-5', label: 'Claude Opus 5', input: 0.75, output: 3.75, cacheRead: 0.075, cacheWrite: 1, accent: 'coral' },
-  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', input: 0.30, output: 1.50, cacheRead: 0.03, cacheWrite: 0.60, accent: 'blue' },
-  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', input: 0.30, output: 1.50, cacheRead: 0.03, cacheWrite: 0.60, accent: 'blue' },
+  { id: 'claude-fable-5', label: 'Claude Fable 5', input: 1.50, output: 7.50, cacheRead: 0.15, cacheWrite: 2.00, accent: 'coral' },
+  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', input: 0.30, output: 1.50, cacheRead: 0.03, cacheWrite: 0.40, accent: 'green' },
+  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', input: 1.50, output: 7.50, cacheRead: 0.15, cacheWrite: 2.00, accent: 'coral' },
+  { id: 'claude-opus-4-7', label: 'Claude Opus 4.7', input: 1.50, output: 7.50, cacheRead: 0.15, cacheWrite: 2.00, accent: 'coral' },
+  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', input: 1.50, output: 7.50, cacheRead: 0.15, cacheWrite: 2.00, accent: 'coral' },
+  { id: 'claude-opus-5', label: 'Claude Opus 5', input: 1.50, output: 7.50, cacheRead: 0.15, cacheWrite: 2.00, accent: 'coral' },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', input: 0.60, output: 3.00, cacheRead: 0.06, cacheWrite: 1.20, accent: 'blue' },
+  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5', input: 0.60, output: 3.00, cacheRead: 0.06, cacheWrite: 1.20, accent: 'blue' },
   { id: 'codex-auto-review', label: 'codex-auto-review', input: 0, output: 0, cacheRead: 0, cacheWrite: 0, accent: 'blue' },
   { id: 'gpt-4o-audio-preview', label: 'GPT 4o Audio Preview', input: 0, output: 0, cacheRead: 0, cacheWrite: 0, accent: 'blue' },
   { id: 'gpt-4o-realtime-preview', label: 'GPT 4o Realtime Preview', input: 0, output: 0, cacheRead: 0, cacheWrite: 0, accent: 'blue' },
