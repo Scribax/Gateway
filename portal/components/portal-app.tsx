@@ -493,13 +493,13 @@ function Overview({ data, setView, locale }: { data: DashboardData; setView: (vi
   return (
     <div className="view-stack">
       <section className="stats-grid">
-        <Stat label="Saldo disponible" value={money(available, available < 1 ? 4 : 2)} hint="Crédito actual" icon={CircleDollarSign} tone="green" />
-        <Stat label="Consumo histórico" value={money(spent, spent < 1 ? 4 : 2)} hint={`${data.logTotal} solicitudes con consumo`} icon={Activity} tone="coral" />
-        <Stat label="Solicitudes" value={compactNumber(data.user.request_count)} hint="Procesadas correctamente" icon={Gauge} tone="blue" />
-        <Stat label="Claves activas" value={String(activeKeys)} hint={`${data.keys.length} creadas`} icon={KeyRound} tone="charcoal" />
+        <Stat label={tr(locale, 'Saldo disponible', 'Available balance')} value={money(available, available < 1 ? 4 : 2)} hint={tr(locale, 'Crédito actual', 'Current credit')} icon={CircleDollarSign} tone="green" />
+        <Stat label={tr(locale, 'Consumo histórico', 'Historical usage')} value={money(spent, spent < 1 ? 4 : 2)} hint={`${data.logTotal} ${tr(locale, 'solicitudes con consumo', 'usage requests')}`} icon={Activity} tone="coral" />
+        <Stat label={tr(locale, 'Solicitudes', 'Requests')} value={compactNumber(data.user.request_count)} hint={tr(locale, 'Procesadas correctamente', 'Processed successfully')} icon={Gauge} tone="blue" />
+        <Stat label={tr(locale, 'Claves activas', 'Active keys')} value={String(activeKeys)} hint={`${data.keys.length} ${tr(locale, 'creadas', 'created')}`} icon={KeyRound} tone="charcoal" />
       </section>
       <section className="quick-band">
-        <div><span className="quick-icon"><Server size={20} /></span><div><strong>Tu endpoint está listo</strong><code>{data.gatewayUrl}</code></div></div>
+        <div><span className="quick-icon"><Server size={20} /></span><div><strong>{tr(locale, 'Tu endpoint está listo', 'Your endpoint is ready')}</strong><code>{data.gatewayUrl}</code></div></div>
         <button className="secondary-button" onClick={() => setView('setup')}>{tr(locale, 'Ver configuración', 'View setup')} <ChevronRight size={17} /></button>
       </section>
       <section className="section-block activity-card">
@@ -760,7 +760,7 @@ function buildBreakdown(logs: UsageLog[], quotaPerUsd: number, type: 'model' | '
   return Array.from(map.values()).sort((a, b) => b.requests - a.requests || b.cost - a.cost)
 }
 
-function Donut({ items, total, tone }: { items: Array<{ label: string; value: number; color: string }>; total: string; tone: string }) {
+function Donut({ items, total, tone, locale }: { items: Array<{ label: string; value: number; color: string }>; total: string; tone: string; locale: PortalLocale }) {
   const size = 180
   const stroke = 28
   const radius = (size - stroke) / 2
@@ -790,7 +790,7 @@ function Donut({ items, total, tone }: { items: Array<{ label: string; value: nu
       </svg>
       <div className="usage-donut-label">
         <strong>{total}</strong>
-        <span>selección activa</span>
+        <span>{tr(locale, 'selección activa', 'active selection')}</span>
       </div>
     </div>
   )
@@ -935,8 +935,8 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
           <span>{tr(locale, 'Todo el consumo que ve este usuario sale de sus propios logs en New API.', 'All usage shown here comes from this user’s own New API logs.')}</span>
         </div>
         <div className="usage-hero-meta">
-          <div><small>Cuenta</small><strong>{usage?.user.display_name || usage?.user.username || data.user.username}</strong></div>
-          <div><small>Ventana</small><strong>{range === '24h' ? '24 horas' : range === '7d' ? '7 días' : '30 días'}</strong></div>
+          <div><small>{tr(locale, 'Cuenta', 'Account')}</small><strong>{usage?.user.display_name || usage?.user.username || data.user.username}</strong></div>
+          <div><small>{tr(locale, 'Ventana', 'Window')}</small><strong>{range === '24h' ? tr(locale, '24 horas', '24 hours') : range === '7d' ? tr(locale, '7 días', '7 days') : tr(locale, '30 días', '30 days')}</strong></div>
         </div>
       </section>
 
@@ -945,38 +945,38 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
           <label>
             <CalendarRange size={16} />
             <select value={range} onChange={(event) => setRange(event.target.value as UsageRange)}>
-              <option value="24h">Últimas 24 horas</option>
-              <option value="7d">Últimos 7 días</option>
-              <option value="30d">Últimos 30 días</option>
+              <option value="24h">{tr(locale, 'Últimas 24 horas', 'Last 24 hours')}</option>
+              <option value="7d">{tr(locale, 'Últimos 7 días', 'Last 7 days')}</option>
+              <option value="30d">{tr(locale, 'Últimos 30 días', 'Last 30 days')}</option>
             </select>
           </label>
           <label>
             <Filter size={16} />
             <select value={granularity} onChange={(event) => setGranularity(event.target.value as UsageGranularity)}>
-              <option value="hour">Por hora</option>
-              <option value="day">Por día</option>
+              <option value="hour">{tr(locale, 'Por hora', 'By hour')}</option>
+              <option value="day">{tr(locale, 'Por día', 'By day')}</option>
             </select>
           </label>
         </div>
         <div className="usage-toolbar-actions">
           <div className="usage-toolbar-note">
             <Clock3 size={16} />
-            <span>Datos en vivo con actualización al abrir la pestaña</span>
+            <span>{tr(locale, 'Datos en vivo con actualización al abrir la pestaña', 'Live data refreshes when this tab opens')}</span>
           </div>
           <button className="secondary-button" onClick={exportCsv}><Clipboard size={16} />Export CSV</button>
         </div>
       </section>
 
-      {loading && <section className="usage-skeleton"><LoaderCircle className="spin" size={26} /><span>Cargando uso real...</span></section>}
+      {loading && <section className="usage-skeleton"><LoaderCircle className="spin" size={26} /><span>{tr(locale, 'Cargando uso real...', 'Loading real usage...')}</span></section>}
       {error && <div className="form-error">{error}</div>}
 
       {!loading && !error && (
         <>
           <section className="usage-stats-grid">
-            <UsageStat label="Total requests" value={compactNumber(totalRequests)} hint="Solicitudes del rango" icon={Activity} tone="blue" />
-            <UsageStat label="Total tokens" value={compactNumber(totalTokens)} hint={`Prompt ${compactNumber(totalPrompt)} / Completion ${compactNumber(totalCompletion)}`} icon={Gauge} tone="green" />
-            <UsageStat label="Total cost" value={money(totalCost, totalCost < 1 ? 4 : 2)} hint="Costo real del usuario" icon={CircleDollarSign} tone="coral" />
-            <UsageStat label="Avg duration" value={formatDuration(avgDuration)} hint="Tiempo promedio por request" icon={Clock3} tone="violet" />
+            <UsageStat label={tr(locale, 'Total requests', 'Total requests')} value={compactNumber(totalRequests)} hint={tr(locale, 'Solicitudes del rango', 'Requests in range')} icon={Activity} tone="blue" />
+            <UsageStat label={tr(locale, 'Total tokens', 'Total tokens')} value={compactNumber(totalTokens)} hint={`Prompt ${compactNumber(totalPrompt)} / Completion ${compactNumber(totalCompletion)}`} icon={Gauge} tone="green" />
+            <UsageStat label={tr(locale, 'Costo total', 'Total cost')} value={money(totalCost, totalCost < 1 ? 4 : 2)} hint={tr(locale, 'Costo real del usuario', 'Actual user cost')} icon={CircleDollarSign} tone="coral" />
+            <UsageStat label={tr(locale, 'Duración promedio', 'Avg duration')} value={formatDuration(avgDuration)} hint={tr(locale, 'Tiempo promedio por request', 'Average request time')} icon={Clock3} tone="violet" />
           </section>
 
           <section className="usage-chart-grid">
@@ -984,12 +984,13 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
               <div className="usage-panel-head">
                 <div>
                   <p>Model Distribution</p>
-                  <h3>Por requests</h3>
+                  <h3>{tr(locale, 'Por requests', 'By requests')}</h3>
                 </div>
                 <span>Top {modelBreakdown.length}</span>
               </div>
               <div className="usage-panel-body split">
                 <Donut
+                  locale={locale}
                   tone="blue"
                   total={compactNumber(totalRequests)}
                   items={modelBreakdown.map((item, index) => ({
@@ -1020,12 +1021,13 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
               <div className="usage-panel-head">
                 <div>
                   <p>Group Usage Distribution</p>
-                  <h3>Por keys</h3>
+                  <h3>{tr(locale, 'Por keys', 'By keys')}</h3>
                 </div>
                 <span>Top {keyBreakdown.length}</span>
               </div>
               <div className="usage-panel-body split">
                 <Donut
+                  locale={locale}
                   tone="green"
                   total={money(totalCost, 2)}
                   items={keyBreakdown.map((item, index) => ({
@@ -1057,12 +1059,12 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
             <div className="usage-panel-head">
               <div>
                 <p>Activity Trend</p>
-                <h3>Solicitudes del rango</h3>
+                <h3>{tr(locale, 'Solicitudes del rango', 'Requests in range')}</h3>
               </div>
-              <span>{series.length} puntos</span>
+              <span>{series.length} {tr(locale, 'puntos', 'points')}</span>
             </div>
             <div className="usage-bars">
-              {series.length === 0 && <div className="empty-row"><Activity size={18} />Sin actividad en el rango</div>}
+              {series.length === 0 && <div className="empty-row"><Activity size={18} />{tr(locale, 'Sin actividad en el rango', 'No activity in this range')}</div>}
               {series.map((bucket) => (
                 <div className="usage-bar-item" key={`${bucket.label}-${bucket.requests}`}>
                   <div className="usage-bar-track">
@@ -1079,9 +1081,9 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
             <div className="usage-panel-head">
               <div>
                 <p>Recent Requests</p>
-                <h3>Tabla detallada</h3>
+                <h3>{tr(locale, 'Tabla detallada', 'Detailed table')}</h3>
               </div>
-              <span>{filtered.length} en pantalla</span>
+              <span>{filtered.length} {tr(locale, 'en pantalla', 'shown')}</span>
             </div>
             <div className="table-wrap">
               <table>
@@ -1104,11 +1106,11 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
                     <th>Original</th>
                     <th>FRT</th>
                     <th>Duration</th>
-                    <th className="right">Costo</th>
+                    <th className="right">{tr(locale, 'Costo', 'Cost')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {detailedRows.length === 0 && <tr><td colSpan={18}><div className="empty-row"><Activity size={18} />No hay registros para ese rango</div></td></tr>}
+                  {detailedRows.length === 0 && <tr><td colSpan={18}><div className="empty-row"><Activity size={18} />{tr(locale, 'No hay registros para ese rango', 'No records in this range')}</div></td></tr>}
                   {detailedRows.map((row) => (
                     <tr key={row.id}>
                       <td>{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.time * 1000))}</td>
@@ -1236,47 +1238,47 @@ function AdminView({ locale }: { locale: PortalLocale }) {
         <span>{tr(locale, 'Datos administrativos de New API', 'New API administrative data')}</span>
       </div>
       <div className="admin-actions">
-        <label><CalendarRange size={16} /><select value={range} onChange={(event) => setRange(event.target.value as typeof range)}><option value="7d">7 días</option><option value="30d">30 días</option><option value="90d">90 días</option><option value="all">Histórico</option></select></label>
+        <label><CalendarRange size={16} /><select value={range} onChange={(event) => setRange(event.target.value as typeof range)}><option value="7d">{tr(locale, '7 días', '7 days')}</option><option value="30d">{tr(locale, '30 días', '30 days')}</option><option value="90d">{tr(locale, '90 días', '90 days')}</option><option value="all">{tr(locale, 'Histórico', 'All time')}</option></select></label>
         <button className="icon-button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading} aria-label="Actualizar administración"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button>
         <button className="secondary-button" onClick={exportCustomers} disabled={!admin}><Download size={17} />Exportar</button>
       </div>
     </section>
 
     {error && <div className="form-error">{error}</div>}
-    {loading && !admin && <section className="usage-skeleton"><LoaderCircle className="spin" size={25} /><span>Cargando métricas administrativas...</span></section>}
+    {loading && !admin && <section className="usage-skeleton"><LoaderCircle className="spin" size={25} /><span>{tr(locale, 'Cargando métricas administrativas...', 'Loading administrative metrics...')}</span></section>}
     {admin && <>
       <section className="admin-stats-grid">
-        <UsageStat label="Facturado por uso" value={money(admin.totals.revenueUsd, admin.totals.revenueUsd < 1 ? 4 : 2)} hint={`${compactNumber(admin.totals.requests)} solicitudes`} icon={ReceiptText} tone="blue" />
-        <UsageStat label="Costo proveedor" value={money(admin.totals.costUsd, admin.totals.costUsd < 1 ? 4 : 2)} hint={admin.config.providerCostIsEstimate ? `Estimado al ${(admin.config.upstreamFactor * 100).toFixed(1)}%` : 'Costo conciliado'} icon={CircleDollarSign} tone="coral" />
-        <UsageStat label="Ganancia neta" value={money(admin.totals.netProfitUsd, Math.abs(admin.totals.netProfitUsd) < 1 ? 4 : 2)} hint={`${margin.toFixed(1)}% de margen`} icon={TrendingUp} tone="green" />
-        <UsageStat label="Clientes activos" value={`${admin.totals.activeCustomers}/${admin.totals.customers}`} hint={`${admin.totals.errors} errores en el rango`} icon={Users} tone="violet" />
+        <UsageStat label={tr(locale, 'Facturado por uso', 'Usage revenue')} value={money(admin.totals.revenueUsd, admin.totals.revenueUsd < 1 ? 4 : 2)} hint={`${compactNumber(admin.totals.requests)} ${tr(locale, 'solicitudes', 'requests')}`} icon={ReceiptText} tone="blue" />
+        <UsageStat label={tr(locale, 'Costo proveedor', 'Provider cost')} value={money(admin.totals.costUsd, admin.totals.costUsd < 1 ? 4 : 2)} hint={admin.config.providerCostIsEstimate ? `${tr(locale, 'Estimado al', 'Estimated at')} ${(admin.config.upstreamFactor * 100).toFixed(1)}%` : tr(locale, 'Costo conciliado', 'Reconciled cost')} icon={CircleDollarSign} tone="coral" />
+        <UsageStat label={tr(locale, 'Ganancia neta', 'Net profit')} value={money(admin.totals.netProfitUsd, Math.abs(admin.totals.netProfitUsd) < 1 ? 4 : 2)} hint={`${margin.toFixed(1)}% ${tr(locale, 'de margen', 'margin')}`} icon={TrendingUp} tone="green" />
+        <UsageStat label={tr(locale, 'Clientes activos', 'Active customers')} value={`${admin.totals.activeCustomers}/${admin.totals.customers}`} hint={`${admin.totals.errors} ${tr(locale, 'errores en el rango', 'errors in range')}`} icon={Users} tone="violet" />
       </section>
 
       <section className="admin-ledger-strip">
         <div><small>Tokens procesados</small><strong>{compactNumber(admin.totals.totalTokens)}</strong></div>
         <div><small>Comisiones estimadas</small><strong>{money(admin.totals.paymentFeesUsd, 4)}</strong></div>
-        <div><small>Crédito asignado</small><strong>{money(admin.totals.creditedUsd, 4)}</strong></div>
-        <div><small>Última actualización</small><strong>{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(admin.generatedAt))}</strong></div>
+        <div><small>{tr(locale, 'Crédito asignado', 'Credited balance')}</small><strong>{money(admin.totals.creditedUsd, 4)}</strong></div>
+        <div><small>{tr(locale, 'Última actualización', 'Last updated')}</small><strong>{new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(admin.generatedAt))}</strong></div>
       </section>
 
-      {admin.truncated && <div className="admin-warning"><AlertTriangle size={17} />El rango supera 2.000 registros por categoría; las tablas muestran una muestra limitada.</div>}
+      {admin.truncated && <div className="admin-warning"><AlertTriangle size={17} />{tr(locale, 'El rango supera 2.000 registros por categoría; las tablas muestran una muestra limitada.', 'The range exceeds 2,000 records per category; tables show a limited sample.')}</div>}
 
       <section className="section-block redeem-admin-section">
-        <div className="section-heading"><div><h3>Códigos demo</h3><p>Generá crédito de prueba para nuevos clientes. Valor recomendado: US$ 0.50.</p></div><span className="info-chip"><ReceiptText size={15} />{redeemCodes.filter((code) => code.status === 'active').length} activos</span></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Códigos demo', 'Demo codes')}</h3><p>{tr(locale, 'Generá crédito de prueba para nuevos clientes. Valor recomendado: US$ 0.50.', 'Generate trial credit for new customers. Recommended value: US$ 0.50.')}</p></div><span className="info-chip"><ReceiptText size={15} />{redeemCodes.filter((code) => code.status === 'active').length} {tr(locale, 'activos', 'active')}</span></div>
         <form className="redeem-admin-form" onSubmit={createRedeemCodes}>
           <label>Monto USD<input type="number" min="0.01" max="100" step="0.01" value={redeemAmount} onChange={(event) => setRedeemAmount(event.target.value)} /></label>
           <label>Cantidad<input type="number" min="1" max="100" step="1" value={redeemCount} onChange={(event) => setRedeemCount(Number(event.target.value))} /></label>
           <label>Nota<input value={redeemNote} onChange={(event) => setRedeemNote(event.target.value)} placeholder="Campaña o cliente" /></label>
-          <button className="primary-button" disabled={creatingRedeem}>{creatingRedeem ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />}Generar códigos</button>
+          <button className="primary-button" disabled={creatingRedeem}>{creatingRedeem ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />}{tr(locale, 'Generar códigos', 'Generate codes')}</button>
         </form>
         <div className="table-wrap"><table className="admin-table redeem-table"><thead><tr><th>Código</th><th>Monto</th><th>Estado</th><th>Nota</th><th>Creado</th><th className="right">Acción</th></tr></thead><tbody>
-          {redeemCodes.length === 0 && <tr><td colSpan={6}><div className="empty-row"><ReceiptText size={18} />Todavía no hay códigos demo</div></td></tr>}
+          {redeemCodes.length === 0 && <tr><td colSpan={6}><div className="empty-row"><ReceiptText size={18} />{tr(locale, 'Todavía no hay códigos demo', 'No demo codes yet')}</div></td></tr>}
           {redeemCodes.slice(0, 40).map((code) => <tr key={code.id}><td><code>{code.code}</code></td><td>{money(Number(code.amount_usd), 2)}</td><td><span className={`admin-state ${code.status === 'active' ? 'active' : code.status === 'redeemed' ? 'blocked' : ''}`}>{code.status === 'active' ? 'Disponible' : code.status === 'redeemed' ? 'Canjeado' : code.status}</span></td><td>{code.note || '-'}</td><td>{formatDate(Number(code.created_at))}</td><td className="right"><button className="secondary-button key-use-button" onClick={() => navigator.clipboard.writeText(code.code)} type="button"><Copy size={15} />Copiar</button></td></tr>)}
         </tbody></table></div>
       </section>
 
       <section className="section-block model-control-section">
-        <div className="section-heading"><div><h3>Catálogo y grupos de venta</h3><p>La selección es manual. El estado HTTP solo se muestra como diagnóstico.</p></div><span className="info-chip"><Sparkles size={15} />{admin.modelControls.filter((model) => model.enabled).length} publicados</span></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Catálogo y grupos de venta', 'Catalog and sales groups')}</h3><p>{tr(locale, 'La selección es manual. El estado HTTP solo se muestra como diagnóstico.', 'Selection is manual. HTTP status is shown for diagnostics only.')}</p></div><span className="info-chip"><Sparkles size={15} />{admin.modelControls.filter((model) => model.enabled).length} {tr(locale, 'publicados', 'published')}</span></div>
         <div className="model-control-groups">
           {(['clientes', 'claude'] as const).map((group) => <div className="model-control-group" key={group}><div className="model-control-group-title"><strong>{group === 'claude' ? 'Claude' : 'ChatGPT'}</strong><span>{group === 'claude' ? 'Modelos Anthropic' : 'Modelos GPT, Codex y otros'}</span></div><div className="model-control-list">{admin.modelControls.filter((model) => model.group === group).map((model) => <div className="model-control-row" key={model.modelId}><div><strong>{model.label}</strong><code>{model.modelId}</code></div><button type="button" className={`model-toggle ${model.enabled ? 'enabled' : ''}`} aria-pressed={model.enabled} onClick={() => toggleModel(model.modelId, !model.enabled)} disabled={savingModel === model.modelId}>{savingModel === model.modelId ? <LoaderCircle className="spin" size={16} /> : model.enabled ? <><Check size={15} />Publicado</> : 'Oculto'}</button></div>)}</div></div>)}
         </div>
@@ -1292,7 +1294,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
 
       <section className="admin-split-grid">
         <article className="admin-panel">
-          <div className="section-heading"><div><h3>Modelos más utilizados</h3><p>Ordenados por facturación</p></div><BarChart3 size={18} /></div>
+          <div className="section-heading"><div><h3>{tr(locale, 'Modelos más utilizados', 'Most used models')}</h3><p>{tr(locale, 'Ordenados por facturación', 'Sorted by revenue')}</p></div><BarChart3 size={18} /></div>
           <div className="admin-ranking">{admin.models.length === 0 && <div className="empty-row"><BarChart3 size={18} />Sin consumo</div>}{admin.models.slice(0, 8).map((model, index) => <div className="admin-rank-row" key={model.model}><span className="rank-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{model.model}</strong><small>{compactNumber(model.requests)} req · {compactNumber(model.tokens)} tokens</small></div><span><strong>{money(model.revenueUsd, 4)}</strong><small>{money(model.profitUsd, 4)} margen</small></span></div>)}</div>
         </article>
         <article className="admin-panel">
@@ -1316,13 +1318,13 @@ function ModelsView({ data, locale }: { data: DashboardData; locale: PortalLocal
   return <div className="view-stack">
     <section className="models-hero">
       <div>
-        <p className="eyebrow">Catálogo comercial</p>
+        <p className="eyebrow">{tr(locale, 'Catálogo comercial', 'Commercial catalog')}</p>
         <h2>{tr(locale, 'Modelos disponibles', 'Available models')}</h2>
         <p>{tr(locale, 'Vista compacta con identidad visual real, precios y estado de venta en una sola pantalla.', 'A compact view with model identity, prices and sales status in one place.')}</p>
       </div>
       <div className="catalog-summary">
-        <div><Sparkles size={20} /><span><strong>{data.models.length} modelos</strong><small>Plan Profesional</small></span></div>
-        <div><Gauge size={20} /><span><strong>Pago por uso</strong><small>Sin costo fijo</small></span></div>
+        <div><Sparkles size={20} /><span><strong>{data.models.length} {tr(locale, 'modelos', 'models')}</strong><small>{tr(locale, 'Plan Profesional', 'Professional plan')}</small></span></div>
+        <div><Gauge size={20} /><span><strong>{tr(locale, 'Pago por uso', 'Pay as you go')}</strong><small>{tr(locale, 'Sin costo fijo', 'No fixed fee')}</small></span></div>
       </div>
     </section>
 
@@ -1330,8 +1332,8 @@ function ModelsView({ data, locale }: { data: DashboardData; locale: PortalLocal
       {data.models.map((model) => {
         const visual = getModelVisual(model.id)
         const priceLines = [
-          { label: 'Entrada', value: money(model.input, model.input < 0.1 ? 4 : 3) },
-          { label: 'Salida', value: money(model.output, model.output < 0.1 ? 4 : 3) },
+          { label: tr(locale, 'Entrada', 'Input'), value: money(model.input, model.input < 0.1 ? 4 : 3) },
+          { label: tr(locale, 'Salida', 'Output'), value: money(model.output, model.output < 0.1 ? 4 : 3) },
           { label: 'Cache read', value: money(model.cacheRead, 5) },
           { label: 'Cache write', value: model.cacheWrite > 0 ? money(model.cacheWrite, 5) : '-' },
         ]
@@ -1339,7 +1341,7 @@ function ModelsView({ data, locale }: { data: DashboardData; locale: PortalLocal
           <article className={`model-card tone-${model.accent}`} key={model.id}>
             <div className="model-card-top">
               <span className={`model-badge ${model.accent}`}><visual.Icon size={18} /></span>
-              <span className="available-badge"><Check size={13} />Disponible</span>
+              <span className="available-badge"><Check size={13} />{tr(locale, 'Disponible', 'Available')}</span>
             </div>
             <div className="model-card-head">
               <div>
@@ -1476,7 +1478,7 @@ function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: (
           <div className="window-switch">
             {availableWindows.map((days) => (
               <button key={days} className={windowDays === days ? 'active' : ''} onClick={() => setWindowDays(days as 7 | 15 | 30)}>
-                {days} days
+                {days} {tr(locale, 'días', 'days')}
               </button>
             ))}
           </div>
@@ -1486,7 +1488,7 @@ function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: (
           </button>
           <span className="refresh-pill">
             <RefreshCw size={16} className={probing ? 'spin' : ''} />
-            Auto check: 2h
+            {tr(locale, 'Auto chequeo: 2 h', 'Auto check: 2h')}
           </span>
         </div>
       </section>
@@ -1494,19 +1496,19 @@ function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: (
 
       <section className="status-summary">
         <div className="summary-card">
-          <span>Canales</span>
+          <span>{tr(locale, 'Canales', 'Channels')}</span>
           <strong>{cards.length}</strong>
-          <small>Modelos habilitados</small>
+          <small>{tr(locale, 'Modelos habilitados', 'Enabled models')}</small>
         </div>
         <div className="summary-card">
-          <span>Operativos</span>
+          <span>{tr(locale, 'Operativos', 'Operational')}</span>
           <strong>{operational}</strong>
-          <small>En la ventana de {windowDays} días</small>
+          <small>{tr(locale, 'En la ventana de', 'In the')} {windowDays} {tr(locale, 'días', 'days')}</small>
         </div>
         <div className="summary-card">
-          <span>Disponibilidad</span>
+          <span>{tr(locale, 'Disponibilidad', 'Availability')}</span>
           <strong>{avgAvailability}%</strong>
-          <small>Promedio de actividad</small>
+          <small>{tr(locale, 'Promedio de actividad', 'Activity average')}</small>
         </div>
       </section>
 
@@ -1529,7 +1531,7 @@ function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: (
 
             <div className="status-metrics">
               <div>
-                <span>Dialog latency</span>
+                <span>{tr(locale, 'Dialog latency', 'Dialog latency')}</span>
                 <strong>{channel.live?.dialogLatencyMs || channel.dialogLatencyMs}ms</strong>
               </div>
               <div>
@@ -1540,12 +1542,12 @@ function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: (
 
             <div className="status-foot">
               <div>
-                <span>Availability · {windowDays} days</span>
+                <span>{tr(locale, 'Disponibilidad', 'Availability')} · {windowDays} {tr(locale, 'días', 'days')}</span>
                 <strong>{channel.availabilityValue}%</strong>
               </div>
               <div>
-                <span>History ({channel.window.history.length} pts)</span>
-                <strong>Next update in 50s</strong>
+                <span>{tr(locale, 'Historial', 'History')} ({channel.window.history.length} {tr(locale, 'pts', 'pts')})</span>
+                <strong>{tr(locale, 'Próxima actualización en 50 s', 'Next update in 50s')}</strong>
               </div>
             </div>
 
@@ -1565,15 +1567,15 @@ function StatusView({ data, refresh, locale }: { data: DashboardData; refresh: (
             </div>
 
             <div className="status-card-footer">
-              <span>Group</span>
+              <span>{tr(locale, 'Grupo', 'Group')}</span>
               <code>{channel.group}</code>
-              <span>{channel.live ? `HTTP ${channel.live.statusCode || 'ERR'}` : 'Last seen'}</span>
+              <span>{channel.live ? `HTTP ${channel.live.statusCode || 'ERR'}` : tr(locale, 'Última actividad', 'Last seen')}</span>
               <strong title={channel.live?.message}>{channel.live ? formatSeen(channel.live.checkedAt) : formatSeen(channel.window.lastSeen)}</strong>
             </div>
           </article>
         ))}
       </section>
-      <div className="status-footnote">Último chequeo global: {lastCheckLabel}</div>
+      <div className="status-footnote">{tr(locale, 'Último chequeo global:', 'Last global check:')} {lastCheckLabel}</div>
     </div>
   )
 }
@@ -1593,15 +1595,15 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
     try {
       const body = await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, provider: paymentMethod }) }))
       const paymentUrl = paymentMethod === 'crypto2328' ? body.data?.invoiceUrl : body.data?.initPoint
-      if (!paymentUrl) throw new Error(paymentMethod === 'crypto2328' ? '2328.io no devolvió el enlace de pago.' : 'Mercado Pago no devolvió el enlace de pago.')
+      if (!paymentUrl) throw new Error(paymentMethod === 'crypto2328' ? tr(locale, '2328.io no devolvió el enlace de pago.', '2328.io did not return a payment link.') : tr(locale, 'Mercado Pago no devolvió el enlace de pago.', 'Mercado Pago did not return a payment link.'))
       window.location.assign(paymentUrl)
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Pagos no disponibles.') }
+    } catch (cause) { setMessage(cause instanceof Error ? cause.message : tr(locale, 'Pagos no disponibles.', 'Payments are unavailable.')) }
     finally { setBusyAmount(null) }
   }
   function submitCustomAmount(event: FormEvent) {
     event.preventDefault()
     if (!customAmountValid) {
-      setMessage(`Ingresá un importe desde US$ ${minimumAmount} y con hasta 2 decimales.`)
+      setMessage(`${tr(locale, 'Ingresá un importe desde', 'Enter an amount from')} US$ ${minimumAmount} ${tr(locale, 'y con hasta 2 decimales.', 'with up to 2 decimals.')}`)
       return
     }
     void checkout(customAmountValue)
@@ -1616,10 +1618,10 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
         body: JSON.stringify({ code: redeemCode }),
       }))
       setRedeemCode('')
-      setMessage(`Código canjeado. Se acreditaron ${money(body.data.amountUsd, 2)} en tu cuenta.`)
+      setMessage(`${tr(locale, 'Código canjeado. Se acreditaron', 'Code redeemed.')} ${money(body.data.amountUsd, 2)} ${tr(locale, 'en tu cuenta.', 'was added to your account.')}`)
       await onRedeemed()
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : 'No se pudo canjear el código.')
+      setMessage(cause instanceof Error ? cause.message : tr(locale, 'No se pudo canjear el código.', 'Could not redeem the code.'))
     } finally {
       setRedeeming(false)
     }
@@ -1628,8 +1630,8 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
   return <div className="view-stack">
     {paymentReturn && <section className={`payment-result ${paymentReturn}`} role="status">
       <span className="payment-result-icon">{paymentReturn === 'success' ? <Check size={20} /> : paymentReturn === 'pending' ? <Clock3 size={20} /> : <AlertTriangle size={20} />}</span>
-      <div><strong>{paymentReturn === 'success' ? 'Pago aprobado' : paymentReturn === 'pending' ? 'Pago pendiente' : 'Pago no completado'}</strong><p>{paymentReturn === 'success' ? 'El proveedor confirmó la operación. El saldo se acredita automáticamente; actualizá el panel si todavía no aparece.' : paymentReturn === 'pending' ? 'El proveedor todavía está procesando la operación. El saldo se acreditará cuando se confirme.' : 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.'}</p></div>
-      <button className="icon-button" onClick={onDismissPayment} aria-label="Cerrar estado del pago"><X size={17} /></button>
+      <div><strong>{paymentReturn === 'success' ? tr(locale, 'Pago aprobado', 'Payment approved') : paymentReturn === 'pending' ? tr(locale, 'Pago pendiente', 'Payment pending') : tr(locale, 'Pago no completado', 'Payment incomplete')}</strong><p>{paymentReturn === 'success' ? tr(locale, 'El proveedor confirmó la operación. El saldo se acredita automáticamente; actualizá el panel si todavía no aparece.', 'The provider confirmed the payment. Balance is credited automatically; refresh the panel if it does not appear yet.') : paymentReturn === 'pending' ? tr(locale, 'El proveedor todavía está procesando la operación. El saldo se acreditará cuando se confirme.', 'The provider is still processing the payment. Balance will be credited once confirmed.') : tr(locale, 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.', 'No balance was credited. You can try again whenever you want.')}</p></div>
+      <button className="icon-button" onClick={onDismissPayment} aria-label={tr(locale, 'Cerrar estado del pago', 'Close payment status')}><X size={17} /></button>
     </section>}
     <section className="wallet-hero">
       <div><p>{tr(locale, 'Saldo disponible', 'Available balance')}</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>{tr(locale, 'Cuenta', 'Account')} {data.user.username}</span></div>
@@ -1639,28 +1641,28 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
       <div className="section-heading"><div><h3>{tr(locale, 'Métodos de pago', 'Payment methods')}</h3><p>{tr(locale, 'Elegí cómo cargar crédito en tu cuenta', 'Choose how to add credit to your account')}</p></div></div>
       <div className="payment-method-grid">
         <button className={`payment-method ${paymentMethod === 'mercadopago' ? 'active' : ''}`} onClick={() => setPaymentMethod('mercadopago')}><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>ARS · US$ 1.600 por dólar</small></span>{paymentMethod === 'mercadopago' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
-        <button className={`payment-method crypto-method featured-payment ${paymentMethod === 'crypto2328' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto2328')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · 2328.io <em className="payment-featured-badge">Recomendado</em></strong><small>USDT, BTC, ETH y más · mínimo US$ 1</small></span>{paymentMethod === 'crypto2328' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
+        <button className={`payment-method crypto-method featured-payment ${paymentMethod === 'crypto2328' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto2328')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · 2328.io <em className="payment-featured-badge">{tr(locale, 'Recomendado', 'Recommended')}</em></strong><small>USDT, BTC, ETH y más · {tr(locale, 'mínimo', 'minimum')} US$ 1</small></span>{paymentMethod === 'crypto2328' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
       </div>
     </section>
     <section className="section-block">
       <div className="section-heading"><div><h3>{tr(locale, 'Cargar saldo', 'Add balance')}</h3><p>{paymentMethod === 'crypto2328' ? tr(locale, 'Pago crypto seguro · mínimo US$ 1 · conversión automática a USDT', 'Secure crypto payment · US$ 1 minimum · automatic USDT conversion') : tr(locale, 'Pago seguro con Mercado Pago · mínimo US$ 1', 'Secure Mercado Pago payment · US$ 1 minimum')}</p></div></div>
-      <div className="package-grid">{[1, 5, 10, 25].filter((amount) => amount >= minimumAmount).map((amount) => <button className={`package-card ${amount === 10 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === minimumAmount ? 'Recarga mínima' : amount === 10 ? 'Más elegido' : 'Crédito API'}</span><strong>{money(amount)}</strong><small>{paymentMethod === 'crypto2328' ? 'Pago único en crypto' : `AR$ ${(amount * 1600).toLocaleString('es-AR')} · Pago único`}</small><span className="package-cta">{busyAmount === amount ? 'Conectando...' : 'Pagar'} <ChevronRight size={16} /></span></button>)}</div>
+      <div className="package-grid">{[1, 5, 10, 25].filter((amount) => amount >= minimumAmount).map((amount) => <button className={`package-card ${amount === 10 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === minimumAmount ? tr(locale, 'Recarga mínima', 'Minimum top-up') : amount === 10 ? tr(locale, 'Más elegido', 'Most popular') : tr(locale, 'Crédito API', 'API credit')}</span><strong>{money(amount)}</strong><small>{paymentMethod === 'crypto2328' ? tr(locale, 'Pago único en crypto', 'One-time crypto payment') : `AR$ ${(amount * 1600).toLocaleString('es-AR')} · ${tr(locale, 'Pago único', 'One-time payment')}`}</small><span className="package-cta">{busyAmount === amount ? tr(locale, 'Conectando...', 'Connecting...') : tr(locale, 'Pagar', 'Pay')} <ChevronRight size={16} /></span></button>)}</div>
       <div className="custom-topup">
-        <div className="custom-topup-copy"><strong>Otro importe</strong><small>Recargá desde US$ {minimumAmount}, hasta US$ 10.000.</small></div>
+        <div className="custom-topup-copy"><strong>{tr(locale, 'Otro importe', 'Custom amount')}</strong><small>{tr(locale, 'Recargá desde', 'Top up from')} US$ {minimumAmount}, {tr(locale, 'hasta', 'up to')} US$ 10.000.</small></div>
         <form className="custom-topup-form" onSubmit={submitCustomAmount}>
           <label className="currency-input"><span>US$</span><input type="number" min={minimumAmount} max="10000" step="0.01" inputMode="decimal" placeholder={paymentMethod === 'crypto2328' ? '1,50' : '1,50'} value={customAmount} onChange={(event) => { setCustomAmount(event.target.value); setMessage('') }} aria-label="Importe personalizado en dólares" /></label>
-          <button className="primary-button" type="submit" disabled={busyAmount !== null || !customAmountValid}><CreditCard size={17} />Continuar al pago</button>
+          <button className="primary-button" type="submit" disabled={busyAmount !== null || !customAmountValid}><CreditCard size={17} />{tr(locale, 'Continuar al pago', 'Continue to payment')}</button>
         </form>
-        {customAmountValid && <small className="custom-topup-total">{paymentMethod === 'crypto2328' ? `Total a pagar: US$ ${customAmountValue.toFixed(2)} en crypto.` : `Total a pagar: AR$ ${(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}`}</small>}
-        {customAmount && !customAmountValid && <small className="custom-topup-error">Usá un importe desde US$ {minimumAmount}, con hasta 2 decimales.</small>}
+        {customAmountValid && <small className="custom-topup-total">{paymentMethod === 'crypto2328' ? `${tr(locale, 'Total a pagar:', 'Total to pay:')} US$ ${customAmountValue.toFixed(2)} ${tr(locale, 'en crypto.', 'in crypto.')}` : `${tr(locale, 'Total a pagar:', 'Total to pay:')} AR$ ${(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}`}</small>}
+        {customAmount && !customAmountValid && <small className="custom-topup-error">{tr(locale, 'Usá un importe desde', 'Use an amount from')} US$ {minimumAmount}, {tr(locale, 'con hasta 2 decimales.', 'with up to 2 decimals.')}</small>}
       </div>
       {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
     </section>
     <section className="section-block">
       <div className="section-heading"><div><h3>{tr(locale, 'Canjear código', 'Redeem code')}</h3><p>{tr(locale, 'Usá un código demo o promocional para acreditar saldo en tu cuenta.', 'Use a demo or promotional code to add credit to your account.')}</p></div><ReceiptText size={19} /></div>
       <form className="redeem-form" onSubmit={submitRedeem}>
-        <label><span>Código</span><input value={redeemCode} onChange={(event) => { setRedeemCode(event.target.value.toUpperCase()); setMessage('') }} placeholder="ORB-XXXX-XXXX-XXXX" /></label>
-        <button className="primary-button" disabled={redeeming || !redeemCode.trim()}>{redeeming ? <LoaderCircle className="spin" size={17} /> : <ReceiptText size={17} />}Canjear código</button>
+        <label><span>{tr(locale, 'Código', 'Code')}</span><input value={redeemCode} onChange={(event) => { setRedeemCode(event.target.value.toUpperCase()); setMessage('') }} placeholder="ORB-XXXX-XXXX-XXXX" /></label>
+        <button className="primary-button" disabled={redeeming || !redeemCode.trim()}>{redeeming ? <LoaderCircle className="spin" size={17} /> : <ReceiptText size={17} />}{tr(locale, 'Canjear código', 'Redeem code')}</button>
       </form>
     </section>
   </div>
