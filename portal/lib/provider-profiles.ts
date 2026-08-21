@@ -1,6 +1,7 @@
 import { Pool } from 'pg'
 
 import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
+import { MODEL_CATALOG } from '@/lib/catalog'
 
 let pool: Pool | undefined
 
@@ -38,6 +39,12 @@ export type ProviderProfile = Omit<StoredProfile, 'api_key'> & {
 
 type ChannelRow = { id: number; group: string; base_url?: string | null }
 
+export type ProviderModelValidation = {
+  models: string[]
+  knownModels: string[]
+  unknownModels: string[]
+}
+
 async function ensureTables() {
   await getPool().query(`
     CREATE TABLE IF NOT EXISTS provider_profiles (
@@ -68,6 +75,41 @@ function maskKey(key: string) {
   if (!clean) return ''
   if (clean.length <= 10) return `${clean.slice(0, 3)}...`
   return `${clean.slice(0, 7)}...${clean.slice(-4)}`
+}
+
+export async function validateProviderEndpoint(baseUrl: string, apiKey: string): Promise<ProviderModelValidation> {
+  const endpoint = baseUrl.trim().replace(/\/$/, '')
+  const key = apiKey.trim()
+  if (!endpoint || !key) throw new BackendError('Completá la Base URL y la API key para validar.', 400)
+  if (!/^https?:\/\//i.test(endpoint)) throw new BackendError('La Base URL debe comenzar con http:// o https://.', 400)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const response = await fetch(`${endpoint}/models`, {
+      method: 'GET',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${key}` },
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+    const body = await response.json().catch(() => null) as { data?: Array<{ id?: unknown }>; error?: { message?: unknown }; message?: unknown } | null
+    if (!response.ok) {
+      const message = String(body?.error?.message || body?.message || `El proveedor respondió HTTP ${response.status}.`)
+      throw new BackendError(`No se pudo validar el proveedor: ${message}`, response.status >= 500 ? 502 : 400)
+    }
+    const models = Array.isArray(body?.data)
+      ? [...new Set(body.data.map((item) => String(item?.id || '').trim()).filter(Boolean))].sort()
+      : []
+    if (models.length === 0) throw new BackendError('El endpoint respondió, pero no devolvió modelos en data[].', 400)
+    const known = new Set(MODEL_CATALOG.map((model) => model.id))
+    return { models, knownModels: models.filter((model) => known.has(model)), unknownModels: models.filter((model) => !known.has(model)) }
+  } catch (error) {
+    if (error instanceof BackendError) throw error
+    if (error instanceof Error && error.name === 'AbortError') throw new BackendError('El proveedor tardó demasiado en responder.', 504)
+    throw new BackendError('No se pudo conectar con el endpoint del proveedor.', 502)
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function present(profile: StoredProfile): ProviderProfile {
@@ -164,6 +206,8 @@ export async function activateProviderProfile(id: number) {
   if (!profile) throw new BackendError('No se encontró el perfil.', 404)
   if (!profile.enabled) throw new BackendError('El perfil está deshabilitado.', 400)
 
+  const validation = await validateProviderEndpoint(profile.base_url, profile.api_key)
+
   const channels = await listTargetChannels(profile.target_groups)
   if (channels.length === 0) throw new BackendError('No hay canales de New API que coincidan con esos grupos.', 400)
 
@@ -194,7 +238,7 @@ export async function activateProviderProfile(id: number) {
     `UPDATE provider_profiles SET active = TRUE, last_activated_at = $1, updated_at = $1 WHERE id = $2 RETURNING *`,
     [now, id],
   )
-  return { profile: present(updated.rows[0]), channels: channels.map((channel) => channel.id) }
+  return { profile: present(updated.rows[0]), channels: channels.map((channel) => channel.id), validation }
 }
 
 export async function restoreProviderBaselines() {

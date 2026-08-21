@@ -218,6 +218,12 @@ type ProviderProfile = {
   maskedKey: string
 }
 
+type ProviderModelValidation = {
+  models: string[]
+  knownModels: string[]
+  unknownModels: string[]
+}
+
 type RedeemCodeRow = {
   id: number
   code: string
@@ -1203,6 +1209,8 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const [providerMultiplier, setProviderMultiplier] = useState('1')
   const [savingProvider, setSavingProvider] = useState(false)
   const [providerAction, setProviderAction] = useState<number | 'restore' | null>(null)
+  const [validatingProvider, setValidatingProvider] = useState(false)
+  const [providerValidation, setProviderValidation] = useState<ProviderModelValidation | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -1282,6 +1290,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setProviderApiKey('')
     setProviderGroups(['clientes'])
     setProviderMultiplier('1')
+    setProviderValidation(null)
   }
 
   function editProvider(profile: ProviderProfile) {
@@ -1292,6 +1301,22 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setProviderApiKey('')
     setProviderGroups(profile.target_groups)
     setProviderMultiplier(String(profile.price_multiplier))
+    setProviderValidation(null)
+  }
+
+  async function validateProvider() {
+    setValidatingProvider(true); setError('')
+    try {
+      const body = await readJson(await fetch('/api/admin/providers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: providerEditingId, baseUrl: providerBaseUrl, apiKey: providerApiKey }),
+      }))
+      setProviderValidation(body.data)
+    } catch (cause) {
+      setProviderValidation(null)
+      setError(cause instanceof Error ? cause.message : 'No se pudo validar el proveedor.')
+    } finally { setValidatingProvider(false) }
   }
 
   async function saveProvider(event: FormEvent) {
@@ -1324,8 +1349,9 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   async function activateProvider(id: number) {
     setProviderAction(id); setError('')
     try {
-      await readJson(await fetch('/api/admin/providers', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'activate', id }) }))
+      const response = await readJson(await fetch('/api/admin/providers', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'activate', id }) }))
       setRefreshKey((value) => value + 1)
+      setError(response.data?.validation?.unknownModels?.length ? `Proveedor aplicado. ${response.data.validation.unknownModels.length} modelos no están todavía en nuestro catálogo y no fueron publicados.` : '')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo activar el perfil.')
     } finally { setProviderAction(null) }
@@ -1411,7 +1437,8 @@ function AdminView({ locale }: { locale: PortalLocale }) {
             <label>API key madre<input name="provider-api-key" autoComplete="new-password" type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
             <fieldset className="provider-group-picker"><legend>{tr(locale, '¿Qué servicio reemplazará este perfil?', 'Which service will this profile replace?')}</legend><div className="provider-group-options">{selectableProviderGroups.map((group) => { const meta = PROVIDER_GROUP_META[group]; return <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}><input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} /><span className="provider-group-check">{providerGroups.includes(group) && <Check size={13} />}</span><span className="provider-group-copy"><strong>{meta ? tr(locale, meta.labelEs, meta.labelEn) : group}</strong><small>{meta ? tr(locale, meta.descriptionEs, meta.descriptionEn) : `New API: ${group}`}</small></span></label> })}</div><small className="provider-group-help">{tr(locale, 'El cambio afecta únicamente a las keys de los grupos seleccionados.', 'Only keys belonging to the selected groups are affected.')}</small></fieldset>
             <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
-            <div className="provider-form-actions"><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
+            {providerValidation && <div className="provider-validation-result"><div><Check size={15} /><strong>{providerValidation.models.length} {tr(locale, 'modelos detectados', 'models detected')}</strong></div><small>{providerValidation.knownModels.length} {tr(locale, 'coinciden con nuestro catálogo', 'match our catalog')} · {providerValidation.unknownModels.length} {tr(locale, 'requieren revisión', 'need review')}</small><code>{providerValidation.models.slice(0, 12).join(' · ')}{providerValidation.models.length > 12 ? ' · ...' : ''}</code></div>}
+            <div className="provider-form-actions"><button type="button" className="secondary-button" onClick={validateProvider} disabled={validatingProvider || !providerBaseUrl.trim() || !providerApiKey.trim()}>{validatingProvider ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />}{tr(locale, 'Validar endpoint', 'Validate endpoint')}</button><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
           </form>
         </div>
       </section>

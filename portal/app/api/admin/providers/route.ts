@@ -4,6 +4,7 @@ import {
   createProviderProfile,
   getProviderProfiles,
   restoreProviderBaselines,
+  validateProviderEndpoint,
   updateProviderProfile,
 } from '@/lib/provider-profiles'
 
@@ -36,6 +37,26 @@ export async function POST(request: Request) {
       priceMultiplier: Number(payload.priceMultiplier || 1),
     })
     return Response.json({ success: true, data: profile }, { status: 201 })
+  } catch (error) {
+    return errorResponse(error)
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    await requireAdmin()
+    const payload = await request.json().catch(() => ({})) as Record<string, unknown>
+    const id = payload.id === undefined ? null : Number(payload.id)
+    let baseUrl = String(payload.baseUrl || '')
+    let apiKey = String(payload.apiKey || '')
+    if (id !== null && Number.isInteger(id) && id > 0 && (!baseUrl.trim() || !apiKey.trim())) {
+      const profiles = await getProviderProfiles()
+      const profile = profiles.find((item) => item.id === id)
+      if (!profile) throw new BackendError('No se encontró el perfil.', 404)
+      baseUrl = baseUrl.trim() || profile.base_url
+      if (!apiKey.trim()) throw new BackendError('Para validar un perfil existente, ingresá nuevamente su API key madre.', 400)
+    }
+    return Response.json({ success: true, data: await validateProviderEndpoint(baseUrl, apiKey) })
   } catch (error) {
     return errorResponse(error)
   }
