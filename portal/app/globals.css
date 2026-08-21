@@ -433,6 +433,11 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .sales-group-form input:focus, .sales-group-form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(11,122,83,.12); }
 .sales-group-form .check-inline { flex-direction: row; align-items: center; }
 .sales-group-form .check-inline input { min-height: auto; width: auto; }
+.unified-group-table td { vertical-align: middle; }
+.unified-group-table td > small, .provider-mini small, .muted-mini { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+.unified-group-table code { max-width: 240px; display: inline-block; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; white-space: nowrap; }
+.provider-mini { display: inline-flex; flex-direction: column; gap: 1px; min-width: 0; }
+.muted-mini { color: var(--muted); }
 .admin-ranking, .admin-risk-list { min-height: 300px; padding: 7px 16px; }
 .admin-rank-row { min-height: 62px; border-bottom: 1px solid #edf0ee; display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 10px; }
 .admin-rank-row:last-child { border-bottom: 0; }

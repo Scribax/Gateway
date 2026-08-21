@@ -1424,6 +1424,18 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setGroupPublished(true)
   }
 
+  function prepareProviderForGroup(group: SalesGroup) {
+    setProviderEditingId(null)
+    setProviderName(`${locale === 'en' ? group.label_en : group.label_es} proveedor`)
+    setProviderDescription(locale === 'en' ? group.note_en : group.note_es)
+    setProviderBaseUrl('')
+    setProviderApiKey('')
+    setProviderGroups([group.code])
+    setProviderMultiplier(String(group.price_multiplier))
+    setProviderValidation(null)
+    document.querySelector('.provider-profile-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   async function saveSalesGroup(event: FormEvent) {
     event.preventDefault(); setSavingGroup(true); setError('')
     try {
@@ -1557,9 +1569,9 @@ function AdminView({ locale }: { locale: PortalLocale }) {
       </section>
 
       <section className="section-block sales-group-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Grupos comerciales', 'Sales groups')}</h3><p>{tr(locale, 'Estos son los grupos que aparecen al crear o cambiar una API Key.', 'These are the groups shown when creating or changing an API key.')}</p></div><span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Grupos y proveedores', 'Groups and providers')}</h3><p>{tr(locale, 'Vista unificada: qué ve el cliente, qué proveedor lo alimenta y si está publicado.', 'Unified view: what customers see, which provider powers it and whether it is published.')}</p></div><span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span></div>
         <div className="sales-group-layout">
-          <div className="table-wrap"><table className="admin-table"><thead><tr><th>{tr(locale, 'Grupo', 'Group')}</th><th>{tr(locale, 'Familia', 'Family')}</th><th>{tr(locale, 'Precio', 'Price')}</th><th>{tr(locale, 'Estado', 'Status')}</th><th className="right">{tr(locale, 'Acción', 'Action')}</th></tr></thead><tbody>{admin.salesGroups.map((group) => <tr key={group.code}><td><strong>{locale === 'en' ? group.label_en : group.label_es}</strong><br /><code>{group.code}</code></td><td>{group.model_family}</td><td>{group.price_multiplier}x</td><td><span className={`admin-state ${group.published ? 'active' : ''}`}>{group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}</span></td><td className="right"><span className="action-group"><button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}><Eye size={15} />{tr(locale, 'Editar', 'Edit')}</button>{!['clientes', 'clientes_025', 'claude'].includes(group.code) && <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}><Trash2 size={15} /></button>}</span></td></tr>)}</tbody></table></div>
+          <div className="table-wrap"><table className="admin-table unified-group-table"><thead><tr><th>{tr(locale, 'Grupo cliente', 'Customer group')}</th><th>{tr(locale, 'Proveedor activo', 'Active provider')}</th><th>Endpoint</th><th>{tr(locale, 'Modelos / precio', 'Models / price')}</th><th>{tr(locale, 'Estado', 'Status')}</th><th className="right">{tr(locale, 'Acción', 'Action')}</th></tr></thead><tbody>{admin.salesGroups.map((group) => { const providers = admin.providerProfiles.filter((profile) => profile.target_groups.includes(group.code)); const activeProvider = providers.find((profile) => profile.active) || providers[0]; return <tr key={group.code}><td><strong>{locale === 'en' ? group.label_en : group.label_es}</strong><small>{locale === 'en' ? group.note_en : group.note_es}</small><code>{group.code}</code></td><td>{activeProvider ? <span className="provider-mini"><strong>{activeProvider.name}</strong><small>{activeProvider.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Guardado', 'Saved')}</small></span> : <span className="muted-mini">{tr(locale, 'Sin proveedor conectado', 'No provider connected')}</span>}</td><td>{activeProvider ? <code>{activeProvider.base_url}</code> : <button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Plus size={15} />{tr(locale, 'Conectar', 'Connect')}</button>}</td><td><span className="provider-mini"><strong>{group.model_family} · {group.price_multiplier}x</strong><small>{tr(locale, 'Precios por modelo próximamente', 'Per-model prices soon')}</small></span></td><td><span className={`admin-state ${group.published ? 'active' : ''}`}>{group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}</span></td><td className="right"><span className="action-group"><button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}><Eye size={15} />{tr(locale, 'Editar grupo', 'Edit group')}</button><button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Server size={15} />{tr(locale, 'Proveedor', 'Provider')}</button>{!['clientes', 'clientes_025', 'claude'].includes(group.code) && <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}><Trash2 size={15} /></button>}</span></td></tr> })}</tbody></table></div>
           <form className="sales-group-form" onSubmit={saveSalesGroup}>
             <strong>{tr(locale, 'Crear o editar grupo', 'Create or edit group')}</strong>
             <label>{tr(locale, 'Código técnico', 'Technical code')}<input value={groupCode} onChange={(event) => setGroupCode(event.target.value)} placeholder="fastai_02" required /></label>
