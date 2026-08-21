@@ -1,7 +1,7 @@
 import { BackendError, errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
 import { MODEL_CATALOG, QUOTA_PER_USD } from '@/lib/catalog'
 import { getModelAvailability } from '@/lib/model-availability'
-import { getProviderProfiles } from '@/lib/provider-profiles'
+import { getProviderGroups, getProviderProfiles } from '@/lib/provider-profiles'
 
 type PageData<T> = { items: T[]; total: number; page: number; page_size: number }
 type AdminUser = {
@@ -118,13 +118,14 @@ export async function GET(request: Request) {
     const start = rangeDays ? Math.floor(Date.now() / 1000) - rangeDays * 24 * 60 * 60 : 0
     const rangeQuery = start ? `start_timestamp=${start}` : ''
 
-    const [usersPage, usagePage, errorPage, creditPage, modelControls, providerProfiles] = await Promise.all([
+    const [usersPage, usagePage, errorPage, creditPage, modelControls, providerProfiles, providerGroups] = await Promise.all([
       loadPages<AdminUser>('/api/user/'),
       loadPages<AdminLog>(`/api/log/?type=2${rangeQuery ? `&${rangeQuery}` : ''}`),
       loadPages<AdminLog>(`/api/log/?type=4${rangeQuery ? `&${rangeQuery}` : ''}`),
       loadPages<AdminLog>(`/api/log/?type=1${rangeQuery ? `&${rangeQuery}` : ''}`),
       getModelAvailability(),
       getProviderProfiles(),
+      getProviderGroups(),
     ])
 
     const usersById = new Map((usersPage.items || []).filter((user) => user.id).map((user) => [user.id as number, user]))
@@ -222,6 +223,7 @@ export async function GET(request: Request) {
           label: MODEL_CATALOG.find((model) => model.id === control.modelId)?.label || control.modelId,
         })),
         providerProfiles,
+        providerGroups,
         models: [...modelStats.values()].map((item) => ({ ...item, profitUsd: item.revenueUsd - item.costUsd })).sort((a, b) => b.revenueUsd - a.revenueUsd),
         keys: [...keyStats.values()].map((item) => ({ ...item, profitUsd: item.revenueUsd - item.costUsd })).sort((a, b) => b.revenueUsd - a.revenueUsd),
         suspicious,

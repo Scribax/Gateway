@@ -195,6 +195,7 @@ type AdminResponse = {
   customers: AdminCustomer[]
   modelControls: Array<{ modelId: string; label: string; group: 'clientes' | 'claude'; enabled: boolean }>
   providerProfiles: ProviderProfile[]
+  providerGroups: string[]
   models: Array<AdminMetricRow & { model: string }>
   keys: Array<AdminMetricRow & { key: string; username: string }>
   suspicious: Array<AdminCustomer & { reason: string }>
@@ -1177,7 +1178,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const [providerDescription, setProviderDescription] = useState('')
   const [providerBaseUrl, setProviderBaseUrl] = useState('')
   const [providerApiKey, setProviderApiKey] = useState('')
-  const [providerGroups, setProviderGroups] = useState('clientes')
+  const [providerGroups, setProviderGroups] = useState<string[]>(['clientes'])
   const [providerMultiplier, setProviderMultiplier] = useState('1')
   const [savingProvider, setSavingProvider] = useState(false)
   const [providerAction, setProviderAction] = useState<number | 'restore' | null>(null)
@@ -1258,7 +1259,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setProviderDescription('')
     setProviderBaseUrl('')
     setProviderApiKey('')
-    setProviderGroups('clientes')
+    setProviderGroups(['clientes'])
     setProviderMultiplier('1')
   }
 
@@ -1268,7 +1269,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setProviderDescription(profile.description)
     setProviderBaseUrl(profile.base_url)
     setProviderApiKey('')
-    setProviderGroups(profile.target_groups.join(', '))
+    setProviderGroups(profile.target_groups)
     setProviderMultiplier(String(profile.price_multiplier))
   }
 
@@ -1279,7 +1280,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
         name: providerName,
         description: providerDescription,
         baseUrl: providerBaseUrl,
-        targetGroups: providerGroups.split(',').map((group) => group.trim()).filter(Boolean),
+        targetGroups: providerGroups,
         priceMultiplier: Number(providerMultiplier),
       }
       if (providerApiKey.trim() || providerEditingId === null) payload.apiKey = providerApiKey
@@ -1293,6 +1294,10 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo guardar el perfil.')
     } finally { setSavingProvider(false) }
+  }
+
+  function toggleProviderGroup(group: string) {
+    setProviderGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group])
   }
 
   async function activateProvider(id: number) {
@@ -1367,21 +1372,21 @@ function AdminView({ locale }: { locale: PortalLocale }) {
       </section>
 
       <section className="section-block provider-profile-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Proveedores y modo emergencia', 'Providers and emergency mode')}</h3><p>{tr(locale, 'Cambiá Base URL, key madre y grupos sin recompilar el portal. El cambio se aplica a los canales reales de New API.', 'Change the Base URL, master key and groups without rebuilding the portal. The change applies to the real New API channels.')}</p></div><span className="info-chip"><Server size={15} />{admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}</span></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Proveedores y modo emergencia', 'Providers and emergency mode')}</h3><p>{tr(locale, 'Cambiá Base URL y key madre sin recompilar el portal. Los grupos se detectan automáticamente desde New API.', 'Change the Base URL and master key without rebuilding the portal. Groups are detected automatically from New API.')}</p></div><span className="info-chip"><Server size={15} />{admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}</span></div>
         <div className="provider-profile-layout">
           <div className="provider-profile-list">
             {admin.providerProfiles.length === 0 && <div className="empty-row"><Server size={18} />{tr(locale, 'Todavía no hay perfiles configurados.', 'No provider profiles configured yet.')}</div>}
             {admin.providerProfiles.map((profile) => <article className={`provider-profile-row ${profile.active ? 'active' : ''}`} key={profile.id}><div className="provider-profile-icon"><Server size={17} /></div><div className="provider-profile-copy"><strong>{profile.name}</strong><small>{profile.description || tr(locale, 'Sin descripción', 'No description')}</small><code>{profile.base_url}</code><span>{profile.target_groups.join(', ')} · {profile.price_multiplier}x · {profile.keyConfigured ? profile.maskedKey : tr(locale, 'Sin key', 'No key')}</span></div><div className="provider-profile-actions"><span className={`admin-state ${profile.active ? 'active' : ''}`}>{profile.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Disponible', 'Available')}</span><button type="button" className="secondary-button" onClick={() => editProvider(profile)}><Eye size={15} />{tr(locale, 'Editar', 'Edit')}</button><button type="button" className="primary-button" onClick={() => activateProvider(profile.id)} disabled={providerAction === profile.id}>{providerAction === profile.id ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}{tr(locale, 'Aplicar', 'Apply')}</button></div></article>)}
-            <button type="button" className="secondary-button provider-restore-button" onClick={restoreProviders} disabled={providerAction === 'restore'}>{providerAction === 'restore' ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{tr(locale, 'Restaurar configuración anterior', 'Restore previous configuration')}</button>
+            {admin.providerProfiles.length > 0 && <button type="button" className="secondary-button provider-restore-button" onClick={restoreProviders} disabled={providerAction === 'restore'}>{providerAction === 'restore' ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{tr(locale, 'Restaurar configuración anterior', 'Restore previous configuration')}</button>}
           </div>
           <form className="provider-profile-form" onSubmit={saveProvider}>
             <div className="provider-form-title"><strong>{providerEditingId === null ? tr(locale, 'Nuevo perfil', 'New profile') : tr(locale, 'Editar perfil', 'Edit profile')}</strong><small>{tr(locale, 'Las credenciales quedan solo en el servidor.', 'Credentials stay on the server only.')}</small></div>
-            <label>{tr(locale, 'Nombre', 'Name')}<input value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="FastAI 0.2x" required /></label>
-            <label>{tr(locale, 'Descripción', 'Description')}<input value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Proveedor de respaldo" /></label>
-            <label>Base URL<input value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required /></label>
-            <label>API key madre<input type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
-            <label>{tr(locale, 'Grupos de New API', 'New API groups')}<input value={providerGroups} onChange={(event) => setProviderGroups(event.target.value)} placeholder="clientes, clientes_025" required /></label>
-            <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
+            <label>{tr(locale, 'Nombre', 'Name')}<input name="provider-profile-name" autoComplete="off" value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="FastAI 0.2x" required /></label>
+            <label>{tr(locale, 'Descripción', 'Description')}<input name="provider-profile-description" autoComplete="off" value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Proveedor de respaldo" /></label>
+            <label>Base URL<input name="provider-base-url" autoComplete="url" spellCheck={false} value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required /></label>
+            <label>API key madre<input name="provider-api-key" autoComplete="new-password" type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
+            <fieldset className="provider-group-picker"><legend>{tr(locale, 'Grupos que cambiará este perfil', 'Groups changed by this profile')}</legend><div className="provider-group-options">{(admin.providerGroups.length ? admin.providerGroups : ['default', 'clientes', 'clientes_025', 'claude']).map((group) => <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}><input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} /><span>{providerGroups.includes(group) && <Check size={13} />}</span><strong>{group}</strong></label>)}</div></fieldset>
+            <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
             <div className="provider-form-actions"><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
           </form>
         </div>

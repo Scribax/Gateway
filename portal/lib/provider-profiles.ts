@@ -85,6 +85,12 @@ export async function getProviderProfiles() {
   return result.rows.map(present)
 }
 
+export async function getProviderGroups() {
+  await ensureTables()
+  const result = await getPool().query<{ group: string }>(`SELECT \"group\" FROM channels WHERE \"group\" IS NOT NULL AND \"group\" <> '' ORDER BY id`)
+  return [...new Set(result.rows.flatMap((row) => row.group.split(',').map((group) => group.trim()).filter(Boolean)))]
+}
+
 export async function createProviderProfile(input: {
   name: string
   description?: string

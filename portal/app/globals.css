@@ -409,6 +409,14 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .provider-profile-form label { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 700; color: var(--charcoal); }
 .provider-profile-form input { min-height: 38px; width: 100%; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 7px; background: #fff; color: var(--text); outline: 0; }
 .provider-profile-form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(11,122,83,.12); }
+.provider-group-picker { grid-column: 1 / -1; margin: 0; padding: 0; border: 0; }
+.provider-group-picker legend { margin-bottom: 6px; font-size: 11px; font-weight: 700; color: var(--charcoal); }
+.provider-group-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.provider-group-option { min-height: 32px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; background: #fff; color: var(--muted); }
+.provider-group-option.selected { border-color: #8fcab2; background: #edf9f3; color: var(--green); }
+.provider-group-option input { position: absolute; opacity: 0; pointer-events: none; }
+.provider-group-option span { width: 16px; height: 16px; border: 1px solid currentColor; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; }
+.provider-group-option strong { font-size: 11px; }
 .provider-form-actions { display: flex; gap: 8px; padding-top: 4px; }
 .admin-ranking, .admin-risk-list { min-height: 300px; padding: 7px 16px; }
 .admin-rank-row { min-height: 62px; border-bottom: 1px solid #edf0ee; display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 10px; }
