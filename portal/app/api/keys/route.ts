@@ -1,6 +1,7 @@
 import { BackendError, errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
 import { QUOTA_PER_USD } from '@/lib/catalog'
 import { getEnabledModelCatalog } from '@/lib/model-availability'
+import { getSalesGroups } from '@/lib/sales-groups'
 
 type KeyItem = { id: number; name: string; [key: string]: unknown }
 type KeyPage = { items: KeyItem[]; total: number; page: number; page_size: number }
@@ -20,22 +21,23 @@ export async function POST(request: Request) {
       throw new BackendError('Ingresá un límite de saldo válido.', 400)
     }
 
-    const [groupsBody, beforeBody] = await Promise.all([
+    const [groupsBody, beforeBody, salesGroups] = await Promise.all([
       newApiFetch<NewApiEnvelope<Record<string, unknown>>>('/api/user/self/groups'),
       newApiFetch<NewApiEnvelope<KeyPage>>('/api/token/?p=1&size=100'),
+      getSalesGroups({ publishedOnly: true }),
     ])
     const allowedModels = new Set((await getEnabledModelCatalog()).map((model) => model.id))
     const allowedGroups = requireSuccess(groupsBody)
     const selectedModels = (payload.models || []).filter((model) => allowedModels.has(model))
     if (selectedModels.length === 0) throw new BackendError('Seleccioná al menos un modelo.', 400)
     const group = payload.group?.trim() || 'clientes'
-    const knownGroups = new Set(['default', 'clientes', 'clientes_025', 'claude'])
-    if (!(group in allowedGroups) && !knownGroups.has(group)) throw new BackendError('Seleccioná un grupo válido.', 400)
+    const salesGroup = salesGroups.find((item) => item.code === group)
+    if (!(group in allowedGroups) && !salesGroup) throw new BackendError('Seleccioná un grupo válido.', 400)
     const selectedClaudeModels = selectedModels.filter((model) => model.includes('claude'))
-    if (group === 'claude' && selectedClaudeModels.length !== selectedModels.length) {
+    if (salesGroup?.model_family === 'claude' && selectedClaudeModels.length !== selectedModels.length) {
       throw new BackendError('El grupo Claude solo puede usar modelos Claude.', 400)
     }
-    if (group !== 'claude' && selectedClaudeModels.length > 0) {
+    if (salesGroup?.model_family === 'chatgpt' && selectedClaudeModels.length > 0) {
       throw new BackendError('El grupo ChatGPT solo puede usar modelos ChatGPT.', 400)
     }
     const beforeIds = new Set((requireSuccess(beforeBody).items || []).map((item) => item.id))

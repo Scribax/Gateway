@@ -2,6 +2,7 @@ import { BackendError, errorResponse, newApiFetch, requireSuccess, type NewApiEn
 import { MODEL_CATALOG, QUOTA_PER_USD } from '@/lib/catalog'
 import { getModelAvailability } from '@/lib/model-availability'
 import { getProviderGroups, getProviderProfiles } from '@/lib/provider-profiles'
+import { getSalesGroups } from '@/lib/sales-groups'
 
 type PageData<T> = { items: T[]; total: number; page: number; page_size: number }
 type AdminUser = {
@@ -118,7 +119,7 @@ export async function GET(request: Request) {
     const start = rangeDays ? Math.floor(Date.now() / 1000) - rangeDays * 24 * 60 * 60 : 0
     const rangeQuery = start ? `start_timestamp=${start}` : ''
 
-    const [usersPage, usagePage, errorPage, creditPage, modelControls, providerProfiles, providerGroups] = await Promise.all([
+    const [usersPage, usagePage, errorPage, creditPage, modelControls, providerProfiles, providerGroups, salesGroups] = await Promise.all([
       loadPages<AdminUser>('/api/user/'),
       loadPages<AdminLog>(`/api/log/?type=2${rangeQuery ? `&${rangeQuery}` : ''}`),
       loadPages<AdminLog>(`/api/log/?type=4${rangeQuery ? `&${rangeQuery}` : ''}`),
@@ -126,6 +127,7 @@ export async function GET(request: Request) {
       getModelAvailability(),
       getProviderProfiles(),
       getProviderGroups(),
+      getSalesGroups(),
     ])
 
     const usersById = new Map((usersPage.items || []).filter((user) => user.id).map((user) => [user.id as number, user]))
@@ -224,6 +226,7 @@ export async function GET(request: Request) {
         })),
         providerProfiles,
         providerGroups,
+        salesGroups,
         models: [...modelStats.values()].map((item) => ({ ...item, profitUsd: item.revenueUsd - item.costUsd })).sort((a, b) => b.revenueUsd - a.revenueUsd),
         keys: [...keyStats.values()].map((item) => ({ ...item, profitUsd: item.revenueUsd - item.costUsd })).sort((a, b) => b.revenueUsd - a.revenueUsd),
         suspicious,

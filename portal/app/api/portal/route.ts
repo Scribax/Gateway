@@ -2,6 +2,7 @@ import { errorResponse, newApiFetch, requireSuccess, type NewApiEnvelope } from 
 import { QUOTA_PER_USD } from '@/lib/catalog'
 import { readModelHealth } from '@/lib/model-health'
 import { getEnabledModelCatalog } from '@/lib/model-availability'
+import { getSalesGroups } from '@/lib/sales-groups'
 
 type PageData<T> = { items: T[]; total: number; page: number; page_size: number }
 type LogItem = {
@@ -90,13 +91,14 @@ function isBillableLog(log: LogItem) {
 
 export async function GET() {
   try {
-    const [selfBody, keysBody, logsBody, groupsBody, modelHealth, enabledCatalog] = await Promise.all([
+    const [selfBody, keysBody, logsBody, groupsBody, modelHealth, enabledCatalog, salesGroups] = await Promise.all([
       newApiFetch<NewApiEnvelope<Record<string, unknown>>>('/api/user/self'),
       newApiFetch<NewApiEnvelope<PageData<Record<string, unknown>>>>('/api/token/?p=1&size=100'),
       newApiFetch<NewApiEnvelope<PageData<Record<string, unknown>>>>('/api/log/self?p=1&size=12'),
       newApiFetch<NewApiEnvelope<Record<string, { desc: string; ratio: number | string }>>>('/api/user/self/groups'),
       readModelHealth(),
       getEnabledModelCatalog(),
+      getSalesGroups({ publishedOnly: true }),
     ])
 
     const user = requireSuccess(selfBody)
@@ -146,6 +148,7 @@ export async function GET() {
         logTotal: requestLogs.length,
         models: visibleModels,
         keyModels,
+        salesGroups,
         groups,
         channels,
         statusWindows,

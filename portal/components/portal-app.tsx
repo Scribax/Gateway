@@ -132,6 +132,20 @@ type ModelPrice = {
   cacheWrite: number
   accent: 'green' | 'coral' | 'blue'
 }
+type SalesGroup = {
+  id: number
+  code: string
+  label_es: string
+  label_en: string
+  description_es: string
+  description_en: string
+  note_es: string
+  note_en: string
+  model_family: 'chatgpt' | 'claude' | 'all'
+  price_multiplier: number
+  published: boolean
+  sort_order: number
+}
 type DashboardData = {
   user: User
   keys: ApiKey[]
@@ -139,6 +153,7 @@ type DashboardData = {
   logTotal: number
   models: ModelPrice[]
   keyModels: ModelPrice[]
+  salesGroups: SalesGroup[]
   channels: ChannelStatus[]
   statusWindows: number[]
   statusLastCheckedAt: number
@@ -196,6 +211,7 @@ type AdminResponse = {
   modelControls: Array<{ modelId: string; label: string; group: 'clientes' | 'claude'; enabled: boolean }>
   providerProfiles: ProviderProfile[]
   providerGroups: string[]
+  salesGroups: SalesGroup[]
   models: Array<AdminMetricRow & { model: string }>
   keys: Array<AdminMetricRow & { key: string; username: string }>
   suspicious: Array<AdminCustomer & { reason: string }>
@@ -543,11 +559,14 @@ function Overview({ data, setView, locale }: { data: DashboardData; setView: (vi
 function KeyModal({ data, onClose, onCreated, locale }: { data: DashboardData; onClose: () => void; onCreated: (key: string) => void; locale: PortalLocale }) {
   const [name, setName] = useState('mi-aplicacion')
   const [quota, setQuota] = useState(Math.min(10, Math.max(1, Math.floor(data.user.quota / data.quotaPerUsd))))
-  const groupOptions = [
-    { id: 'clientes', label: 'ChatGPT economico', description: 'Grupo 0.1', note: 'Menor precio para tareas comunes', multiplier: 1, matches: (id: string) => !id.includes('claude') },
-    { id: 'clientes_025', label: 'ChatGPT estable', description: 'Grupo 0.25', note: 'Mayor disponibilidad si el barato falla', multiplier: 2.5, matches: (id: string) => !id.includes('claude') },
-    { id: 'claude', label: 'Claude', description: 'Anthropic', note: 'Opus, Sonnet, Haiku y Fable', multiplier: 1, matches: (id: string) => id.includes('claude') },
-  ]
+  const groupOptions = data.salesGroups.map((group) => ({
+    id: group.code,
+    label: locale === 'en' ? group.label_en : group.label_es,
+    description: locale === 'en' ? group.description_en : group.description_es,
+    note: locale === 'en' ? group.note_en : group.note_es,
+    multiplier: group.price_multiplier,
+    matches: (id: string) => group.model_family === 'claude' ? id.includes('claude') : group.model_family === 'chatgpt' ? !id.includes('claude') : true,
+  }))
   const [group, setGroup] = useState<string | null>(null)
   const selectedGroup = groupOptions.find((option) => option.id === group) || null
   const groupModels = selectedGroup ? data.keyModels.filter((model) => selectedGroup.matches(model.id)) : []
@@ -727,8 +746,21 @@ function KeysView({ data, reload, locale }: { data: DashboardData; reload: () =>
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo eliminar la clave.') }
     finally { setBusyId(null) }
   }
+  async function changeGroup(id: number, group: string) {
+    setBusyId(id); setError('')
+    try {
+      await readJson(await fetch(`/api/keys/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group }),
+      }))
+      await reload()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo cambiar el grupo de la clave.')
+    } finally { setBusyId(null) }
+  }
 
-  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} {tr(locale, 'activas', 'active')}</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />{tr(locale, 'Crear API Key', 'Create API Key')}</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>{tr(locale, 'Nombre', 'Name')}</th><th>{tr(locale, 'Credencial', 'Credential')}</th><th>{tr(locale, 'Modelos', 'Models')}</th><th>{tr(locale, 'Saldo', 'Balance')}</th><th>{tr(locale, 'Último uso', 'Last use')}</th><th className="right">{tr(locale, 'Acciones', 'Actions')}</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={6}><div className="empty-row"><KeyRound size={20} />{tr(locale, 'No hay claves creadas', 'No keys created')}</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : tr(locale, 'Todos', 'All')}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="secondary-button key-use-button" onClick={() => setSetupKey(key)}><Terminal size={16} />{tr(locale, 'Usar API Key', 'Use API Key')}</button><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Revelar clave', 'Reveal key')}>{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Eliminar clave', 'Delete key')}><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} locale={locale} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} locale={locale} onClose={() => setSecret('')} />}{setupKey && <UseApiKeyModal data={data} locale={locale} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}</div>
+  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} {tr(locale, 'activas', 'active')}</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />{tr(locale, 'Crear API Key', 'Create API Key')}</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>{tr(locale, 'Nombre', 'Name')}</th><th>{tr(locale, 'Credencial', 'Credential')}</th><th>{tr(locale, 'Grupo', 'Group')}</th><th>{tr(locale, 'Modelos', 'Models')}</th><th>{tr(locale, 'Saldo', 'Balance')}</th><th>{tr(locale, 'Último uso', 'Last use')}</th><th className="right">{tr(locale, 'Acciones', 'Actions')}</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={7}><div className="empty-row"><KeyRound size={20} />{tr(locale, 'No hay claves creadas', 'No keys created')}</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><select className="key-group-select" value={key.group || ''} disabled={busyId === key.id} onChange={(event) => changeGroup(key.id, event.target.value)}>{data.salesGroups.map((group) => <option key={group.code} value={group.code}>{locale === 'en' ? group.label_en : group.label_es}</option>)}</select></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : tr(locale, 'Todos', 'All')}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="secondary-button key-use-button" onClick={() => setSetupKey(key)}><Terminal size={16} />{tr(locale, 'Usar API Key', 'Use API Key')}</button><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Revelar clave', 'Reveal key')}>{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Eliminar clave', 'Delete key')}><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} locale={locale} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} locale={locale} onClose={() => setSecret('')} />}{setupKey && <UseApiKeyModal data={data} locale={locale} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}</div>
 }
 
 type UsageRange = '24h' | '7d' | '30d'
@@ -1211,6 +1243,13 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const [providerAction, setProviderAction] = useState<number | 'restore' | null>(null)
   const [validatingProvider, setValidatingProvider] = useState(false)
   const [providerValidation, setProviderValidation] = useState<ProviderModelValidation | null>(null)
+  const [groupCode, setGroupCode] = useState('')
+  const [groupLabel, setGroupLabel] = useState('')
+  const [groupNote, setGroupNote] = useState('')
+  const [groupFamily, setGroupFamily] = useState<'chatgpt' | 'claude' | 'all'>('chatgpt')
+  const [groupMultiplier, setGroupMultiplier] = useState('1')
+  const [groupPublished, setGroupPublished] = useState(true)
+  const [savingGroup, setSavingGroup] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -1367,6 +1406,62 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     } finally { setProviderAction(null) }
   }
 
+  function editSalesGroup(group: SalesGroup) {
+    setGroupCode(group.code)
+    setGroupLabel(locale === 'en' ? group.label_en : group.label_es)
+    setGroupNote(locale === 'en' ? group.note_en : group.note_es)
+    setGroupFamily(group.model_family)
+    setGroupMultiplier(String(group.price_multiplier))
+    setGroupPublished(group.published)
+  }
+
+  function resetSalesGroupForm() {
+    setGroupCode('')
+    setGroupLabel('')
+    setGroupNote('')
+    setGroupFamily('chatgpt')
+    setGroupMultiplier('1')
+    setGroupPublished(true)
+  }
+
+  async function saveSalesGroup(event: FormEvent) {
+    event.preventDefault(); setSavingGroup(true); setError('')
+    try {
+      await readJson(await fetch('/api/admin/sales-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: groupCode,
+          labelEs: groupLabel,
+          labelEn: groupLabel,
+          descriptionEs: groupFamily === 'claude' ? 'Anthropic' : groupFamily === 'chatgpt' ? 'OpenAI compatible' : 'Mixto',
+          descriptionEn: groupFamily === 'claude' ? 'Anthropic' : groupFamily === 'chatgpt' ? 'OpenAI compatible' : 'Mixed',
+          noteEs: groupNote,
+          noteEn: groupNote,
+          modelFamily: groupFamily,
+          priceMultiplier: Number(groupMultiplier),
+          published: groupPublished,
+          sortOrder: admin?.salesGroups.find((item) => item.code === groupCode)?.sort_order || 100,
+        }),
+      }))
+      resetSalesGroupForm()
+      setRefreshKey((value) => value + 1)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo guardar el grupo.')
+    } finally { setSavingGroup(false) }
+  }
+
+  async function removeSalesGroup(code: string) {
+    if (!confirm(tr(locale, '¿Ocultar/eliminar este grupo comercial?', 'Hide/delete this sales group?'))) return
+    setError('')
+    try {
+      await readJson(await fetch(`/api/admin/sales-groups?code=${encodeURIComponent(code)}`, { method: 'DELETE' }))
+      setRefreshKey((value) => value + 1)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo eliminar el grupo.')
+    }
+  }
+
   const margin = admin?.totals.revenueUsd
     ? (admin.totals.netProfitUsd / admin.totals.revenueUsd) * 100
     : 0
@@ -1439,6 +1534,23 @@ function AdminView({ locale }: { locale: PortalLocale }) {
             <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
             {providerValidation && <div className="provider-validation-result"><div><Check size={15} /><strong>{providerValidation.models.length} {tr(locale, 'modelos detectados', 'models detected')}</strong></div><small>{providerValidation.knownModels.length} {tr(locale, 'coinciden con nuestro catálogo', 'match our catalog')} · {providerValidation.unknownModels.length} {tr(locale, 'requieren revisión', 'need review')}</small><code>{providerValidation.models.slice(0, 12).join(' · ')}{providerValidation.models.length > 12 ? ' · ...' : ''}</code></div>}
             <div className="provider-form-actions"><button type="button" className="secondary-button" onClick={validateProvider} disabled={validatingProvider || !providerBaseUrl.trim() || !providerApiKey.trim()}>{validatingProvider ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />}{tr(locale, 'Validar endpoint', 'Validate endpoint')}</button><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
+          </form>
+        </div>
+      </section>
+
+      <section className="section-block sales-group-section">
+        <div className="section-heading"><div><h3>{tr(locale, 'Grupos comerciales', 'Sales groups')}</h3><p>{tr(locale, 'Estos son los grupos que aparecen al crear o cambiar una API Key.', 'These are the groups shown when creating or changing an API key.')}</p></div><span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span></div>
+        <div className="sales-group-layout">
+          <div className="table-wrap"><table className="admin-table"><thead><tr><th>{tr(locale, 'Grupo', 'Group')}</th><th>{tr(locale, 'Familia', 'Family')}</th><th>{tr(locale, 'Precio', 'Price')}</th><th>{tr(locale, 'Estado', 'Status')}</th><th className="right">{tr(locale, 'Acción', 'Action')}</th></tr></thead><tbody>{admin.salesGroups.map((group) => <tr key={group.code}><td><strong>{locale === 'en' ? group.label_en : group.label_es}</strong><br /><code>{group.code}</code></td><td>{group.model_family}</td><td>{group.price_multiplier}x</td><td><span className={`admin-state ${group.published ? 'active' : ''}`}>{group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}</span></td><td className="right"><span className="action-group"><button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}><Eye size={15} />{tr(locale, 'Editar', 'Edit')}</button>{!['clientes', 'clientes_025', 'claude'].includes(group.code) && <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}><Trash2 size={15} /></button>}</span></td></tr>)}</tbody></table></div>
+          <form className="sales-group-form" onSubmit={saveSalesGroup}>
+            <strong>{tr(locale, 'Crear o editar grupo', 'Create or edit group')}</strong>
+            <label>{tr(locale, 'Código técnico', 'Technical code')}<input value={groupCode} onChange={(event) => setGroupCode(event.target.value)} placeholder="fastai_02" required /></label>
+            <label>{tr(locale, 'Nombre visible', 'Visible name')}<input value={groupLabel} onChange={(event) => setGroupLabel(event.target.value)} placeholder="FastAI barato" required /></label>
+            <label>{tr(locale, 'Descripción corta', 'Short description')}<input value={groupNote} onChange={(event) => setGroupNote(event.target.value)} placeholder="Proveedor alternativo" /></label>
+            <label>{tr(locale, 'Familia de modelos', 'Model family')}<select value={groupFamily} onChange={(event) => setGroupFamily(event.target.value as typeof groupFamily)}><option value="chatgpt">ChatGPT / OpenAI</option><option value="claude">Claude / Anthropic</option><option value="all">{tr(locale, 'Todos', 'All')}</option></select></label>
+            <label>{tr(locale, 'Multiplicador visible', 'Visible multiplier')}<input type="number" min="0.001" step="0.001" value={groupMultiplier} onChange={(event) => setGroupMultiplier(event.target.value)} required /></label>
+            <label className="check-inline"><input type="checkbox" checked={groupPublished} onChange={(event) => setGroupPublished(event.target.checked)} />{tr(locale, 'Publicado para clientes', 'Published for customers')}</label>
+            <div className="provider-form-actions"><button className="primary-button" disabled={savingGroup}>{savingGroup ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar grupo', 'Save group')}</button><button type="button" className="secondary-button" onClick={resetSalesGroupForm}>{tr(locale, 'Limpiar', 'Clear')}</button></div>
           </form>
         </div>
       </section>

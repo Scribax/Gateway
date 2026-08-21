@@ -185,7 +185,7 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .view-actions { min-height: 42px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
 .info-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--line); background: var(--surface); border-radius: 7px; color: var(--muted); font-size: 12px; }
 .key-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #b2bcb7; }.status-dot.active { background: #18a46f; box-shadow: 0 0 0 3px #e2f5ec; }
-.masked-key { padding: 5px 7px; background: #f0f3f1; border-radius: 5px; color: var(--muted); }.model-count { min-width: 28px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; background: var(--blue-soft); color: var(--blue); font-weight: 700; }.action-group { display: inline-flex; gap: 6px; }
+.masked-key { padding: 5px 7px; background: #f0f3f1; border-radius: 5px; color: var(--muted); }.model-count { min-width: 28px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; background: var(--blue-soft); color: var(--blue); font-weight: 700; }.action-group { display: inline-flex; gap: 6px; }.key-group-select { min-height: 34px; min-width: 170px; border: 1px solid var(--line-strong); border-radius: 7px; background: #fff; color: var(--charcoal); font-weight: 750; padding: 0 9px; outline: 0; }.key-group-select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(11,122,83,.12); }
 .catalog-summary { display: flex; gap: 12px; }
 .catalog-summary > div { min-width: 210px; display: flex; align-items: center; gap: 11px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--green); }
 .catalog-summary span { color: var(--text); }.catalog-summary strong, .catalog-summary small { display: block; }.catalog-summary strong { font-size: 13px; }.catalog-summary small { margin-top: 3px; color: var(--muted); font-size: 11px; }
@@ -426,6 +426,13 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
 .provider-validation-result small { color: var(--muted); font-size: 10px; }
 .provider-validation-result code { display: block; overflow: hidden; color: var(--charcoal); font-size: 9px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .provider-form-actions { display: flex; gap: 8px; padding-top: 4px; }
+.sales-group-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 0; border-top: 1px solid var(--line); }
+.sales-group-form { padding: 16px; border-left: 1px solid var(--line); display: grid; gap: 10px; align-content: start; background: var(--surface-soft); }
+.sales-group-form label { display: flex; flex-direction: column; gap: 6px; color: var(--charcoal); font-size: 11px; font-weight: 750; }
+.sales-group-form input, .sales-group-form select { min-height: 36px; border: 1px solid var(--line-strong); border-radius: 7px; background: #fff; color: var(--text); padding: 0 10px; outline: 0; }
+.sales-group-form input:focus, .sales-group-form select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(11,122,83,.12); }
+.sales-group-form .check-inline { flex-direction: row; align-items: center; }
+.sales-group-form .check-inline input { min-height: auto; width: auto; }
 .admin-ranking, .admin-risk-list { min-height: 300px; padding: 7px 16px; }
 .admin-rank-row { min-height: 62px; border-bottom: 1px solid #edf0ee; display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 10px; }
 .admin-rank-row:last-child { border-bottom: 0; }
