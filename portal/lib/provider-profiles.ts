@@ -1,0 +1,202 @@
+import { Pool } from 'pg'
+
+import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
+
+let pool: Pool | undefined
+
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.PORTAL_DATABASE_URL,
+      max: 4,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
+    })
+  }
+  return pool
+}
+
+type StoredProfile = {
+  id: number
+  name: string
+  description: string
+  base_url: string
+  api_key: string
+  target_groups: string[]
+  price_multiplier: number
+  enabled: boolean
+  active: boolean
+  created_at: number
+  updated_at: number
+  last_activated_at: number | null
+}
+
+export type ProviderProfile = Omit<StoredProfile, 'api_key'> & {
+  keyConfigured: boolean
+  maskedKey: string
+}
+
+type ChannelRow = { id: number; group: string; base_url?: string | null }
+
+async function ensureTables() {
+  await getPool().query(`
+    CREATE TABLE IF NOT EXISTS provider_profiles (
+      id BIGSERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      base_url TEXT NOT NULL,
+      api_key TEXT NOT NULL,
+      target_groups TEXT[] NOT NULL DEFAULT '{}',
+      price_multiplier NUMERIC(12, 6) NOT NULL DEFAULT 1,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      active BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      last_activated_at BIGINT
+    );
+    CREATE TABLE IF NOT EXISTS provider_channel_baselines (
+      channel_id BIGINT PRIMARY KEY,
+      base_url TEXT NOT NULL DEFAULT '',
+      api_key TEXT NOT NULL DEFAULT '',
+      captured_at BIGINT NOT NULL
+    );
+  `)
+}
+
+function maskKey(key: string) {
+  const clean = key.trim()
+  if (!clean) return ''
+  if (clean.length <= 10) return `${clean.slice(0, 3)}...`
+  return `${clean.slice(0, 7)}...${clean.slice(-4)}`
+}
+
+function present(profile: StoredProfile): ProviderProfile {
+  return {
+    ...profile,
+    price_multiplier: Number(profile.price_multiplier),
+    keyConfigured: Boolean(profile.api_key),
+    maskedKey: maskKey(profile.api_key),
+  }
+}
+
+export async function getProviderProfiles() {
+  await ensureTables()
+  const result = await getPool().query<StoredProfile>(`SELECT * FROM provider_profiles ORDER BY active DESC, name ASC`)
+  return result.rows.map(present)
+}
+
+export async function createProviderProfile(input: {
+  name: string
+  description?: string
+  baseUrl: string
+  apiKey: string
+  targetGroups: string[]
+  priceMultiplier?: number
+}) {
+  await ensureTables()
+  const name = input.name.trim()
+  const baseUrl = input.baseUrl.trim().replace(/\/$/, '')
+  const apiKey = input.apiKey.trim()
+  const groups = input.targetGroups.map((group) => group.trim()).filter(Boolean)
+  const multiplier = Number(input.priceMultiplier ?? 1)
+  if (!name || !baseUrl || !apiKey || groups.length === 0) throw new BackendError('Completá nombre, Base URL, API key y al menos un grupo.', 400)
+  if (!/^https?:\/\//i.test(baseUrl)) throw new BackendError('La Base URL debe comenzar con http:// o https://.', 400)
+  if (!Number.isFinite(multiplier) || multiplier <= 0) throw new BackendError('El multiplicador debe ser mayor que cero.', 400)
+  const now = Math.floor(Date.now() / 1000)
+  const result = await getPool().query<StoredProfile>(
+    `INSERT INTO provider_profiles (name, description, base_url, api_key, target_groups, price_multiplier, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *`,
+    [name, input.description?.trim() || '', baseUrl, apiKey, groups, multiplier, now],
+  )
+  return present(result.rows[0])
+}
+
+export async function updateProviderProfile(id: number, input: {
+  name?: string
+  description?: string
+  baseUrl?: string
+  apiKey?: string
+  targetGroups?: string[]
+  priceMultiplier?: number
+  enabled?: boolean
+}) {
+  await ensureTables()
+  const current = await getPool().query<StoredProfile>('SELECT * FROM provider_profiles WHERE id = $1', [id])
+  if (!current.rows[0]) throw new BackendError('No se encontró el perfil.', 404)
+  const profile = current.rows[0]
+  const baseUrl = input.baseUrl === undefined ? profile.base_url : input.baseUrl.trim().replace(/\/$/, '')
+  const apiKey = input.apiKey?.trim() || profile.api_key
+  const groups = input.targetGroups === undefined ? profile.target_groups : input.targetGroups.map((group) => group.trim()).filter(Boolean)
+  const multiplier = input.priceMultiplier === undefined ? Number(profile.price_multiplier) : Number(input.priceMultiplier)
+  if (!baseUrl || !apiKey || groups.length === 0 || !Number.isFinite(multiplier) || multiplier <= 0) throw new BackendError('La configuración del perfil no es válida.', 400)
+  const now = Math.floor(Date.now() / 1000)
+  const result = await getPool().query<StoredProfile>(
+    `UPDATE provider_profiles SET name = $1, description = $2, base_url = $3, api_key = $4, target_groups = $5,
+     price_multiplier = $6, enabled = $7, updated_at = $8 WHERE id = $9 RETURNING *`,
+    [input.name?.trim() || profile.name, input.description?.trim() ?? profile.description, baseUrl, apiKey, groups, multiplier, input.enabled ?? profile.enabled, now, id],
+  )
+  return present(result.rows[0])
+}
+
+async function listTargetChannels(groups: string[]) {
+  const result = await getPool().query<ChannelRow>(`SELECT id, \"group\", base_url FROM channels ORDER BY id`)
+  return result.rows.filter((channel) => channel.group.split(',').map((group) => group.trim()).some((group) => groups.includes(group)))
+}
+
+async function updateChannel(channelId: number, baseUrl: string, apiKey: string) {
+  const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
+    method: 'PUT',
+    body: JSON.stringify({ id: channelId, base_url: baseUrl, key: apiKey }),
+  })
+  requireSuccess(body)
+}
+
+export async function activateProviderProfile(id: number) {
+  await ensureTables()
+  const result = await getPool().query<StoredProfile>('SELECT * FROM provider_profiles WHERE id = $1', [id])
+  const profile = result.rows[0]
+  if (!profile) throw new BackendError('No se encontró el perfil.', 404)
+  if (!profile.enabled) throw new BackendError('El perfil está deshabilitado.', 400)
+
+  const channels = await listTargetChannels(profile.target_groups)
+  if (channels.length === 0) throw new BackendError('No hay canales de New API que coincidan con esos grupos.', 400)
+
+  const now = Math.floor(Date.now() / 1000)
+  const client = await getPool().connect()
+  try {
+    await client.query('BEGIN')
+    for (const channel of channels) {
+      await client.query(
+        `INSERT INTO provider_channel_baselines (channel_id, base_url, api_key, captured_at)
+         SELECT id, COALESCE(base_url, ''), key, $2 FROM channels WHERE id = $1
+         ON CONFLICT (channel_id) DO NOTHING`,
+        [channel.id, now],
+      )
+    }
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+
+  for (const channel of channels) await updateChannel(channel.id, profile.base_url, profile.api_key)
+
+  await getPool().query(`UPDATE provider_profiles SET active = FALSE, updated_at = $1 WHERE id <> $2`, [now, id])
+  const updated = await getPool().query<StoredProfile>(
+    `UPDATE provider_profiles SET active = TRUE, last_activated_at = $1, updated_at = $1 WHERE id = $2 RETURNING *`,
+    [now, id],
+  )
+  return { profile: present(updated.rows[0]), channels: channels.map((channel) => channel.id) }
+}
+
+export async function restoreProviderBaselines() {
+  await ensureTables()
+  const result = await getPool().query<{ channel_id: number; base_url: string; api_key: string }>(`SELECT channel_id, base_url, api_key FROM provider_channel_baselines ORDER BY channel_id`)
+  if (result.rows.length === 0) throw new BackendError('No hay una configuración anterior guardada para restaurar.', 400)
+  for (const baseline of result.rows) await updateChannel(baseline.channel_id, baseline.base_url, baseline.api_key)
+  await getPool().query('DELETE FROM provider_channel_baselines')
+  await getPool().query('UPDATE provider_profiles SET active = FALSE, updated_at = $1', [Math.floor(Date.now() / 1000)])
+  return { restoredChannels: result.rows.map((row) => row.channel_id) }
+}

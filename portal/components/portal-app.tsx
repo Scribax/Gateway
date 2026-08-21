@@ -194,10 +194,27 @@ type AdminResponse = {
   }
   customers: AdminCustomer[]
   modelControls: Array<{ modelId: string; label: string; group: 'clientes' | 'claude'; enabled: boolean }>
+  providerProfiles: ProviderProfile[]
   models: Array<AdminMetricRow & { model: string }>
   keys: Array<AdminMetricRow & { key: string; username: string }>
   suspicious: Array<AdminCustomer & { reason: string }>
   truncated: boolean
+}
+
+type ProviderProfile = {
+  id: number
+  name: string
+  description: string
+  base_url: string
+  target_groups: string[]
+  price_multiplier: number
+  enabled: boolean
+  active: boolean
+  created_at: number
+  updated_at: number
+  last_activated_at: number | null
+  keyConfigured: boolean
+  maskedKey: string
 }
 
 type RedeemCodeRow = {
@@ -1155,6 +1172,15 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const [redeemAmount, setRedeemAmount] = useState('0.50')
   const [redeemNote, setRedeemNote] = useState('Prueba demo')
   const [creatingRedeem, setCreatingRedeem] = useState(false)
+  const [providerEditingId, setProviderEditingId] = useState<number | null>(null)
+  const [providerName, setProviderName] = useState('')
+  const [providerDescription, setProviderDescription] = useState('')
+  const [providerBaseUrl, setProviderBaseUrl] = useState('')
+  const [providerApiKey, setProviderApiKey] = useState('')
+  const [providerGroups, setProviderGroups] = useState('clientes')
+  const [providerMultiplier, setProviderMultiplier] = useState('1')
+  const [savingProvider, setSavingProvider] = useState(false)
+  const [providerAction, setProviderAction] = useState<number | 'restore' | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -1226,6 +1252,69 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     }
   }
 
+  function resetProviderForm() {
+    setProviderEditingId(null)
+    setProviderName('')
+    setProviderDescription('')
+    setProviderBaseUrl('')
+    setProviderApiKey('')
+    setProviderGroups('clientes')
+    setProviderMultiplier('1')
+  }
+
+  function editProvider(profile: ProviderProfile) {
+    setProviderEditingId(profile.id)
+    setProviderName(profile.name)
+    setProviderDescription(profile.description)
+    setProviderBaseUrl(profile.base_url)
+    setProviderApiKey('')
+    setProviderGroups(profile.target_groups.join(', '))
+    setProviderMultiplier(String(profile.price_multiplier))
+  }
+
+  async function saveProvider(event: FormEvent) {
+    event.preventDefault(); setSavingProvider(true); setError('')
+    try {
+      const payload: Record<string, unknown> = {
+        name: providerName,
+        description: providerDescription,
+        baseUrl: providerBaseUrl,
+        targetGroups: providerGroups.split(',').map((group) => group.trim()).filter(Boolean),
+        priceMultiplier: Number(providerMultiplier),
+      }
+      if (providerApiKey.trim() || providerEditingId === null) payload.apiKey = providerApiKey
+      const response = await readJson(await fetch('/api/admin/providers', {
+        method: providerEditingId === null ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(providerEditingId === null ? payload : { ...payload, id: providerEditingId }),
+      }))
+      setAdmin((current) => current ? { ...current, providerProfiles: providerEditingId === null ? [response.data, ...current.providerProfiles] : current.providerProfiles.map((profile) => profile.id === providerEditingId ? response.data : profile) } : current)
+      resetProviderForm()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo guardar el perfil.')
+    } finally { setSavingProvider(false) }
+  }
+
+  async function activateProvider(id: number) {
+    setProviderAction(id); setError('')
+    try {
+      await readJson(await fetch('/api/admin/providers', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'activate', id }) }))
+      setRefreshKey((value) => value + 1)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo activar el perfil.')
+    } finally { setProviderAction(null) }
+  }
+
+  async function restoreProviders() {
+    setProviderAction('restore'); setError('')
+    try {
+      await readJson(await fetch('/api/admin/providers', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'restore' }) }))
+      setRefreshKey((value) => value + 1)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo restaurar la configuración.')
+    } finally { setProviderAction(null) }
+  }
+
   const margin = admin?.totals.revenueUsd
     ? (admin.totals.netProfitUsd / admin.totals.revenueUsd) * 100
     : 0
@@ -1275,6 +1364,27 @@ function AdminView({ locale }: { locale: PortalLocale }) {
           {redeemCodes.length === 0 && <tr><td colSpan={6}><div className="empty-row"><ReceiptText size={18} />{tr(locale, 'Todavía no hay códigos demo', 'No demo codes yet')}</div></td></tr>}
           {redeemCodes.slice(0, 40).map((code) => <tr key={code.id}><td><code>{code.code}</code></td><td>{money(Number(code.amount_usd), 2)}</td><td><span className={`admin-state ${code.status === 'active' ? 'active' : code.status === 'redeemed' ? 'blocked' : ''}`}>{code.status === 'active' ? 'Disponible' : code.status === 'redeemed' ? 'Canjeado' : code.status}</span></td><td>{code.note || '-'}</td><td>{formatDate(Number(code.created_at))}</td><td className="right"><button className="secondary-button key-use-button" onClick={() => navigator.clipboard.writeText(code.code)} type="button"><Copy size={15} />Copiar</button></td></tr>)}
         </tbody></table></div>
+      </section>
+
+      <section className="section-block provider-profile-section">
+        <div className="section-heading"><div><h3>{tr(locale, 'Proveedores y modo emergencia', 'Providers and emergency mode')}</h3><p>{tr(locale, 'Cambiá Base URL, key madre y grupos sin recompilar el portal. El cambio se aplica a los canales reales de New API.', 'Change the Base URL, master key and groups without rebuilding the portal. The change applies to the real New API channels.')}</p></div><span className="info-chip"><Server size={15} />{admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}</span></div>
+        <div className="provider-profile-layout">
+          <div className="provider-profile-list">
+            {admin.providerProfiles.length === 0 && <div className="empty-row"><Server size={18} />{tr(locale, 'Todavía no hay perfiles configurados.', 'No provider profiles configured yet.')}</div>}
+            {admin.providerProfiles.map((profile) => <article className={`provider-profile-row ${profile.active ? 'active' : ''}`} key={profile.id}><div className="provider-profile-icon"><Server size={17} /></div><div className="provider-profile-copy"><strong>{profile.name}</strong><small>{profile.description || tr(locale, 'Sin descripción', 'No description')}</small><code>{profile.base_url}</code><span>{profile.target_groups.join(', ')} · {profile.price_multiplier}x · {profile.keyConfigured ? profile.maskedKey : tr(locale, 'Sin key', 'No key')}</span></div><div className="provider-profile-actions"><span className={`admin-state ${profile.active ? 'active' : ''}`}>{profile.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Disponible', 'Available')}</span><button type="button" className="secondary-button" onClick={() => editProvider(profile)}><Eye size={15} />{tr(locale, 'Editar', 'Edit')}</button><button type="button" className="primary-button" onClick={() => activateProvider(profile.id)} disabled={providerAction === profile.id}>{providerAction === profile.id ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}{tr(locale, 'Aplicar', 'Apply')}</button></div></article>)}
+            <button type="button" className="secondary-button provider-restore-button" onClick={restoreProviders} disabled={providerAction === 'restore'}>{providerAction === 'restore' ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{tr(locale, 'Restaurar configuración anterior', 'Restore previous configuration')}</button>
+          </div>
+          <form className="provider-profile-form" onSubmit={saveProvider}>
+            <div className="provider-form-title"><strong>{providerEditingId === null ? tr(locale, 'Nuevo perfil', 'New profile') : tr(locale, 'Editar perfil', 'Edit profile')}</strong><small>{tr(locale, 'Las credenciales quedan solo en el servidor.', 'Credentials stay on the server only.')}</small></div>
+            <label>{tr(locale, 'Nombre', 'Name')}<input value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="FastAI 0.2x" required /></label>
+            <label>{tr(locale, 'Descripción', 'Description')}<input value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Proveedor de respaldo" /></label>
+            <label>Base URL<input value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required /></label>
+            <label>API key madre<input type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
+            <label>{tr(locale, 'Grupos de New API', 'New API groups')}<input value={providerGroups} onChange={(event) => setProviderGroups(event.target.value)} placeholder="clientes, clientes_025" required /></label>
+            <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
+            <div className="provider-form-actions"><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
+          </form>
+        </div>
       </section>
 
       <section className="section-block model-control-section">
