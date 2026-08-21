@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 
 import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
 import { MODEL_CATALOG } from '@/lib/catalog'
-import { getSalesGroups, syncNewApiGroupRatio } from '@/lib/sales-groups'
+import { getSalesGroups, syncNewApiGroupRatio, syncNewApiUsableGroup } from '@/lib/sales-groups'
 
 let pool: Pool | undefined
 
@@ -227,6 +227,7 @@ async function syncProfileGroupRatios(groups: string[]) {
   const salesGroups = await getSalesGroups()
   for (const group of salesGroups.filter((item) => groups.includes(item.code))) {
     await syncNewApiGroupRatio(group.code, group.price_multiplier)
+    if (group.published) await syncNewApiUsableGroup(group.code, group.label_es || group.label_en || group.code)
   }
 }
 

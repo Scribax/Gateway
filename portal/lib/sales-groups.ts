@@ -96,6 +96,29 @@ export async function syncNewApiGroupRatio(code: string, multiplier: number) {
   if (!body.success) throw new BackendError(body.message || 'New API rechazó la actualización del precio del grupo.', 400)
 }
 
+export async function syncNewApiUsableGroup(code: string, label: string) {
+  const current = await getPool().query<{ value: string }>('SELECT value FROM options WHERE key = $1', ['UserUsableGroups'])
+  let groups: Record<string, string> = { default: 'Default', clientes: 'ChatGPT económico', clientes_025: 'ChatGPT estable', claude: 'Claude' }
+  if (current.rows[0]?.value) {
+    try {
+      const parsed = JSON.parse(current.rows[0].value) as Record<string, unknown>
+      groups = Object.fromEntries(
+        Object.entries(parsed)
+          .map(([key, value]) => [key, String(value || key)] as [string, string])
+          .filter(([key]) => key.trim()),
+      )
+    } catch {
+      // Keep defaults if the New API option is malformed.
+    }
+  }
+  groups[code] = label || code
+  const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/option/', {
+    method: 'PUT',
+    body: JSON.stringify({ key: 'UserUsableGroups', value: JSON.stringify(groups) }),
+  })
+  if (!body.success) throw new BackendError(body.message || 'New API rechazó la actualización de permisos del grupo.', 400)
+}
+
 export async function getSalesGroups(options: { publishedOnly?: boolean } = {}) {
   await ensureSalesGroupsTable()
   const result = await getPool().query<SalesGroup>(
@@ -142,6 +165,7 @@ export async function upsertSalesGroup(input: Partial<SalesGroup> & { code: stri
   )
   const group = present(result.rows[0])
   await syncNewApiGroupRatio(group.code, group.price_multiplier)
+  if (group.published) await syncNewApiUsableGroup(group.code, group.label_es || group.label_en || group.code)
   return group
 }
 
