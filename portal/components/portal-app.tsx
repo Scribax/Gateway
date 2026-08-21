@@ -1161,6 +1161,27 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
   )
 }
 
+const PROVIDER_GROUP_META: Record<string, { labelEs: string; labelEn: string; descriptionEs: string; descriptionEn: string }> = {
+  clientes: {
+    labelEs: 'ChatGPT económico',
+    labelEn: 'Economy ChatGPT',
+    descriptionEs: 'Grupo 0.1 · Menor precio',
+    descriptionEn: 'Group 0.1 · Lowest price',
+  },
+  clientes_025: {
+    labelEs: 'ChatGPT estable',
+    labelEn: 'Stable ChatGPT',
+    descriptionEs: 'Grupo 0.25 · Mayor disponibilidad',
+    descriptionEn: 'Group 0.25 · Higher availability',
+  },
+  claude: {
+    labelEs: 'Claude',
+    labelEn: 'Claude',
+    descriptionEs: 'Anthropic · Opus, Sonnet y Haiku',
+    descriptionEn: 'Anthropic · Opus, Sonnet and Haiku',
+  },
+}
+
 function AdminView({ locale }: { locale: PortalLocale }) {
   const [admin, setAdmin] = useState<AdminResponse | null>(null)
   const [redeemCodes, setRedeemCodes] = useState<RedeemCodeRow[]>([])
@@ -1323,6 +1344,9 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const margin = admin?.totals.revenueUsd
     ? (admin.totals.netProfitUsd / admin.totals.revenueUsd) * 100
     : 0
+  const selectableProviderGroups = admin
+    ? Array.from(new Set([...admin.providerGroups.filter((group) => group !== 'default'), 'clientes', 'clientes_025', 'claude']))
+    : []
 
   return <div className="admin-page">
     <section className="admin-command-bar">
@@ -1385,7 +1409,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
             <label>{tr(locale, 'Descripción', 'Description')}<input name="provider-profile-description" autoComplete="off" value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Proveedor de respaldo" /></label>
             <label>Base URL<input name="provider-base-url" autoComplete="url" spellCheck={false} value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required /></label>
             <label>API key madre<input name="provider-api-key" autoComplete="new-password" type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
-            <fieldset className="provider-group-picker"><legend>{tr(locale, 'Grupos que cambiará este perfil', 'Groups changed by this profile')}</legend><div className="provider-group-options">{(admin.providerGroups.length ? admin.providerGroups : ['default', 'clientes', 'clientes_025', 'claude']).map((group) => <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}><input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} /><span>{providerGroups.includes(group) && <Check size={13} />}</span><strong>{group}</strong></label>)}</div></fieldset>
+            <fieldset className="provider-group-picker"><legend>{tr(locale, '¿Qué servicio reemplazará este perfil?', 'Which service will this profile replace?')}</legend><div className="provider-group-options">{selectableProviderGroups.map((group) => { const meta = PROVIDER_GROUP_META[group]; return <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}><input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} /><span className="provider-group-check">{providerGroups.includes(group) && <Check size={13} />}</span><span className="provider-group-copy"><strong>{meta ? tr(locale, meta.labelEs, meta.labelEn) : group}</strong><small>{meta ? tr(locale, meta.descriptionEs, meta.descriptionEn) : `New API: ${group}`}</small></span></label> })}</div><small className="provider-group-help">{tr(locale, 'El cambio afecta únicamente a las keys de los grupos seleccionados.', 'Only keys belonging to the selected groups are affected.')}</small></fieldset>
             <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
             <div className="provider-form-actions"><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
           </form>
