@@ -33,6 +33,7 @@ import {
   Mail,
   Menu,
   Mic2,
+  Pencil,
   Plus,
   RadioTower,
   ReceiptText,
@@ -49,6 +50,7 @@ import {
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { PublicLanguageSwitch } from './public-nav'
+import { MODEL_CATALOG } from '@/lib/catalog'
 
 type View = 'overview' | 'usage' | 'status' | 'keys' | 'models' | 'wallet' | 'setup' | 'admin'
 type PaymentReturn = 'success' | 'pending' | 'failure'
@@ -1413,6 +1415,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setGroupFamily(group.model_family)
     setGroupMultiplier(String(group.price_multiplier))
     setGroupPublished(group.published)
+    window.setTimeout(() => document.querySelector('.sales-group-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
   function resetSalesGroupForm() {
@@ -1498,6 +1501,21 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     const meta = PROVIDER_GROUP_META[code]
     return meta ? tr(locale, meta.descriptionEs, meta.descriptionEn) : `New API: ${code}`
   }
+  function catalogForGroup(group: SalesGroup) {
+    return MODEL_CATALOG.filter((model) => group.model_family === 'claude' ? model.id.includes('claude') : group.model_family === 'chatgpt' ? !model.id.includes('claude') : true)
+  }
+  function groupPriceSummary(group: SalesGroup) {
+    const priced = catalogForGroup(group).filter((model) => model.input > 0 || model.output > 0 || model.cacheWrite > 0)
+    const minInput = Math.min(...priced.filter((model) => model.input > 0).map((model) => model.input * group.price_multiplier))
+    const minOutput = Math.min(...priced.filter((model) => model.output > 0).map((model) => model.output * group.price_multiplier))
+    const cacheWrite = Math.min(...priced.filter((model) => model.cacheWrite > 0).map((model) => model.cacheWrite * group.price_multiplier))
+    return {
+      pricedCount: priced.length,
+      input: Number.isFinite(minInput) ? tokenPrice(minInput) : '-',
+      output: Number.isFinite(minOutput) ? tokenPrice(minOutput) : '-',
+      cache: Number.isFinite(cacheWrite) ? tokenPrice(cacheWrite) : '-',
+    }
+  }
 
   return <div className="admin-page">
     <section className="admin-command-bar">
@@ -1547,7 +1565,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
       </section>
 
       <section className="section-block provider-profile-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Proveedores y modo emergencia', 'Providers and emergency mode')}</h3><p>{tr(locale, 'Cambiá Base URL y key madre sin recompilar el portal. Los grupos se detectan automáticamente desde New API.', 'Change the Base URL and master key without rebuilding the portal. Groups are detected automatically from New API.')}</p></div><span className="info-chip"><Server size={15} />{admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}</span></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Conexiones de proveedor', 'Provider connections')}</h3><p>{tr(locale, 'Acá solo cambiás Base URL, key madre y qué grupo usa ese endpoint. Los precios se editan abajo en Grupos y precios.', 'Here you only change Base URL, master key and which group uses that endpoint. Prices are edited below in Groups and prices.')}</p></div><span className="info-chip"><Server size={15} />{admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}</span></div>
         <div className="provider-profile-layout">
           <div className="provider-profile-list">
             {admin.providerProfiles.length === 0 && <div className="empty-row"><Server size={18} />{tr(locale, 'Todavía no hay perfiles configurados.', 'No provider profiles configured yet.')}</div>}
@@ -1561,7 +1579,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
             <label>Base URL<input name="provider-base-url" autoComplete="url" spellCheck={false} value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required /></label>
             <label>API key madre<input name="provider-api-key" autoComplete="new-password" type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
             <fieldset className="provider-group-picker"><legend>{tr(locale, '¿Qué grupo de clientes usará este proveedor?', 'Which customer group will use this provider?')}</legend><div className="provider-group-options">{selectableProviderGroups.map((group) => <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}><input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} /><span className="provider-group-check">{providerGroups.includes(group) && <Check size={13} />}</span><span className="provider-group-copy"><strong>{salesGroupLabel(group)}</strong><small>{salesGroupDescription(group)}</small></span></label>)}</div><small className="provider-group-help">{tr(locale, 'Si creás un grupo abajo, aparecerá acá para conectarle Base URL y key madre.', 'If you create a group below, it appears here so you can connect a Base URL and master key.')}</small></fieldset>
-            <label>{tr(locale, 'Multiplicador de referencia', 'Reference multiplier')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /></label>
+            <label>{tr(locale, 'Referencia del proveedor', 'Provider reference')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /><small className="field-help">{tr(locale, 'Solo sirve como nota interna. Lo que se cobra al cliente se define abajo.', 'Internal note only. Customer billing is defined below.')}</small></label>
             {providerValidation && <div className="provider-validation-result"><div><Check size={15} /><strong>{providerValidation.models.length} {tr(locale, 'modelos detectados', 'models detected')}</strong></div><small>{providerValidation.knownModels.length} {tr(locale, 'coinciden con nuestro catálogo', 'match our catalog')} · {providerValidation.unknownModels.length} {tr(locale, 'requieren revisión', 'need review')}</small><code>{providerValidation.models.slice(0, 12).join(' · ')}{providerValidation.models.length > 12 ? ' · ...' : ''}</code></div>}
             <div className="provider-form-actions"><button type="button" className="secondary-button" onClick={validateProvider} disabled={validatingProvider || !providerBaseUrl.trim() || !providerApiKey.trim()}>{validatingProvider ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />}{tr(locale, 'Validar endpoint', 'Validate endpoint')}</button><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
           </form>
@@ -1569,16 +1587,16 @@ function AdminView({ locale }: { locale: PortalLocale }) {
       </section>
 
       <section className="section-block sales-group-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Grupos y proveedores', 'Groups and providers')}</h3><p>{tr(locale, 'Vista unificada: qué ve el cliente, qué proveedor lo alimenta y si está publicado.', 'Unified view: what customers see, which provider powers it and whether it is published.')}</p></div><span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span></div>
+        <div className="section-heading"><div><h3>{tr(locale, 'Grupos y precios', 'Groups and prices')}</h3><p>{tr(locale, 'Esto es lo que ve y paga el cliente al crear o cambiar una API key.', 'This is what customers see and pay when creating or changing an API key.')}</p></div><span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span></div>
         <div className="sales-group-layout">
-          <div className="table-wrap"><table className="admin-table unified-group-table"><thead><tr><th>{tr(locale, 'Grupo cliente', 'Customer group')}</th><th>{tr(locale, 'Proveedor activo', 'Active provider')}</th><th>Endpoint</th><th>{tr(locale, 'Modelos / precio', 'Models / price')}</th><th>{tr(locale, 'Estado', 'Status')}</th><th className="right">{tr(locale, 'Acción', 'Action')}</th></tr></thead><tbody>{admin.salesGroups.map((group) => { const providers = admin.providerProfiles.filter((profile) => profile.target_groups.includes(group.code)); const activeProvider = providers.find((profile) => profile.active) || providers[0]; return <tr key={group.code}><td><strong>{locale === 'en' ? group.label_en : group.label_es}</strong><small>{locale === 'en' ? group.note_en : group.note_es}</small><code>{group.code}</code></td><td>{activeProvider ? <span className="provider-mini"><strong>{activeProvider.name}</strong><small>{activeProvider.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Guardado', 'Saved')}</small></span> : <span className="muted-mini">{tr(locale, 'Sin proveedor conectado', 'No provider connected')}</span>}</td><td>{activeProvider ? <code>{activeProvider.base_url}</code> : <button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Plus size={15} />{tr(locale, 'Conectar', 'Connect')}</button>}</td><td><span className="provider-mini"><strong>{group.model_family} · {group.price_multiplier}x</strong><small>{tr(locale, 'Precios por modelo próximamente', 'Per-model prices soon')}</small></span></td><td><span className={`admin-state ${group.published ? 'active' : ''}`}>{group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}</span></td><td className="right"><span className="action-group"><button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}><Eye size={15} />{tr(locale, 'Editar grupo', 'Edit group')}</button><button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Server size={15} />{tr(locale, 'Proveedor', 'Provider')}</button>{!['clientes', 'clientes_025', 'claude'].includes(group.code) && <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}><Trash2 size={15} /></button>}</span></td></tr> })}</tbody></table></div>
+          <div className="table-wrap"><table className="admin-table unified-group-table"><thead><tr><th>{tr(locale, 'Grupo cliente', 'Customer group')}</th><th>{tr(locale, 'Precio cliente', 'Customer price')}</th><th>{tr(locale, 'Proveedor activo', 'Active provider')}</th><th>Endpoint</th><th>{tr(locale, 'Estado', 'Status')}</th><th className="right">{tr(locale, 'Acción', 'Action')}</th></tr></thead><tbody>{admin.salesGroups.map((group) => { const providers = admin.providerProfiles.filter((profile) => profile.target_groups.includes(group.code)); const activeProvider = providers.find((profile) => profile.active) || providers[0]; const priceSummary = groupPriceSummary(group); return <tr key={group.code}><td><strong>{locale === 'en' ? group.label_en : group.label_es}</strong><small>{locale === 'en' ? group.note_en : group.note_es}</small><code>{group.code}</code></td><td><span className="price-summary"><strong>{group.price_multiplier}x</strong><small>Input {tr(locale, 'desde', 'from')} {priceSummary.input} · {tr(locale, 'salida', 'output')} {priceSummary.output}</small><small>Cache {priceSummary.cache} · {priceSummary.pricedCount} {tr(locale, 'modelos con precio', 'priced models')}</small></span></td><td>{activeProvider ? <span className="provider-mini"><strong>{activeProvider.name}</strong><small>{activeProvider.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Guardado, falta aplicar', 'Saved, needs apply')}</small></span> : <span className="muted-mini">{tr(locale, 'Sin proveedor conectado', 'No provider connected')}</span>}</td><td>{activeProvider ? <code>{activeProvider.base_url}</code> : <button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Plus size={15} />{tr(locale, 'Conectar', 'Connect')}</button>}</td><td><span className={`admin-state ${group.published ? 'active' : ''}`}>{group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}</span></td><td className="right"><span className="action-group"><button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}><Pencil size={15} />{tr(locale, 'Editar precio', 'Edit price')}</button><button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Server size={15} />{tr(locale, 'Conexión', 'Connection')}</button>{!['clientes', 'clientes_025', 'claude'].includes(group.code) && <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}><Trash2 size={15} /></button>}</span></td></tr> })}</tbody></table></div>
           <form className="sales-group-form" onSubmit={saveSalesGroup}>
             <strong>{tr(locale, 'Crear o editar grupo', 'Create or edit group')}</strong>
             <label>{tr(locale, 'Código técnico', 'Technical code')}<input value={groupCode} onChange={(event) => setGroupCode(event.target.value)} placeholder="fastai_02" required /></label>
             <label>{tr(locale, 'Nombre visible', 'Visible name')}<input value={groupLabel} onChange={(event) => setGroupLabel(event.target.value)} placeholder="FastAI barato" required /></label>
             <label>{tr(locale, 'Descripción corta', 'Short description')}<input value={groupNote} onChange={(event) => setGroupNote(event.target.value)} placeholder="Proveedor alternativo" /></label>
             <label>{tr(locale, 'Familia de modelos', 'Model family')}<select value={groupFamily} onChange={(event) => setGroupFamily(event.target.value as typeof groupFamily)}><option value="chatgpt">ChatGPT / OpenAI</option><option value="claude">Claude / Anthropic</option><option value="all">{tr(locale, 'Todos', 'All')}</option></select></label>
-            <label>{tr(locale, 'Multiplicador visible', 'Visible multiplier')}<input type="number" min="0.001" step="0.001" value={groupMultiplier} onChange={(event) => setGroupMultiplier(event.target.value)} required /></label>
+            <label>{tr(locale, 'Multiplicador de cobro al cliente', 'Customer billing multiplier')}<input type="number" min="0.001" step="0.001" value={groupMultiplier} onChange={(event) => setGroupMultiplier(event.target.value)} required /><small className="field-help">{tr(locale, 'Ejemplo: 1 mantiene el precio base, 2.5 cobra 2.5 veces más. Se sincroniza con New API.', 'Example: 1 keeps the base price, 2.5 charges 2.5x more. It syncs with New API.')}</small></label>
             <label className="check-inline"><input type="checkbox" checked={groupPublished} onChange={(event) => setGroupPublished(event.target.checked)} />{tr(locale, 'Publicado para clientes', 'Published for customers')}</label>
             <div className="provider-form-actions"><button className="primary-button" disabled={savingGroup}>{savingGroup ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar grupo', 'Save group')}</button><button type="button" className="secondary-button" onClick={resetSalesGroupForm}>{tr(locale, 'Limpiar', 'Clear')}</button></div>
           </form>
