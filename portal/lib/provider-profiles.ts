@@ -2,6 +2,7 @@ import { Pool } from 'pg'
 
 import { BackendError, newApiFetch, requireSuccess, type NewApiEnvelope } from '@/lib/new-api'
 import { MODEL_CATALOG } from '@/lib/catalog'
+import { getSalesGroups, syncNewApiGroupRatio } from '@/lib/sales-groups'
 
 let pool: Pool | undefined
 
@@ -37,7 +38,7 @@ export type ProviderProfile = Omit<StoredProfile, 'api_key'> & {
   maskedKey: string
 }
 
-type ChannelRow = { id: number; group: string; base_url?: string | null }
+type ChannelRow = { id: number; name: string; type: number; group: string; models: string; base_url?: string | null }
 
 export type ProviderModelValidation = {
   models: string[]
@@ -187,16 +188,46 @@ export async function updateProviderProfile(id: number, input: {
 }
 
 async function listTargetChannels(groups: string[]) {
-  const result = await getPool().query<ChannelRow>(`SELECT id, \"group\", base_url FROM channels ORDER BY id`)
+  const result = await getPool().query<ChannelRow>(`SELECT id, name, type, \"group\", models, base_url FROM channels ORDER BY id`)
   return result.rows.filter((channel) => channel.group.split(',').map((group) => group.trim()).some((group) => groups.includes(group)))
 }
 
-async function updateChannel(channelId: number, baseUrl: string, apiKey: string) {
+async function updateChannel(channelId: number, baseUrl: string, apiKey: string, models: string[]) {
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
     method: 'PUT',
-    body: JSON.stringify({ id: channelId, base_url: baseUrl, key: apiKey }),
+    body: JSON.stringify({ id: channelId, base_url: baseUrl, key: apiKey, models: models.join(',') }),
   })
   requireSuccess(body)
+}
+
+async function createChannel(profile: StoredProfile, groups: string[], models: string[]) {
+  const groupLabel = groups.join(', ')
+  const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
+    method: 'POST',
+    body: JSON.stringify({
+      mode: 'single',
+      channel: {
+        type: 1,
+        status: 1,
+        name: `${profile.name} (${groupLabel})`,
+        key: profile.api_key,
+        base_url: profile.base_url,
+        models: models.join(','),
+        group: groups.join(','),
+        priority: 0,
+        weight: 0,
+        auto_ban: 1,
+      },
+    }),
+  })
+  if (!body.success) throw new BackendError(body.message || 'New API rechazó la creación del canal.', 400)
+}
+
+async function syncProfileGroupRatios(groups: string[]) {
+  const salesGroups = await getSalesGroups()
+  for (const group of salesGroups.filter((item) => groups.includes(item.code))) {
+    await syncNewApiGroupRatio(group.code, group.price_multiplier)
+  }
 }
 
 export async function activateProviderProfile(id: number) {
@@ -207,15 +238,22 @@ export async function activateProviderProfile(id: number) {
   if (!profile.enabled) throw new BackendError('El perfil está deshabilitado.', 400)
 
   const validation = await validateProviderEndpoint(profile.base_url, profile.api_key)
+  await syncProfileGroupRatios(profile.target_groups)
 
   const channels = await listTargetChannels(profile.target_groups)
-  if (channels.length === 0) throw new BackendError('No hay canales de New API que coincidan con esos grupos.', 400)
+  const coveredGroups = new Set(channels.flatMap((channel) => channel.group.split(',').map((group) => group.trim()).filter(Boolean)))
+  const missingGroups = profile.target_groups.filter((group) => !coveredGroups.has(group))
+  if (missingGroups.length > 0) {
+    await createChannel(profile, missingGroups, validation.models)
+  }
+  const targetChannels = await listTargetChannels(profile.target_groups)
+  if (targetChannels.length === 0) throw new BackendError('No se pudo crear ni encontrar un canal de New API para esos grupos.', 400)
 
   const now = Math.floor(Date.now() / 1000)
   const client = await getPool().connect()
   try {
     await client.query('BEGIN')
-    for (const channel of channels) {
+    for (const channel of targetChannels) {
       await client.query(
         `INSERT INTO provider_channel_baselines (channel_id, base_url, api_key, captured_at)
          SELECT id, COALESCE(base_url, ''), key, $2 FROM channels WHERE id = $1
@@ -231,21 +269,21 @@ export async function activateProviderProfile(id: number) {
     client.release()
   }
 
-  for (const channel of channels) await updateChannel(channel.id, profile.base_url, profile.api_key)
+  for (const channel of targetChannels) await updateChannel(channel.id, profile.base_url, profile.api_key, validation.models)
 
-  await getPool().query(`UPDATE provider_profiles SET active = FALSE, updated_at = $1 WHERE id <> $2`, [now, id])
+  await getPool().query(`UPDATE provider_profiles SET active = FALSE, updated_at = $1 WHERE id <> $2 AND target_groups && $3::text[]`, [now, id, profile.target_groups])
   const updated = await getPool().query<StoredProfile>(
     `UPDATE provider_profiles SET active = TRUE, last_activated_at = $1, updated_at = $1 WHERE id = $2 RETURNING *`,
     [now, id],
   )
-  return { profile: present(updated.rows[0]), channels: channels.map((channel) => channel.id), validation }
+  return { profile: present(updated.rows[0]), channels: targetChannels.map((channel) => channel.id), createdGroups: missingGroups, validation }
 }
 
 export async function restoreProviderBaselines() {
   await ensureTables()
   const result = await getPool().query<{ channel_id: number; base_url: string; api_key: string }>(`SELECT channel_id, base_url, api_key FROM provider_channel_baselines ORDER BY channel_id`)
   if (result.rows.length === 0) throw new BackendError('No hay una configuración anterior guardada para restaurar.', 400)
-  for (const baseline of result.rows) await updateChannel(baseline.channel_id, baseline.base_url, baseline.api_key)
+  for (const baseline of result.rows) await updateChannel(baseline.channel_id, baseline.base_url, baseline.api_key, [])
   await getPool().query('DELETE FROM provider_channel_baselines')
   await getPool().query('UPDATE provider_profiles SET active = FALSE, updated_at = $1', [Math.floor(Date.now() / 1000)])
   return { restoredChannels: result.rows.map((row) => row.channel_id) }

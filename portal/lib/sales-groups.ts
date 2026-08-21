@@ -1,5 +1,7 @@
 import { Pool } from 'pg'
 
+import { BackendError, newApiFetch, type NewApiEnvelope } from '@/lib/new-api'
+
 let pool: Pool | undefined
 
 function getPool() {
@@ -71,6 +73,29 @@ function present(row: SalesGroup): SalesGroup {
   return { ...row, price_multiplier: Number(row.price_multiplier) }
 }
 
+export async function syncNewApiGroupRatio(code: string, multiplier: number) {
+  const current = await getPool().query<{ value: string }>('SELECT value FROM options WHERE key = $1', ['GroupRatio'])
+  let ratios: Record<string, number> = { default: 1, vip: 1, svip: 1 }
+  if (current.rows[0]?.value) {
+    try {
+      const parsed = JSON.parse(current.rows[0].value) as Record<string, unknown>
+      ratios = Object.fromEntries(
+        Object.entries(parsed)
+          .map(([key, value]) => [key, Number(value)] as [string, number])
+          .filter(([, value]) => Number.isFinite(value) && value >= 0),
+      )
+    } catch {
+      // Keep the safe defaults when New API has a malformed ratio option.
+    }
+  }
+  ratios[code] = multiplier
+  const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/option/', {
+    method: 'PUT',
+    body: JSON.stringify({ key: 'GroupRatio', value: JSON.stringify(ratios) }),
+  })
+  if (!body.success) throw new BackendError(body.message || 'New API rechazó la actualización del precio del grupo.', 400)
+}
+
 export async function getSalesGroups(options: { publishedOnly?: boolean } = {}) {
   await ensureSalesGroupsTable()
   const result = await getPool().query<SalesGroup>(
@@ -115,7 +140,9 @@ export async function upsertSalesGroup(input: Partial<SalesGroup> & { code: stri
       now,
     ],
   )
-  return present(result.rows[0])
+  const group = present(result.rows[0])
+  await syncNewApiGroupRatio(group.code, group.price_multiplier)
+  return group
 }
 
 export async function deleteSalesGroup(code: string) {
