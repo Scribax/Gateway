@@ -380,7 +380,8 @@ async function readJson(response: Response) {
   return body
 }
 
-function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: { onAuthenticated: () => void; initialMode?: 'login' | 'register'; locale?: 'es' | 'en' }) {
+function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es', onChangeLocale }: { onAuthenticated: () => void; initialMode?: 'login' | 'register'; locale?: 'es' | 'en'; onChangeLocale?: (loc: 'es' | 'en') => void }) {
+  const [currentLocale, setCurrentLocale] = useState<'es' | 'en'>(locale)
   const [mode, setMode] = useState<'login' | 'register'>(initialMode)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -392,7 +393,25 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
   const [codeSent, setCodeSent] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [error, setError] = useState('')
-  const english = locale === 'en'
+
+  useEffect(() => {
+    setCurrentLocale(locale)
+  }, [locale])
+
+  function handleLocaleChange(next: 'es' | 'en') {
+    setCurrentLocale(next)
+    if (onChangeLocale) onChangeLocale(next)
+    try {
+      window.localStorage.setItem('orbiqen-portal-locale', next)
+      const url = new URL(window.location.href)
+      url.searchParams.set('lang', next)
+      window.history.replaceState({}, '', url.toString())
+    } catch {
+      // ignore
+    }
+  }
+
+  const english = currentLocale === 'en'
   const copy = english ? {
     welcome: 'WELCOME BACK', newAccount: 'GET STARTED FREE', loginTitle: 'Sign in to your dashboard', registerTitle: 'Create developer account',
     username: 'Username', usernamePlaceholder: 'your_username', email: 'Email address', emailPlaceholder: 'you@yourcompany.com',
@@ -410,6 +429,7 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
     heroText: 'Accedé a GPT-5.5, Claude Opus 4.8 y Sonnet 5 con un único endpoint. Recargá con Mercado Pago o Cripto.',
     backHome: '← Volver al Inicio',
   }
+
   useEffect(() => {
     if (cooldown <= 0) return
     const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000)
@@ -457,18 +477,25 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
     <main className="auth-shell">
       <section className="auth-brand-panel">
         <div className="auth-brand-top">
-          <a href={english ? '/en' : '/'} className="brand brand-light" style={{ textDecoration: 'none' }}>
+          <a href={english ? '/en' : '/es'} className="brand brand-light" style={{ textDecoration: 'none' }}>
             <BrandLogo light />
           </a>
-          <a href={english ? '/en' : '/'} className="auth-back-link">
-            {copy.backHome}
-          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="auth-language-switch">
+              <button type="button" className={!english ? 'active' : ''} onClick={() => handleLocaleChange('es')}>ES</button>
+              <span>/</span>
+              <button type="button" className={english ? 'active' : ''} onClick={() => handleLocaleChange('en')}>EN</button>
+            </div>
+            <a href={english ? '/en' : '/es'} className="auth-back-link">
+              {copy.backHome}
+            </a>
+          </div>
         </div>
 
         <div className="auth-brand-content">
           <div className="auth-pill-badge">
             <span className="auth-pulse-dot" />
-            <span>ZERO DATA RETENTION • LATENCIA &lt; 35MS</span>
+            <span>{english ? 'ZERO DATA RETENTION • LATENCY < 35MS' : 'ZERO DATA RETENTION • LATENCIA < 35MS'}</span>
           </div>
 
           <h1 className="auth-hero-headline">{copy.heroTitle}</h1>
@@ -509,14 +536,16 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
 
       <section className="auth-form-panel">
         <div className="auth-top-nav">
-          <a href={english ? '/en' : '/'} className="auth-mobile-back-btn">
+          <a href={english ? '/en' : '/es'} className="auth-mobile-back-btn">
             {copy.backHome}
           </a>
           <div className="auth-mobile-brand brand">
             <BrandLogo light />
           </div>
-          <div className="auth-language">
-            <PublicLanguageSwitch locale={locale} englishPath={`/login?lang=en${mode === 'register' ? '&mode=register' : ''}`} spanishPath={`/login?lang=es${mode === 'register' ? '&mode=register' : ''}`} />
+          <div className="auth-language-switch">
+            <button type="button" className={!english ? 'active' : ''} onClick={() => handleLocaleChange('es')}>ES</button>
+            <span>/</span>
+            <button type="button" className={english ? 'active' : ''} onClick={() => handleLocaleChange('en')}>EN</button>
           </div>
         </div>
 
@@ -4519,9 +4548,14 @@ export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMod
   useEffect(() => { void load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (locale === 'en' || locale === 'es') {
+      setPortalLocale(locale)
+      window.localStorage.setItem('orbiqen-portal-locale', locale)
+      return
+    }
     const saved = window.localStorage.getItem('orbiqen-portal-locale')
     if (saved === 'es' || saved === 'en') setPortalLocale(saved)
-  }, [])
+  }, [locale])
 
   function changeLocale(nextLocale: PortalLocale) {
     setPortalLocale(nextLocale)
@@ -4554,7 +4588,7 @@ export function PortalApp({ initialMode = 'login', locale = 'es' }: { initialMod
   }
 
   if (auth === 'loading') return <LoadingScreen />
-  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} locale={portalLocale} />
+  if (auth === 'anonymous') return <AuthScreen onAuthenticated={load} initialMode={initialMode} locale={portalLocale} onChangeLocale={changeLocale} />
   if (!data) return <LoadingScreen />
 
   const title = getViewTitles(portalLocale)[view]

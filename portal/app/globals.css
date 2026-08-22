@@ -7456,3 +7456,40 @@ input.auth-input-clean:-webkit-autofill:active {
 .auth-mode-toggle-link:hover {
   color: #d4ff00;
 }
+
+/* Auth Screen Language Switch Buttons */
+.auth-language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #18191d;
+  border: 1px solid #2e3036;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.auth-language-switch button {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: inherit;
+  transition: color 0.15s;
+}
+
+.auth-language-switch button:hover {
+  color: #ffffff;
+}
+
+.auth-language-switch button.active {
+  color: #d4ff00;
+}
+
+.auth-language-switch span {
+  color: #3f3f46;
+}
