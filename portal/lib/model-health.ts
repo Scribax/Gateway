@@ -5,6 +5,8 @@ export type ModelHealthState = Record<string, {
   statusCode: number
   checkedAt: number
   message: string
+  endpointPingMs?: number
+  dialogLatencyMs?: number
 }>
 
 const HEALTH_FILE = process.env.MODEL_HEALTH_FILE || '/tmp/orbiqen-model-health.json'
