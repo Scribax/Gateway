@@ -2291,13 +2291,11 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     : 0
 
   const selectableProviderGroups = admin
-    ? Array.from(new Set([
-      ...admin.salesGroups.map((group) => group.code),
-      ...admin.providerGroups.filter((group) => group !== 'default'),
-      'clientes',
-      'clientes_025',
-      'claude',
-    ]))
+    ? Array.from(new Set(
+      admin.salesGroups.length > 0
+        ? admin.salesGroups.map((group) => group.code)
+        : ['clientes', 'clientes_025', 'claude']
+    ))
     : []
 
   function salesGroupLabel(code: string) {
