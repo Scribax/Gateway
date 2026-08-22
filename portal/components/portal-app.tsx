@@ -262,6 +262,7 @@ type UsageMeta = {
   billing_mode?: string
   cache_ratio?: number
   cache_tokens?: number
+  cache_read_tokens?: number
   cache_creation_tokens?: number
   frt?: number
   stream_status?: { status?: string; end_reason?: string }
@@ -347,14 +348,34 @@ function formatDuration(ms: number) {
 }
 
 function parseUsageMeta(log: UsageLog): UsageMeta {
-  const raw = log.other
-  if (!raw) return {}
-  if (typeof raw === 'object') return raw as UsageMeta
-  try {
-    return JSON.parse(raw) as UsageMeta
-  } catch {
-    return {}
+  const result: UsageMeta = {}
+  if (log.other) {
+    if (typeof log.other === 'object') {
+      Object.assign(result, log.other)
+    } else {
+      try {
+        const parsed = JSON.parse(log.other)
+        if (typeof parsed === 'object') Object.assign(result, parsed)
+      } catch {
+        // ignore
+      }
+    }
   }
+
+  if (log.content && typeof log.content === 'string') {
+    const cacheCreationMatch = log.content.match(/cache\s*creation\s*[:\s]*(\d+)/i)
+    if (cacheCreationMatch && !result.cache_creation_tokens) {
+      result.cache_creation_tokens = Number(cacheCreationMatch[1])
+    }
+
+    const cacheReadMatch = log.content.match(/(?:cache\s*read|cache)\s*[:\s]*(\d+)\s*tokens/i)
+    if (cacheReadMatch && !result.cache_read_tokens) {
+      result.cache_read_tokens = Number(cacheReadMatch[1])
+      result.cache_tokens = Number(cacheReadMatch[1])
+    }
+  }
+
+  return result
 }
 
 function csvEscape(value: string | number | null | undefined) {
@@ -894,7 +915,11 @@ function Overview({ data, setView, locale }: { data: DashboardData; setView: (vi
             </div>
           ) : (
             billableLogs.slice(0, 8).map((log) => {
-              const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+              const meta = parseUsageMeta(log)
+              const cacheCreation = Number(meta.cache_creation_tokens || 0)
+              const cacheRead = Number(meta.cache_read_tokens || 0)
+              const baseTokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+              const totalTokens = baseTokens + cacheCreation + cacheRead
               const isClaude = log.model_name?.includes('claude')
               return (
                 <article className="activity-item" key={log.id}>
@@ -903,10 +928,13 @@ function Overview({ data, setView, locale }: { data: DashboardData; setView: (vi
                   </span>
                   <div>
                     <strong>{log.model_name}</strong>
-                    <small>{formatDate(log.created_at)} · {log.token_name}</small>
+                    <small>
+                      {formatDate(log.created_at)} · {log.token_name}
+                      {cacheCreation > 0 && <span style={{ marginLeft: '6px', color: '#10b981', fontWeight: 600 }}>({compactNumber(cacheCreation)} creación caché)</span>}
+                    </small>
                   </div>
                   <div className="activity-metrics">
-                    <span>{compactNumber(tokens)} tokens</span>
+                    <span>{compactNumber(totalTokens)} tokens</span>
                     <strong>{money((log.quota || 0) / data.quotaPerUsd, 6)}</strong>
                   </div>
                 </article>
@@ -2033,6 +2061,7 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
                     <th>{tr(locale, 'Prompt In', 'Prompt In')}</th>
                     <th>{tr(locale, 'Comp Out', 'Comp Out')}</th>
                     <th>{tr(locale, 'Caché Read', 'Cache Read')}</th>
+                    <th>{tr(locale, 'Caché Write', 'Cache Write')}</th>
                     <th>{tr(locale, 'Latencia', 'Latency')}</th>
                     <th>{tr(locale, 'Duración', 'Duration')}</th>
                     <th className="right">{tr(locale, 'Costo USD', 'Cost USD')}</th>
@@ -2058,6 +2087,7 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
                         <td>{compactNumber(row.inputTokens)}</td>
                         <td>{compactNumber(row.outputTokens)}</td>
                         <td>{compactNumber(row.cacheReadTokens)}</td>
+                        <td><span style={{ color: row.cacheCreationTokens > 0 ? '#10b981' : 'inherit', fontWeight: row.cacheCreationTokens > 0 ? 700 : 400 }}>{compactNumber(row.cacheCreationTokens)}</span></td>
                         <td>{row.firstTokenMs ? `${Math.round(row.firstTokenMs)} ms` : '-'}</td>
                         <td>{formatDuration(row.durationMs || 0)}</td>
                         <td className="right strong">{money(row.billedCost, 6)}</td>

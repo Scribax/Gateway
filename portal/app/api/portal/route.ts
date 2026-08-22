@@ -14,6 +14,8 @@ type LogItem = {
   completion_tokens: number
   token_name: string
   use_time?: number
+  content?: string
+  other?: string | Record<string, unknown>
 }
 
 type ChannelStatus = {
