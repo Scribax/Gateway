@@ -4,6 +4,10 @@ import { BackendError, newApiFetch, type NewApiEnvelope } from '@/lib/new-api'
 
 let pool: Pool | undefined
 
+function adminMutationToken() {
+  return process.env.NEW_API_ADMIN_TOKEN?.trim() || undefined
+}
+
 function getPool() {
   if (!pool) {
     pool = new Pool({
@@ -92,7 +96,7 @@ export async function syncNewApiGroupRatio(code: string, multiplier: number) {
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/option/', {
     method: 'PUT',
     body: JSON.stringify({ key: 'GroupRatio', value: JSON.stringify(ratios) }),
-  })
+  }, adminMutationToken())
   if (!body.success) throw new BackendError(body.message || 'New API rechazó la actualización del precio del grupo.', 400)
 }
 
@@ -115,7 +119,7 @@ export async function syncNewApiUsableGroup(code: string, label: string) {
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/option/', {
     method: 'PUT',
     body: JSON.stringify({ key: 'UserUsableGroups', value: JSON.stringify(groups) }),
-  })
+  }, adminMutationToken())
   if (!body.success) throw new BackendError(body.message || 'New API rechazó la actualización de permisos del grupo.', 400)
 }
 
