@@ -197,9 +197,11 @@ async function listTargetChannels(groups: string[]) {
 }
 
 async function updateChannel(channelId: number, baseUrl: string, apiKey: string, models: string[]) {
+  const id = Number(channelId)
+  if (!Number.isInteger(id) || id <= 0) throw new BackendError('El ID del canal no es válido.', 400)
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
     method: 'PUT',
-    body: JSON.stringify({ id: channelId, base_url: baseUrl, key: apiKey, models: models.join(',') }),
+    body: JSON.stringify({ id, base_url: baseUrl, key: apiKey, models: models.join(',') }),
   }, providerMutationToken())
   requireSuccess(body)
 }
