@@ -394,20 +394,20 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
   const [error, setError] = useState('')
   const english = locale === 'en'
   const copy = english ? {
-    welcome: 'WELCOME BACK', newAccount: 'GET STARTED FREE', loginTitle: 'Sign in to your dashboard', registerTitle: 'Create your developer account',
+    welcome: 'WELCOME BACK', newAccount: 'GET STARTED FREE', loginTitle: 'Sign in to your dashboard', registerTitle: 'Create developer account',
     username: 'Username', usernamePlaceholder: 'your_username', email: 'Email address', emailPlaceholder: 'you@yourcompany.com',
     verification: 'Verification code', sendCode: 'Send code', resend: 'Resend', password: 'Password', passwordPlaceholder: 'At least 8 characters',
-    sent: 'Code sent. Check your inbox and spam folder.', signIn: 'Sign in to Dashboard', create: 'Create Account & Get API Key', createNew: "Don't have an account? Create one for free", already: 'Already have an account? Sign in',
-    heroTitle: <>Your AI Models.<br /><span className="gradient-title">One Unified Gateway.</span></>,
-    heroText: 'Manage balance, generate isolated API keys and connect Cursor or Claude Code in 60 seconds with prepaid balance.',
+    sent: 'Code sent. Check your inbox and spam folder.', signIn: 'Sign In to Dashboard', create: 'Create Account & Get API Key', createNew: "Don't have an account? Create one for free", already: 'Already have an account? Sign in',
+    heroTitle: <>Save up to <mark className="auth-highlight">90%</mark><br />on AI Models.</>,
+    heroText: 'Access GPT-5.5, Claude Opus 4.8 & Sonnet 5 with one unified endpoint. Prepaid balance in ARS or Crypto.',
     backHome: '← Back to Home',
   } : {
-    welcome: 'BIENVENIDO DE VUELTA', newAccount: 'EMPEZÁ CON CRÉDITO GRATIS', loginTitle: 'Ingresá a tu panel', registerTitle: 'Creá tu cuenta de desarrollador',
+    welcome: 'BIENVENIDO DE VUELTA', newAccount: 'EMPEZÁ CON CRÉDITO GRATIS', loginTitle: 'Iniciá sesión en tu panel', registerTitle: 'Creá tu cuenta de desarrollador',
     username: 'Usuario', usernamePlaceholder: 'tu_usuario', email: 'Correo electrónico', emailPlaceholder: 'vos@tuempresa.com',
     verification: 'Código de verificación', sendCode: 'Enviar código', resend: 'Reenviar', password: 'Contraseña', passwordPlaceholder: 'Mínimo 8 caracteres',
-    sent: 'Código enviado. Revisá también la carpeta de spam.', signIn: 'Ingresar al Panel', create: 'Crear Cuenta y Obtener API Key', createNew: '¿No tenés cuenta? Creá una gratis acá', already: '¿Ya tenés una cuenta? Ingresá acá',
-    heroTitle: <>Tus Modelos de IA.<br /><span className="gradient-title">En un solo panel y en Pesos.</span></>,
-    heroText: 'Administrá saldo, generá subclaves para Cursor o Claude Code y recargá con Mercado Pago desde US$ 1.',
+    sent: 'Código enviado. Revisá también la carpeta de spam.', signIn: 'Ingresar al Panel', create: 'Crear Cuenta y Obtener Clave API', createNew: '¿No tenés cuenta? Creá una gratis acá', already: '¿Ya tenés una cuenta? Ingresá acá',
+    heroTitle: <>Ahorrá hasta un <mark className="auth-highlight">90%</mark><br />en Modelos de IA.</>,
+    heroText: 'Accedé a GPT-5.5, Claude Opus 4.8 y Sonnet 5 con un único endpoint. Recargá con Mercado Pago o Cripto.',
     backHome: '← Volver al Inicio',
   }
   useEffect(() => {
@@ -457,29 +457,29 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
     <main className="auth-shell">
       <section className="auth-brand-panel">
         <div className="auth-brand-top">
-          <a href={english ? '/en' : '/es'} className="brand brand-light" style={{ textDecoration: 'none' }}>
+          <a href={english ? '/en' : '/'} className="brand brand-light" style={{ textDecoration: 'none' }}>
             <BrandLogo light />
           </a>
-          <a href={english ? '/en' : '/es'} className="auth-back-link">
+          <a href={english ? '/en' : '/'} className="auth-back-link">
             {copy.backHome}
           </a>
         </div>
 
         <div className="auth-brand-content">
-          <div className="landing-eyebrow-badge" style={{ marginBottom: '16px' }}>
-            <span className="pulse-dot" />
-            <span>Latencia &lt; 350ms • 99.9% Uptime</span>
+          <div className="auth-pill-badge">
+            <span className="auth-pulse-dot" />
+            <span>ZERO DATA RETENTION • LATENCIA &lt; 35MS</span>
           </div>
 
-          <h1>{copy.heroTitle}</h1>
-          <p>{copy.heroText}</p>
+          <h1 className="auth-hero-headline">{copy.heroTitle}</h1>
+          <p className="auth-hero-subtext">{copy.heroText}</p>
 
           <div className="auth-features-list">
             <div className="auth-feature-item">
               <div className="auth-feature-icon"><Zap size={16} /></div>
               <div>
-                <strong>Claude 3.7 Sonnet &amp; GPT-5.5</strong>
-                <span>{english ? 'Instant access via API & OpenAI SDK' : 'Acceso inmediato vía API y OpenAI SDK'}</span>
+                <strong>Claude Opus 4.8 &amp; GPT-5.5</strong>
+                <span>{english ? 'Instant access via API & OpenAI SDK' : 'Acceso inmediato vía API y SDK estándar'}</span>
               </div>
             </div>
 
@@ -487,15 +487,15 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
               <div className="auth-feature-icon"><WalletCards size={16} /></div>
               <div>
                 <strong>{english ? 'Mercado Pago & Crypto' : 'Mercado Pago & Criptomonedas'}</strong>
-                <span>{english ? 'Instant top-ups from $1 USD with no monthly fee' : 'Recargas instantáneas desde $1 USD a cotización fija ($1.600 ARS)'}</span>
+                <span>{english ? 'Top up instantly in ARS or USDT without subscriptions' : 'Recargas prepagas en Pesos (ARS) o Cripto sin costos fijos'}</span>
               </div>
             </div>
 
             <div className="auth-feature-item">
               <div className="auth-feature-icon"><ShieldCheck size={16} /></div>
               <div>
-                <strong>{english ? 'Isolated Sub-keys & No Expiry' : 'Subclaves Aisladas y Saldo sin Vencimiento'}</strong>
-                <span>{english ? 'Full control over token limits and allowed models' : 'Control estricto de gasto por proyecto y saldo que nunca vence'}</span>
+                <strong>{english ? '100% Drop-in Compatible' : '100% Compatible con Cursor & Claude'}</strong>
+                <span>{english ? 'Connect Cursor, Codex CLI or Python in 10s' : 'Conectá tu editor en 10 segundos con asistente automático'}</span>
               </div>
             </div>
           </div>
@@ -509,58 +509,133 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
 
       <section className="auth-form-panel">
         <div className="auth-top-nav">
-          <div className="auth-mobile-brand brand"><BrandLogo light /></div>
+          <a href={english ? '/en' : '/'} className="auth-mobile-back-btn">
+            {copy.backHome}
+          </a>
+          <div className="auth-mobile-brand brand">
+            <BrandLogo light />
+          </div>
           <div className="auth-language">
             <PublicLanguageSwitch locale={locale} englishPath={`/login?lang=en${mode === 'register' ? '&mode=register' : ''}`} spanishPath={`/login?lang=es${mode === 'register' ? '&mode=register' : ''}`} />
           </div>
         </div>
 
         <div className="auth-form-card">
+          <div className="auth-mode-pill-selector">
+            <button
+              type="button"
+              className={`auth-mode-tab ${mode === 'login' ? 'active' : ''}`}
+              onClick={() => { setMode('login'); setError(''); setCodeSent(false); }}
+            >
+              {english ? 'Sign In' : 'Iniciar Sesión'}
+            </button>
+            <button
+              type="button"
+              className={`auth-mode-tab ${mode === 'register' ? 'active' : ''}`}
+              onClick={() => { setMode('register'); setError(''); setCodeSent(false); }}
+            >
+              {english ? 'Create Account' : 'Crear Cuenta'}
+            </button>
+          </div>
+
           <form className="auth-form" onSubmit={submit}>
             <div className="auth-form-header">
               <p className="eyebrow">{mode === 'login' ? copy.welcome : copy.newAccount}</p>
-              <h2>{mode === 'login' ? copy.loginTitle : copy.registerTitle}</h2>
+              <h2 className="auth-form-title">{mode === 'login' ? copy.loginTitle : copy.registerTitle}</h2>
             </div>
 
-            <label>
-              {copy.username}
-              <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder={copy.usernamePlaceholder} required />
+            <label className="auth-field-label">
+              <span>{copy.username}</span>
+              <input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                autoComplete="username"
+                placeholder={copy.usernamePlaceholder}
+                className="auth-input-clean"
+                required
+              />
             </label>
 
-            {mode === 'register' && <>
-              <label>
-                {copy.email}
-                <input value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }} type="email" autoComplete="email" placeholder={copy.emailPlaceholder} required />
-              </label>
-              <label>
-                {copy.verification}
-                <span className="verification-field">
-                  <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/[^a-fA-F0-9]/g, '').toLowerCase().slice(0, 6))} inputMode="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={6} placeholder="a1b2c3" pattern="[a-fA-F0-9]{6}" required />
-                  <button className="secondary-button verification-send" type="button" onClick={sendVerificationCode} disabled={sendingCode || cooldown > 0 || !email}>
-                    {sendingCode ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />}
-                    {cooldown > 0 ? `${cooldown}s` : codeSent ? copy.resend : copy.sendCode}
-                  </button>
-                </span>
-              </label>
-              {codeSent && <p className="form-success">{copy.sent}</p>}
-            </>}
+            {mode === 'register' && (
+              <>
+                <label className="auth-field-label">
+                  <span>{copy.email}</span>
+                  <input
+                    value={email}
+                    onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }}
+                    type="email"
+                    autoComplete="email"
+                    placeholder={copy.emailPlaceholder}
+                    className="auth-input-clean"
+                    required
+                  />
+                </label>
+                <label className="auth-field-label">
+                  <span>{copy.verification}</span>
+                  <div className="auth-verification-row">
+                    <input
+                      value={verificationCode}
+                      onChange={(event) => setVerificationCode(event.target.value.replace(/[^a-fA-F0-9]/g, '').toLowerCase().slice(0, 6))}
+                      inputMode="text"
+                      autoComplete="one-time-code"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      maxLength={6}
+                      placeholder="a1b2c3"
+                      pattern="[a-fA-F0-9]{6}"
+                      className="auth-input-clean verification-input"
+                      required
+                    />
+                    <button
+                      className="auth-verification-btn"
+                      type="button"
+                      onClick={sendVerificationCode}
+                      disabled={sendingCode || cooldown > 0 || !email}
+                    >
+                      {sendingCode ? <LoaderCircle className="spin" size={16} /> : <Mail size={16} />}
+                      <span>{cooldown > 0 ? `${cooldown}s` : codeSent ? copy.resend : copy.sendCode}</span>
+                    </button>
+                  </div>
+                </label>
+                {codeSent && <p className="auth-form-success">{copy.sent}</p>}
+              </>
+            )}
 
-            <label>
-              {copy.password}
-              <span className="password-field">
-                <input value={password} onChange={(event) => setPassword(event.target.value)} type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={copy.passwordPlaceholder} required />
-                <button type="button" className="icon-button inline-icon" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-              </span>
+            <label className="auth-field-label">
+              <span>{copy.password}</span>
+              <div className="auth-password-wrapper">
+                <input
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  type={visible ? 'text' : 'password'}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  placeholder={copy.passwordPlaceholder}
+                  className="auth-input-clean password-input"
+                  required
+                />
+                <button
+                  type="button"
+                  className="auth-eye-btn"
+                  onClick={() => setVisible(!visible)}
+                  aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </label>
 
-            {error && <div className="form-error">{error}</div>}
+            {error && <div className="auth-form-error">{error}</div>}
 
-            <button className="primary-button auth-submit" disabled={loading}>
+            <button className="auth-submit-btn" disabled={loading}>
               {loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}
-              {mode === 'login' ? copy.signIn : copy.create}
+              <span>{mode === 'login' ? copy.signIn : copy.create}</span>
             </button>
 
-            <button className="text-button auth-mode-toggle" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setCodeSent(false); setCooldown(0) }}>
+            <button
+              className="auth-mode-toggle-link"
+              type="button"
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setCodeSent(false); setCooldown(0) }}
+            >
               {mode === 'login' ? copy.createNew : copy.already}
             </button>
           </form>
