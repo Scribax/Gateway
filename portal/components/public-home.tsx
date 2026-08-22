@@ -3,26 +3,12 @@
 import { useState, useMemo } from 'react'
 import {
   ArrowRight,
-  BadgeCheck,
   Check,
   ChevronDown,
-  Code2,
-  Coins,
   Copy,
-  Cpu,
   Download,
-  Flame,
-  Globe,
-  Layers,
-  Play,
-  Radio,
   Search,
-  Server,
-  ShieldCheck,
   Sparkles,
-  Terminal,
-  WalletCards,
-  Zap,
 } from 'lucide-react'
 import { PublicLanguageSwitch } from './public-nav'
 
@@ -43,7 +29,8 @@ interface LiveModel {
   outputPrice: number
   officialOutputPrice: number
   discountPercent: number
-  tag?: string
+  tagEs?: string
+  tagEn?: string
 }
 
 const LIVE_MODELS: LiveModel[] = [
@@ -60,7 +47,8 @@ const LIVE_MODELS: LiveModel[] = [
     outputPrice: 6.25,
     officialOutputPrice: 75.00,
     discountPercent: 91,
-    tag: 'Máxima Capacidad',
+    tagEs: 'Máxima Capacidad',
+    tagEn: 'Maximum Power',
   },
   {
     id: 'claude-opus-4-8',
@@ -75,7 +63,8 @@ const LIVE_MODELS: LiveModel[] = [
     outputPrice: 6.25,
     officialOutputPrice: 75.00,
     discountPercent: 91,
-    tag: 'Recomendado',
+    tagEs: 'Recomendado',
+    tagEn: 'Recommended',
   },
   {
     id: 'claude-sonnet-5',
@@ -90,7 +79,8 @@ const LIVE_MODELS: LiveModel[] = [
     outputPrice: 3.00,
     officialOutputPrice: 15.00,
     discountPercent: 80,
-    tag: 'Favorito Cursor',
+    tagEs: 'Favorito Cursor',
+    tagEn: 'Cursor Favorite',
   },
   {
     id: 'claude-sonnet-4-6',
@@ -119,7 +109,8 @@ const LIVE_MODELS: LiveModel[] = [
     outputPrice: 2.22,
     officialOutputPrice: 10.00,
     discountPercent: 85,
-    tag: 'Flagship GPT',
+    tagEs: 'Flagship GPT',
+    tagEn: 'Flagship GPT',
   },
   {
     id: 'gpt-5.6-sol',
@@ -134,7 +125,8 @@ const LIVE_MODELS: LiveModel[] = [
     outputPrice: 2.22,
     officialOutputPrice: 15.00,
     discountPercent: 92,
-    tag: 'Ultra Descuento',
+    tagEs: 'Ultra Descuento',
+    tagEn: 'Ultra Savings',
   },
   {
     id: 'gpt-5.6-terra',
@@ -163,7 +155,8 @@ const LIVE_MODELS: LiveModel[] = [
     outputPrice: 0.33,
     officialOutputPrice: 0.60,
     discountPercent: 63,
-    tag: 'Ultra Económico',
+    tagEs: 'Ultra Económico',
+    tagEn: 'Ultra Low Cost',
   },
   {
     id: 'claude-haiku-4-5',
@@ -209,56 +202,95 @@ const LIVE_MODELS: LiveModel[] = [
   },
 ]
 
-const CODE_EXAMPLES: Record<ToolTab, { title: string; filename: string; code: string }> = {
-  cursor: {
-    title: 'Cursor / Windsurf',
-    filename: 'Cursor Settings > Models > OpenAI API Key',
-    code: '// En Cursor > Settings > Models > OpenAI:\nBase URL: https://orbiqen.com/v1\nAPI Key:  sk-orbiqen-tu-api-key\n\n// Modelos recomendados:\n- gpt-5.5\n- claude-sonnet-5\n- claude-opus-4-8\n- gpt-5.4-mini',
-  },
-  claude: {
-    title: 'Claude Code CLI',
-    filename: '~/.bashrc o PowerShell',
-    code: '# Configurar endpoint de Orbiqen para Claude Code:\nexport ANTHROPIC_BASE_URL="https://orbiqen.com"\nexport ANTHROPIC_AUTH_TOKEN="sk-orbiqen-tu-api-key"\n\n# Iniciar Claude Code directamente:\nclaude',
-  },
-  python: {
-    title: 'Python SDK',
-    filename: 'app.py',
-    code: 'from openai import OpenAI\n\nclient = OpenAI(\n    base_url="https://orbiqen.com/v1",\n    api_key="sk-orbiqen-tu-api-key"\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5.5",\n    messages=[{"role": "user", "content": "Optimizá esta función en Python"}]\n)\n\nprint(response.choices[0].message.content)',
-  },
-  node: {
-    title: 'Node.js / TypeScript',
-    filename: 'index.ts',
-    code: 'import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://orbiqen.com/v1",\n  apiKey: "sk-orbiqen-tu-api-key",\n});\n\nconst res = await client.chat.completions.create({\n  model: "claude-sonnet-5",\n  messages: [{ role: "user", content: "Generá un hook de React moderno" }],\n});\n\nconsole.log(res.choices[0].message.content);',
-  },
-  curl: {
-    title: 'cURL',
-    filename: 'terminal',
-    code: 'curl https://orbiqen.com/v1/chat/completions \\\n  -H "Authorization: Bearer sk-orbiqen-tu-api-key" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "model": "gpt-5.5",\n    "messages": [{"role": "user", "content": "Hola Orbiqen"}]\n  }\'',
-  },
+function getCodeExamples(isEn: boolean): Record<ToolTab, { title: string; filename: string; code: string }> {
+  return {
+    cursor: {
+      title: 'Cursor / Windsurf',
+      filename: isEn ? 'Cursor Settings > Models > OpenAI API Key' : 'Configuración de Cursor > Modelos > OpenAI',
+      code: isEn
+        ? '// In Cursor > Settings > Models > OpenAI:\nBase URL: https://orbiqen.com/v1\nAPI Key:  sk-orbiqen-your-api-key\n\n// Recommended models:\n- gpt-5.5\n- claude-sonnet-5\n- claude-opus-4-8\n- gpt-5.4-mini'
+        : '// En Cursor > Settings > Models > OpenAI:\nBase URL: https://orbiqen.com/v1\nAPI Key:  sk-orbiqen-tu-api-key\n\n// Modelos recomendados:\n- gpt-5.5\n- claude-sonnet-5\n- claude-opus-4-8\n- gpt-5.4-mini',
+    },
+    claude: {
+      title: 'Claude Code CLI',
+      filename: '~/.bashrc or PowerShell',
+      code: isEn
+        ? '# Set Orbiqen endpoint for Claude Code CLI:\nexport ANTHROPIC_BASE_URL="https://orbiqen.com"\nexport ANTHROPIC_AUTH_TOKEN="sk-orbiqen-your-api-key"\n\n# Launch Claude Code directly:\nclaude'
+        : '# Configurar endpoint de Orbiqen para Claude Code:\nexport ANTHROPIC_BASE_URL="https://orbiqen.com"\nexport ANTHROPIC_AUTH_TOKEN="sk-orbiqen-tu-api-key"\n\n# Iniciar Claude Code directamente:\nclaude',
+    },
+    python: {
+      title: 'Python SDK',
+      filename: 'app.py',
+      code: isEn
+        ? 'from openai import OpenAI\n\nclient = OpenAI(\n    base_url="https://orbiqen.com/v1",\n    api_key="sk-orbiqen-your-api-key"\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5.5",\n    messages=[{"role": "user", "content": "Optimize this Python function"}]\n)\n\nprint(response.choices[0].message.content)'
+        : 'from openai import OpenAI\\n\\nclient = OpenAI(\\n    base_url="https://orbiqen.com/v1",\\n    api_key="sk-orbiqen-tu-api-key"\\n)\\n\\nresponse = client.chat.completions.create(\\n    model="gpt-5.5",\\n    messages=[{"role": "user", "content": "Optimizá esta función en Python"}]\\n)\\n\\nprint(response.choices[0].message.content)',
+    },
+    node: {
+      title: 'Node.js / TypeScript',
+      filename: 'index.ts',
+      code: isEn
+        ? 'import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://orbiqen.com/v1",\n  apiKey: "sk-orbiqen-your-api-key",\n});\n\nconst res = await client.chat.completions.create({\n  model: "claude-sonnet-5",\n  messages: [{ role: "user", content: "Build a modern React hook" }],\n});\n\nconsole.log(res.choices[0].message.content);'
+        : 'import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "https://orbiqen.com/v1",\n  apiKey: "sk-orbiqen-tu-api-key",\n});\n\nconst res = await client.chat.completions.create({\n  model: "claude-sonnet-5",\n  messages: [{ role: "user", content: "Generá un hook de React moderno" }],\n});\n\nconsole.log(res.choices[0].message.content);',
+    },
+    curl: {
+      title: 'cURL',
+      filename: 'terminal',
+      code: isEn
+        ? 'curl https://orbiqen.com/v1/chat/completions \\\n  -H "Authorization: Bearer sk-orbiqen-your-api-key" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "model": "gpt-5.5",\n    "messages": [{"role": "user", "content": "Hello Orbiqen"}]\n  }\''
+        : 'curl https://orbiqen.com/v1/chat/completions \\\n  -H "Authorization: Bearer sk-orbiqen-tu-api-key" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "model": "gpt-5.5",\n    "messages": [{"role": "user", "content": "Hola Orbiqen"}]\n  }\'',
+    },
+  }
 }
 
-const FAQS = [
-  {
-    q: '¿Cómo funciona el descuento de hasta 90% en comparación con los proveedores oficiales?',
-    a: 'Agregamos capacidad de cómputo mayorista e infraestructura optimizada con balanceo inteligente. Pagás únicamente por los tokens exactos que consumís, sin suscripciones mensuales fijas de $20 o $200 USD.',
-  },
-  {
-    q: '¿Tengo que cambiar el código de mis aplicaciones o proyectos?',
-    a: 'No. Orbiqen es 100% compatible con la API estándar de OpenAI y Anthropic. Solo cambiás la Base URL a https://orbiqen.com/v1 y tu API Key. El resto de tus llamadas, herramientas (function calling) y streaming funcionan igual.',
-  },
-  {
-    q: '¿Qué medios de pago aceptan?',
-    a: 'Aceptamos Mercado Pago en Pesos Argentinos (ARS) sin impuestos país ni recargos sorpresa, y Criptomonedas (USDT, USDC, BTC, SOL) a través de pasarelas descentralizadas.',
-  },
-  {
-    q: '¿Cómo funciona el instalador automático para Windows?',
-    a: 'Incluimos el asistente activar-orbiqen.bat. Al ejecutarlo, valida tus modelos en vivo, crea un respaldo seguro de tus configuraciones y deja listos Cursor, Codex CLI y Claude en 10 segundos.',
-  },
-  {
-    q: '¿Qué es el Prompt Caching y cuánto ahorro?',
-    a: 'Prompt Caching almacena en memoria los prefijos de contexto y código repetidos. Con Orbiqen, las lecturas en caché tienen un descuento adicional de hasta el 90%, costando centavos por millón de tokens.',
-  },
-]
+function getFaqs(isEn: boolean) {
+  if (isEn) {
+    return [
+      {
+        q: 'How does the up to 90% discount work compared to official providers?',
+        a: 'We aggregate wholesale compute capacity and intelligent load-balanced infrastructure. You pay strictly for the exact tokens consumed, with no recurring monthly commitments or subscriptions.',
+      },
+      {
+        q: 'Do I need to rewrite my application code or SDK calls?',
+        a: 'No. Orbiqen is 100% drop-in compatible with standard OpenAI and Anthropic SDKs. Simply point your Base URL to https://orbiqen.com/v1 and enter your API Key. All tools (function calling) and streaming work identically.',
+      },
+      {
+        q: 'What payment methods are supported?',
+        a: 'We support local payment gateways like Mercado Pago (ARS) with zero country taxes, and worldwide decentralized Cryptocurrencies (USDT, USDC, BTC, SOL) with instant automated credit.',
+      },
+      {
+        q: 'How does the automated Windows 1-Click Assistant work?',
+        a: 'Download our activar-orbiqen.bat assistant. It queries your authorized models in real time, creates a safe backup of your existing configs, and configures Cursor, Codex CLI, and Claude in under 10 seconds.',
+      },
+      {
+        q: 'What is Prompt Caching and how much can I save?',
+        a: 'Prompt Caching retains repetitive code and system prompt prefixes in memory. With Orbiqen, cache read tokens are discounted by up to 90%, costing just cents per million tokens.',
+      },
+    ]
+  }
+
+  return [
+    {
+      q: '¿Cómo funciona el descuento de hasta 90% en comparación con los proveedores oficiales?',
+      a: 'Agregamos capacidad de cómputo mayorista e infraestructura optimizada con balanceo inteligente. Pagás únicamente por los tokens exactos que consumís, sin suscripciones mensuales fijas de $20 o $200 USD.',
+    },
+    {
+      q: '¿Tengo que cambiar el código de mis aplicaciones o proyectos?',
+      a: 'No. Orbiqen es 100% compatible con la API estándar de OpenAI y Anthropic. Solo cambiás la Base URL a https://orbiqen.com/v1 y tu API Key. El resto de tus llamadas, herramientas (function calling) y streaming funcionan igual.',
+    },
+    {
+      q: '¿Qué medios de pago aceptan?',
+      a: 'Aceptamos Mercado Pago en Pesos Argentinos (ARS) sin impuestos país ni recargos sorpresa, y Criptomonedas (USDT, USDC, BTC, SOL) a través de pasarelas descentralizadas.',
+    },
+    {
+      q: '¿Cómo funciona el instalador automático para Windows?',
+      a: 'Incluimos el asistente activar-orbiqen.bat. Al ejecutarlo, valida tus modelos en vivo, crea un respaldo seguro de tus configuraciones y deja listos Cursor, Codex CLI y Claude en 10 segundos.',
+    },
+    {
+      q: '¿Qué es el Prompt Caching y cuánto ahorro?',
+      a: 'Prompt Caching almacena en memoria los prefijos de contexto y código repetidos. Con Orbiqen, las lecturas en caché tienen un descuento adicional de hasta el 90%, costando centavos por millón de tokens.',
+    },
+  ]
+}
 
 export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
   const isEn = locale === 'en'
@@ -270,6 +302,9 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
 
   // Savings Calculator State
   const [monthlyTokens, setMonthlyTokens] = useState<number>(50)
+
+  const codeExamples = useMemo(() => getCodeExamples(isEn), [isEn])
+  const faqs = useMemo(() => getFaqs(isEn), [isEn])
 
   const filteredModels = useMemo(() => {
     return LIVE_MODELS.filter((model) => {
@@ -299,7 +334,7 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
       {/* Top Floating Nav */}
       <header className="ci-top-nav">
         <div className="ci-nav-container">
-          <a href={isEn ? '/en' : '/'} className="ci-brand">
+          <a href={isEn ? '/en' : '/es'} className="ci-brand">
             <div className="ci-brand-logo">
               <Sparkles size={18} className="ci-brand-icon" />
             </div>
@@ -315,9 +350,9 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
           </nav>
 
           <div className="ci-nav-actions">
-            <PublicLanguageSwitch locale={locale} englishPath="/en" spanishPath="/" />
+            <PublicLanguageSwitch locale={locale} englishPath="/en" spanishPath="/es" />
             <a href={isEn ? '/login?lang=en' : '/login?lang=es'} className="ci-btn-login">
-              {isEn ? 'Log in' : 'Ingresar'}
+              {isEn ? 'Log In' : 'Ingresar'}
             </a>
             <a href={isEn ? '/login?lang=en&mode=register' : '/login?lang=es&mode=register'} className="ci-btn-cta">
               {isEn ? 'START SAVING' : 'EMPEZAR A AHORRAR'}
@@ -437,14 +472,14 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
             <div className="ci-catalog-top-bar">
               <div className="ci-live-tag">
                 <span className="ci-pulse-dot-green" />
-                <span>LIVE CATALOG</span>
+                <span>{isEn ? 'LIVE CATALOG' : 'CATÁLOGO EN VIVO'}</span>
               </div>
               <div className="ci-catalog-meta-info">
-                <span>CHECKED EN VIVO</span>
+                <span>{isEn ? 'CHECKED IN REAL TIME' : 'CHECKED EN VIVO'}</span>
                 <span>•</span>
-                <span>HASTA 92% OFF LIST PRICE</span>
+                <span>{isEn ? 'UP TO 92% OFF LIST PRICE' : 'HASTA 92% OFF LIST PRICE'}</span>
                 <span>•</span>
-                <span>TARIFAS EN USD Y ARS</span>
+                <span>{isEn ? 'USD & ARS BALANCES' : 'TARIFAS EN USD Y ARS'}</span>
               </div>
             </div>
 
@@ -452,53 +487,56 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
               <table className="ci-catalog-table">
                 <thead>
                   <tr>
-                    <th>MODEL</th>
+                    <th>{isEn ? 'MODEL' : 'MODELO'}</th>
                     <th>INPUT / 1M</th>
                     <th>CACHED INPUT / 1M</th>
                     <th>OUTPUT / 1M</th>
-                    <th>DISCOUNT</th>
+                    <th>{isEn ? 'DISCOUNT' : 'DESCUENTO'}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredModels.map((m) => (
-                    <tr key={m.id} className="ci-table-row">
-                      <td className="ci-col-model">
-                        <div className="ci-model-cell">
-                          <div className={`ci-provider-avatar ${m.providerBadge}`}>
-                            {m.providerBadge === 'anthropic' ? 'AI' : m.providerBadge === 'openai' ? 'OA' : 'DS'}
-                          </div>
-                          <div>
-                            <div className="ci-model-name">
-                              {m.name}
-                              {m.tag && <span className="ci-badge-micro">{m.tag}</span>}
+                  {filteredModels.map((m) => {
+                    const tag = isEn ? m.tagEn : m.tagEs
+                    return (
+                      <tr key={m.id} className="ci-table-row">
+                        <td className="ci-col-model">
+                          <div className="ci-model-cell">
+                            <div className={`ci-provider-avatar ${m.providerBadge}`}>
+                              {m.providerBadge === 'anthropic' ? 'AI' : m.providerBadge === 'openai' ? 'OA' : 'DS'}
                             </div>
-                            <div className="ci-provider-sub">{m.provider}</div>
+                            <div>
+                              <div className="ci-model-name">
+                                {m.name}
+                                {tag && <span className="ci-badge-micro">{tag}</span>}
+                              </div>
+                              <div className="ci-provider-sub">{m.provider}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="ci-col-price">
-                        <div className="ci-price-wrap">
-                          <span className="ci-price-active">${m.inputPrice.toFixed(2)}</span>
-                          <span className="ci-price-strikethrough">${m.officialInputPrice.toFixed(2)}</span>
-                        </div>
-                      </td>
-                      <td className="ci-col-price">
-                        <div className="ci-price-wrap">
-                          <span className="ci-price-active">${m.cachedInputPrice.toFixed(3)}</span>
-                          <span className="ci-price-strikethrough">${m.officialCachedPrice.toFixed(2)}</span>
-                        </div>
-                      </td>
-                      <td className="ci-col-price">
-                        <div className="ci-price-wrap">
-                          <span className="ci-price-active">${m.outputPrice.toFixed(2)}</span>
-                          <span className="ci-price-strikethrough">${m.officialOutputPrice.toFixed(2)}</span>
-                        </div>
-                      </td>
-                      <td className="ci-col-discount">
-                        <span className="ci-discount-tag">{m.discountPercent}% off</span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="ci-col-price">
+                          <div className="ci-price-wrap">
+                            <span className="ci-price-active">${m.inputPrice.toFixed(2)}</span>
+                            <span className="ci-price-strikethrough">${m.officialInputPrice.toFixed(2)}</span>
+                          </div>
+                        </td>
+                        <td className="ci-col-price">
+                          <div className="ci-price-wrap">
+                            <span className="ci-price-active">${m.cachedInputPrice.toFixed(3)}</span>
+                            <span className="ci-price-strikethrough">${m.officialCachedPrice.toFixed(2)}</span>
+                          </div>
+                        </td>
+                        <td className="ci-col-price">
+                          <div className="ci-price-wrap">
+                            <span className="ci-price-active">${m.outputPrice.toFixed(2)}</span>
+                            <span className="ci-price-strikethrough">${m.officialOutputPrice.toFixed(2)}</span>
+                          </div>
+                        </td>
+                        <td className="ci-col-discount">
+                          <span className="ci-discount-tag">{m.discountPercent}% off</span>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -564,8 +602,8 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
               
               <div className="ci-diff-block before">
                 <div className="ci-diff-header">
-                  <span className="ci-diff-badge before">BEFORE</span>
-                  <span className="ci-diff-title">PROVIDER BASE URL</span>
+                  <span className="ci-diff-badge before">{isEn ? 'BEFORE' : 'ANTES'}</span>
+                  <span className="ci-diff-title">{isEn ? 'OFFICIAL PROVIDER BASE URL' : 'PROVIDER BASE URL'}</span>
                 </div>
                 <div className="ci-diff-code">
                   <code>https://api.openai.com/v1</code>
@@ -574,8 +612,8 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
 
               <div className="ci-diff-block after">
                 <div className="ci-diff-header">
-                  <span className="ci-diff-badge after">AFTER</span>
-                  <span className="ci-diff-title">ORBIQEN BASE URL</span>
+                  <span className="ci-diff-badge after">{isEn ? 'AFTER' : 'DESPUÉS'}</span>
+                  <span className="ci-diff-title">{isEn ? 'ORBIQEN UNIFIED BASE URL' : 'ORBIQEN BASE URL'}</span>
                 </div>
                 <div className="ci-diff-code">
                   <code>https://orbiqen.com/v1</code>
@@ -602,13 +640,13 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
 
           <div className="ci-snippet-box">
             <div className="ci-snippet-tabs">
-              {(Object.keys(CODE_EXAMPLES) as ToolTab[]).map((tab) => (
+              {(Object.keys(codeExamples) as ToolTab[]).map((tab) => (
                 <button
                   key={tab}
                   className={`ci-tab-btn ${activeTool === tab ? 'active' : ''}`}
                   onClick={() => setActiveTool(tab)}
                 >
-                  {CODE_EXAMPLES[tab].title}
+                  {codeExamples[tab].title}
                 </button>
               ))}
             </div>
@@ -620,15 +658,15 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
                   <span className="dot yellow" />
                   <span className="dot green" />
                 </div>
-                <span className="ci-terminal-filename">{CODE_EXAMPLES[activeTool].filename}</span>
-                <button className="ci-copy-btn" onClick={() => copyCode(CODE_EXAMPLES[activeTool].code)}>
+                <span className="ci-terminal-filename">{codeExamples[activeTool].filename}</span>
+                <button className="ci-copy-btn" onClick={() => copyCode(codeExamples[activeTool].code)}>
                   {copied ? <Check size={14} /> : <Copy size={14} />}
                   <span>{copied ? (isEn ? 'Copied' : 'Copiado') : (isEn ? 'Copy' : 'Copiar')}</span>
                 </button>
               </div>
 
               <pre className="ci-code-pre">
-                <code>{CODE_EXAMPLES[activeTool].code}</code>
+                <code>{codeExamples[activeTool].code}</code>
               </pre>
             </div>
           </div>
@@ -675,21 +713,21 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
               <div className="ci-calc-result-card">
                 <div className="ci-result-row">
                   <span>{isEn ? 'Official List Price:' : 'Costo Oficial (OpenAI/Anthropic):'}</span>
-                  <span className="ci-val-muted">${officialCost} USD/mes</span>
+                  <span className="ci-val-muted">${officialCost} USD/{isEn ? 'mo' : 'mes'}</span>
                 </div>
                 <div className="ci-result-row highlight">
                   <span>{isEn ? 'With Orbiqen Gateway:' : 'Con Orbiqen Gateway:'}</span>
-                  <span className="ci-val-green">${orbiqenCost} USD/mes</span>
+                  <span className="ci-val-green">${orbiqenCost} USD/{isEn ? 'mo' : 'mes'}</span>
                 </div>
 
                 <div className="ci-result-divider" />
 
                 <div className="ci-savings-highlight">
-                  <div className="ci-savings-tag">{savingsPercent}% DE AHORRO</div>
+                  <div className="ci-savings-tag">{savingsPercent}% {isEn ? 'SAVINGS' : 'DE AHORRO'}</div>
                   <div className="ci-savings-amount">
-                    <span>Ahorrás</span>
+                    <span>{isEn ? 'You Save' : 'Ahorrás'}</span>
                     <strong>${monthlySavings} USD</strong>
-                    <small>/ mes</small>
+                    <small>/{isEn ? 'mo' : 'mes'}</small>
                   </div>
                 </div>
 
@@ -707,16 +745,16 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
         <div className="ci-windows-container">
           <div className="ci-windows-card">
             <div className="ci-windows-content">
-              <div className="ci-windows-tag">ASISTENTE WINDOWS EN 1-CLIC</div>
+              <div className="ci-windows-tag">{isEn ? '1-CLICK WINDOWS ASSISTANT' : 'ASISTENTE WINDOWS EN 1-CLIC'}</div>
               <h3 className="ci-windows-title">{isEn ? 'Configure Codex & Claude on Windows in 10s' : 'Configurá Codex y Claude en Windows en 10s'}</h3>
               <p className="ci-windows-desc">
                 {isEn
-                  ? 'Download our automated script. It checks your authorized models in real time, creates secure configuration backups, and hooks Cursor, Codex, and Claude instantly.'
+                  ? 'Download our automated script activar-orbiqen.bat. It checks your authorized models in real time, creates secure configuration backups, and hooks Cursor, Codex, and Claude instantly.'
                   : 'Descargá nuestro script automatizado activar-orbiqen.bat. Valida tus modelos en vivo, crea un respaldo seguro de tus configuraciones y deja listos Codex y Claude sin tocar código.'}
               </p>
               <a href="/downloads/orbiqen-windows/Orbiqen-Windows.zip" download className="ci-btn-windows-download">
                 <Download size={16} />
-                <span>Descargar Asistente Windows (.zip)</span>
+                <span>{isEn ? 'Download Windows Assistant (.zip)' : 'Descargar Asistente Windows (.zip)'}</span>
               </a>
             </div>
           </div>
@@ -729,7 +767,7 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
           <h2 className="ci-section-title text-center">{isEn ? 'Frequently asked questions' : 'Preguntas frecuentes'}</h2>
 
           <div className="ci-faq-list">
-            {FAQS.map((faq, index) => (
+            {faqs.map((faq, index) => (
               <div key={index} className={`ci-faq-item ${openFaq === index ? 'open' : ''}`}>
                 <button className="ci-faq-question" onClick={() => setOpenFaq(openFaq === index ? null : index)}>
                   <span>{faq.q}</span>
@@ -771,13 +809,13 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
               <Sparkles size={14} className="ci-brand-icon" />
             </div>
             <strong>Orbiqen</strong>
-            <span>— Gateway de IA de Alta Eficiencia y Bajo Costo</span>
+            <span>— {isEn ? 'High-efficiency Low-cost AI Inference Gateway' : 'Gateway de IA de Alta Eficiencia y Bajo Costo'}</span>
           </div>
 
           <div className="ci-footer-links">
             <a href={isEn ? '/en/pricing' : '/precios'}>{isEn ? 'Pricing' : 'Precios'}</a>
             <a href={isEn ? '/en/docs' : '/docs'}>{isEn ? 'Docs' : 'Documentación'}</a>
-            <a href={isEn ? '/login?lang=en' : '/login?lang=es'}>{isEn ? 'Sign in' : 'Ingresar'}</a>
+            <a href={isEn ? '/login?lang=en' : '/login?lang=es'}>{isEn ? 'Log In' : 'Ingresar'}</a>
           </div>
         </div>
       </footer>
