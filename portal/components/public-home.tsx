@@ -335,10 +335,7 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
       <header className="ci-top-nav">
         <div className="ci-nav-container">
           <a href={isEn ? '/en' : '/es'} className="ci-brand">
-            <div className="ci-brand-logo">
-              <Sparkles size={18} className="ci-brand-icon" />
-            </div>
-            <span className="ci-brand-name">Orbiqen</span>
+            <img src="/orbiqen-logo.png" alt="Orbiqen" className="ci-brand-img" />
           </a>
 
           <nav className="ci-nav-links">
@@ -805,10 +802,7 @@ export default function PublicHome({ locale = 'es' }: { locale?: Locale }) {
       <footer className="ci-footer">
         <div className="ci-footer-container">
           <div className="ci-footer-brand">
-            <div className="ci-brand-logo small">
-              <Sparkles size={14} className="ci-brand-icon" />
-            </div>
-            <strong>Orbiqen</strong>
+            <img src="/orbiqen-logo.png" alt="Orbiqen" className="ci-footer-logo-img" />
             <span>— {isEn ? 'High-efficiency Low-cost AI Inference Gateway' : 'Gateway de IA de Alta Eficiencia y Bajo Costo'}</span>
           </div>
 

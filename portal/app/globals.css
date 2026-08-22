@@ -7493,3 +7493,29 @@ input.auth-input-clean:-webkit-autofill:active {
 .auth-language-switch span {
   color: #3f3f46;
 }
+
+/* Official Brand Logo Integration in Public Landing */
+.ci-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+.ci-brand:hover {
+  opacity: 0.9;
+}
+.ci-brand-img {
+  height: 38px;
+  width: auto;
+  max-width: 170px;
+  display: block;
+  object-fit: contain;
+}
+.ci-footer-logo-img {
+  height: 30px;
+  width: auto;
+  max-width: 140px;
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+}
