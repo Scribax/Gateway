@@ -35,11 +35,11 @@ function Write-Log {
 function Write-Title {
   Write-Host ""
   Write-Host "  =====================================================" -ForegroundColor DarkCyan
-  Write-Host "   ORBIQEN - Configuracion automatica" -ForegroundColor Cyan
+  Write-Host "   ORBIQEN - Configuracion inteligente y automatica" -ForegroundColor Cyan
   Write-Host "  =====================================================" -ForegroundColor DarkCyan
   Write-Host ""
   Write-Host "  Configura Codex y Claude para usar tu cuenta Orbiqen." -ForegroundColor White
-  Write-Host "  Solo necesitas pegar la API key correspondiente." -ForegroundColor Gray
+  Write-Host "  Valida automaticamente tus modelos disponibles y los autoconfigura." -ForegroundColor Gray
   Write-Host ""
 }
 
@@ -78,7 +78,7 @@ function Read-PlainKey {
     }
     $value = $value.Trim()
 
-    if ($value -match "^sk-[A-Za-z0-9_-]{20,}$") {
+    if ($value -match "^sk-[A-Za-z0-9_-]{15,}$") {
       return $value
     }
 
@@ -128,36 +128,157 @@ function Write-JsonNoBom {
   Write-Utf8NoBom -Path $Path -Content ($json + [Environment]::NewLine)
 }
 
-function Test-OrbiqenModels {
+function Get-OrbiqenAvailableModels {
   param(
     [string]$Key,
     [string]$Label
   )
 
-  Write-Host "  [1/4] Verificando conexion con Orbiqen ($Label)..." -ForegroundColor Gray
+  Write-Host "  [1/4] Validando API Key y consultando modelos autorizados ($Label)..." -ForegroundColor Gray
+  Write-Log "Consultando modelos para $Label en $OpenAiBaseUrl/models"
 
-  try {
-    $headers = @{
-      Authorization = "Bearer $Key"
-      "x-api-key" = $Key
-    }
-    $response = Invoke-WebRequest -Uri "$OpenAiBaseUrl/models" -Headers $headers -Method GET -TimeoutSec 25 -UseBasicParsing
-    if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
-      Write-Host "        Conexion correcta y API key valida." -ForegroundColor Green
-      Write-Log "Validacion $Label OK HTTP $($response.StatusCode)"
-      return $true
-    }
-  } catch {
-    Write-Host "        No se pudo validar automaticamente: $($_.Exception.Message)" -ForegroundColor Yellow
-    Write-Host "        Si la key es nueva o tiene modelos limitados, igual podemos configurar." -ForegroundColor DarkGray
-    Write-Log "Validacion $Label fallo: $($_.Exception.Message)"
+  $headers = @{
+    Authorization = "Bearer $Key"
+    "x-api-key" = $Key
   }
 
-  $answer = Read-Host "  Queres continuar de todos modos? (S/N)"
+  $modelList = @()
+  try {
+    $response = Invoke-RestMethod -Uri "$OpenAiBaseUrl/models" -Headers $headers -Method GET -TimeoutSec 15
+    if ($response -and $response.data) {
+      foreach ($m in $response.data) {
+        if ($m.id) {
+          $modelList += [string]$m.id
+        } elseif ($m -is [string]) {
+          $modelList += [string]$m
+        }
+      }
+    }
+  } catch {
+    try {
+      $raw = Invoke-WebRequest -Uri "$OpenAiBaseUrl/models" -Headers $headers -Method GET -TimeoutSec 15 -UseBasicParsing
+      if ($raw.Content) {
+        $json = $raw.Content | ConvertFrom-Json
+        if ($json -and $json.data) {
+          foreach ($m in $json.data) {
+            if ($m.id) { $modelList += [string]$m.id }
+          }
+        }
+      }
+    } catch {
+      Write-Log "Aviso al consultar /models: $($_.Exception.Message)"
+    }
+  }
+
+  if ($modelList.Count -gt 0) {
+    Write-Host "        [OK] Key validada exitosamente. Modelos autorizados: $($modelList.Count)" -ForegroundColor Green
+    Write-Log "Modelos detectados ($($modelList.Count)): $($modelList -join ', ')"
+    return $modelList
+  }
+
+  Write-Host "        No se pudo obtener la lista de modelos dinamicamente del gateway." -ForegroundColor Yellow
+  Write-Host "        (El endpoint respondio con formato distinto o red limitada)." -ForegroundColor DarkGray
+  Write-Log "No se obtuvieron modelos de /models, solicitando decision a usuario"
+
+  $answer = Read-Host "  Deseas continuar autoconfigurando con los modelos por defecto? (S/N)"
   if ($null -eq $answer) {
     $answer = ""
   }
-  return ($answer.Trim().ToUpperInvariant() -eq "S")
+  if ($answer.Trim().ToUpperInvariant() -eq "S") {
+    return @()
+  }
+  return $null
+}
+
+function Select-BestCodexModel {
+  param([string[]]$AvailableModels)
+
+  $priorities = @(
+    "gpt-5.5",
+    "gpt-5.4",
+    "gpt-5.6-terra",
+    "gpt-5.4-mini",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "o3-mini",
+    "o1-mini",
+    "codex-auto-review"
+  )
+
+  if ($AvailableModels -and $AvailableModels.Count -gt 0) {
+    foreach ($p in $priorities) {
+      if ($AvailableModels -contains $p) {
+        return $p
+      }
+    }
+    $gptCandidates = @($AvailableModels | Where-Object { $_ -notlike "claude*" })
+    if ($gptCandidates.Count -gt 0) {
+      return $gptCandidates[0]
+    }
+    return $AvailableModels[0]
+  }
+
+  return $DefaultCodexModel
+}
+
+function Select-BestClaudeModels {
+  param([string[]]$AvailableModels)
+
+  $sonnetPriorities = @(
+    "claude-sonnet-5",
+    "claude-sonnet-4-6",
+    "claude-3-7-sonnet-20250219",
+    "claude-3-7-sonnet",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-5-sonnet",
+    "claude-fable-5"
+  )
+
+  $opusPriorities = @(
+    "claude-opus-4-8",
+    "claude-opus-5",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-3-opus"
+  )
+
+  $haikuPriorities = @(
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-6",
+    "claude-3-5-haiku-20241022",
+    "claude-3-5-haiku",
+    "claude-3-haiku"
+  )
+
+  $claudeList = @($AvailableModels | Where-Object { $_ -like "claude*" })
+  if ($claudeList.Count -eq 0 -and $AvailableModels -and $AvailableModels.Count -gt 0) {
+    $claudeList = $AvailableModels
+  }
+
+  $selectedSonnet = $DefaultClaudeModel
+  $selectedOpus = $DefaultClaudeOpusModel
+  $selectedFast = $DefaultClaudeFastModel
+
+  if ($claudeList.Count -gt 0) {
+    foreach ($p in $sonnetPriorities) {
+      if ($claudeList -contains $p) { $selectedSonnet = $p; break }
+    }
+    foreach ($p in $opusPriorities) {
+      if ($claudeList -contains $p) { $selectedOpus = $p; break }
+    }
+    foreach ($p in $haikuPriorities) {
+      if ($claudeList -contains $p) { $selectedFast = $p; break }
+    }
+  }
+
+  $finalAvailable = if ($claudeList.Count -gt 0) { $claudeList } else { $ClaudeModels }
+
+  return @{
+    Sonnet = $selectedSonnet
+    Opus = $selectedOpus
+    Fast = $selectedFast
+    AvailableModels = $finalAvailable
+  }
 }
 
 function Set-UserEnvBulk {
@@ -172,20 +293,24 @@ function Set-UserEnvBulk {
     }
   }
 
-  # Broadcast WM_SETTINGCHANGE to notify Windows of changes
   [Environment]::SetEnvironmentVariable("ORBIQEN_ACTIVE", "1", "User")
 }
 
 function Configure-Codex {
   param([string]$ApiKey)
 
-  Write-Step "Configurando Codex CLI..."
+  Write-Step "Configurando OpenAI Codex CLI..."
 
-  if (-not (Test-OrbiqenModels -Key $ApiKey -Label "Codex / ChatGPT")) {
-    throw "Configuracion de Codex cancelada."
+  $available = Get-OrbiqenAvailableModels -Key $ApiKey -Label "Codex / GPT"
+  if ($null -eq $available) {
+    throw "Configuracion de Codex cancelada por el usuario."
   }
 
-  Write-Host "  [2/4] Preparando directorios y respaldos..." -ForegroundColor Gray
+  $chosenModel = Select-BestCodexModel -AvailableModels $available
+  Write-Host "        -> Modelo optimo detectado y autoconfigurado: $chosenModel" -ForegroundColor Cyan
+  Write-Log "Codex modelo seleccionado: $chosenModel"
+
+  Write-Host "  [2/4] Preparando directorios y respaldos de seguridad..." -ForegroundColor Gray
   $codexDir = Join-Path $env:USERPROFILE ".codex"
   $configPath = Join-Path $codexDir "config.toml"
   $authPath = Join-Path $codexDir "auth.json"
@@ -194,11 +319,11 @@ function Configure-Codex {
   Backup-File -Path $authPath
   New-Item -ItemType Directory -Force -Path $codexDir | Out-Null
 
-  Write-Host "  [3/4] Escribiendo configuracion de Orbiqen en config.toml..." -ForegroundColor Gray
+  Write-Host "  [3/4] Escribiendo configuracion personalizada en config.toml..." -ForegroundColor Gray
   $toml = @"
 model_provider = "orbiqen"
-model = "$DefaultCodexModel"
-review_model = "$DefaultCodexModel"
+model = "$chosenModel"
+review_model = "$chosenModel"
 model_reasoning_effort = "high"
 disable_response_storage = true
 network_access = "enabled"
@@ -216,32 +341,46 @@ goals = true
 
   Write-Utf8NoBom -Path $configPath -Content ($toml + [Environment]::NewLine)
 
-  Write-Host "  [4/4] Guardando autenticacion en auth.json..." -ForegroundColor Gray
+  Write-Host "  [4/4] Guardando credencial en auth.json..." -ForegroundColor Gray
   Write-JsonNoBom -Path $authPath -Data @{ OPENAI_API_KEY = $ApiKey }
 
   Write-Host ""
   Write-Host "  Codex quedo configurado exitosamente con Orbiqen." -ForegroundColor Green
-  Write-Host "  Modelo predeterminado: $DefaultCodexModel" -ForegroundColor DarkGray
-  Write-Log "Codex configurado en $codexDir"
+  Write-Host "  -> Endpoint: $OpenAiBaseUrl" -ForegroundColor DarkGray
+  Write-Host "  -> Modelo activo: $chosenModel" -ForegroundColor White
+  Write-Log "Codex configurado con exito en $codexDir con modelo $chosenModel"
 }
 
 function Configure-ClaudeEnvironment {
   param([string]$ApiKey)
 
-  Write-Step "Configurando Claude..."
+  Write-Step "Configurando Claude Code y Claude Desktop..."
 
-  if (-not (Test-OrbiqenModels -Key $ApiKey -Label "Claude")) {
-    throw "Configuracion de Claude cancelada."
+  $available = Get-OrbiqenAvailableModels -Key $ApiKey -Label "Claude"
+  if ($null -eq $available) {
+    throw "Configuracion de Claude cancelada por el usuario."
   }
+
+  $claudeConfig = Select-BestClaudeModels -AvailableModels $available
+  $sonnet = $claudeConfig.Sonnet
+  $opus = $claudeConfig.Opus
+  $fast = $claudeConfig.Fast
+  $modelsList = $claudeConfig.AvailableModels
+
+  Write-Host "        -> Modelo principal (Sonnet): $sonnet" -ForegroundColor Cyan
+  Write-Host "        -> Modelo avanzado (Opus): $opus" -ForegroundColor DarkCyan
+  Write-Host "        -> Modelo rapido (Haiku): $fast" -ForegroundColor DarkGray
+  Write-Host "        -> Total modelos Claude habilitados: $($modelsList.Count)" -ForegroundColor Gray
+  Write-Log "Claude configurado con Sonnet: $sonnet, Opus: $opus, Fast: $fast, Total: $($modelsList.Count)"
 
   Write-Host "  [2/4] Aplicando variables de entorno de Windows en segundo plano..." -ForegroundColor Gray
   $envMap = @{
     "ANTHROPIC_BASE_URL" = $ClaudeBaseUrl
     "ANTHROPIC_AUTH_TOKEN" = $ApiKey
     "ANTHROPIC_API_KEY" = $null
-    "ANTHROPIC_DEFAULT_SONNET_MODEL" = $DefaultClaudeModel
-    "ANTHROPIC_DEFAULT_OPUS_MODEL" = $DefaultClaudeOpusModel
-    "ANTHROPIC_SMALL_FAST_MODEL" = $DefaultClaudeFastModel
+    "ANTHROPIC_DEFAULT_SONNET_MODEL" = $sonnet
+    "ANTHROPIC_DEFAULT_OPUS_MODEL" = $opus
+    "ANTHROPIC_SMALL_FAST_MODEL" = $fast
     "CLAUDE_CODE_SKIP_AUTH_LOGIN" = "1"
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC" = "1"
     "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY" = "1"
@@ -257,31 +396,35 @@ function Configure-ClaudeEnvironment {
     env = [ordered]@{
       ANTHROPIC_BASE_URL = $ClaudeBaseUrl
       ANTHROPIC_AUTH_TOKEN = $ApiKey
-      ANTHROPIC_DEFAULT_SONNET_MODEL = $DefaultClaudeModel
-      ANTHROPIC_DEFAULT_OPUS_MODEL = $DefaultClaudeOpusModel
-      ANTHROPIC_SMALL_FAST_MODEL = $DefaultClaudeFastModel
+      ANTHROPIC_DEFAULT_SONNET_MODEL = $sonnet
+      ANTHROPIC_DEFAULT_OPUS_MODEL = $opus
+      ANTHROPIC_SMALL_FAST_MODEL = $fast
       CLAUDE_CODE_SKIP_AUTH_LOGIN = "1"
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
       CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY = "1"
     }
-    model = $DefaultClaudeModel
-    review_model = $DefaultClaudeModel
-    availableModels = $ClaudeModels
+    model = $sonnet
+    review_model = $sonnet
+    availableModels = $modelsList
   }
 
   Write-JsonNoBom -Path $settingsPath -Data $settings
 
-  Write-Host "  [4/4] Verificando perfiles de Claude Desktop..." -ForegroundColor Gray
-  Configure-ClaudeDesktop3p -ApiKey $ApiKey
+  Write-Host "  [4/4] Configurando perfiles de Claude Desktop..." -ForegroundColor Gray
+  Configure-ClaudeDesktop3p -ApiKey $ApiKey -ClaudeConfig $claudeConfig
 
   Write-Host ""
   Write-Host "  Claude quedo configurado exitosamente con Orbiqen." -ForegroundColor Green
-  Write-Host "  Modelo predeterminado: $DefaultClaudeModel" -ForegroundColor DarkGray
+  Write-Host "  -> Endpoint: $ClaudeBaseUrl" -ForegroundColor DarkGray
+  Write-Host "  -> Modelo principal: $sonnet" -ForegroundColor White
   Write-Log "Claude configurado en $claudeDir"
 }
 
 function Configure-ClaudeDesktop3p {
-  param([string]$ApiKey)
+  param(
+    [string]$ApiKey,
+    [hashtable]$ClaudeConfig
+  )
 
   $roots = @()
   if ($env:LOCALAPPDATA) { $roots += (Join-Path $env:LOCALAPPDATA "Claude-3p") }
@@ -310,32 +453,32 @@ function Configure-ClaudeDesktop3p {
       inferenceGatewayApiKey = $ApiKey
       inferenceGatewayAuthScheme = "x-api-key"
       modelDiscoveryEnabled = $false
-      inferenceModels = $ClaudeModels
-      defaultModel = $DefaultClaudeModel
+      inferenceModels = $ClaudeConfig.AvailableModels
+      defaultModel = $ClaudeConfig.Sonnet
       disableNonessentialTelemetry = $true
       disableNonessentialServices = $true
     }
 
     Write-JsonNoBom -Path $providerPath -Data $provider
-    Write-Log "Claude Desktop 3p configurado en $root"
+    Write-Log "Claude Desktop 3p configurado en $root con modelo $($ClaudeConfig.Sonnet)"
   }
 }
 
 function Main {
   "" | Set-Content -LiteralPath $DiagPath -Encoding UTF8
-  Write-Log "Inicio del activador Orbiqen"
+  Write-Log "Inicio del activador Orbiqen con validacion dinamica de modelos"
   Write-Title
 
   Write-Host "  Elegi que queres configurar:" -ForegroundColor White
   Write-Host ""
   Write-Host "    [1] Codex / GPT" -ForegroundColor Green
-  Write-Host "        Para usar Codex con los modelos GPT de Orbiqen." -ForegroundColor DarkGray
+  Write-Host "        Autodetecta tus modelos GPT y configura Codex CLI." -ForegroundColor DarkGray
   Write-Host ""
   Write-Host "    [2] Claude" -ForegroundColor Magenta
-  Write-Host "        Para usar Claude Code o Claude Desktop." -ForegroundColor DarkGray
+  Write-Host "        Autodetecta tus modelos Claude y configura Claude Code / Desktop." -ForegroundColor DarkGray
   Write-Host ""
   Write-Host "    [3] Codex / GPT + Claude" -ForegroundColor Cyan
-  Write-Host "        Configura las dos aplicaciones." -ForegroundColor DarkGray
+  Write-Host "        Configura ambas aplicaciones validando sus modelos." -ForegroundColor DarkGray
   Write-Host ""
   $choice = Read-Host "  Opcion (1/2/3)"
   if ($null -eq $choice) {
@@ -350,12 +493,12 @@ function Main {
   }
 
   if ($configureCodex) {
-    $codexKey = Read-PlainKey -Prompt "KEY DE CODEX / GPT" -GroupHint "Usa una key creada en el grupo ChatGPT economico o ChatGPT estable."
+    $codexKey = Read-PlainKey -Prompt "KEY DE CODEX / GPT" -GroupHint "Pega una key creada en el grupo ChatGPT economico o ChatGPT estable."
     Configure-Codex -ApiKey $codexKey
   }
 
   if ($configureClaude) {
-    $claudeKey = Read-PlainKey -Prompt "KEY DE CLAUDE" -GroupHint "Usa una key creada en el grupo Claude."
+    $claudeKey = Read-PlainKey -Prompt "KEY DE CLAUDE" -GroupHint "Pega una key creada en el grupo Claude."
     Configure-ClaudeEnvironment -ApiKey $claudeKey
   }
 
@@ -364,11 +507,11 @@ function Main {
   Write-Host "   [OK] CONFIGURACION FINALIZADA CON EXITO" -ForegroundColor Green
   Write-Host "  =====================================================" -ForegroundColor DarkGreen
   Write-Host ""
-  Write-Host "  Los cambios ya fueron aplicados en el sistema." -ForegroundColor White
+  Write-Host "  Los modelos y endpoints fueron validados y configurados." -ForegroundColor White
   Write-Host "  1. Ya podes cerrar esta ventana." -ForegroundColor Gray
-  Write-Host "  2. Si tenias abierto Codex, Claude o tu editor, reinicialos." -ForegroundColor Gray
-  Write-Host "  Diagnostico: $DiagPath" -ForegroundColor DarkGray
-  Write-Log "Activador finalizado correctamente"
+  Write-Host "  2. Si tenias abierto Codex, Claude o tu editor, reinicialos para cargar la nueva configuracion." -ForegroundColor Gray
+  Write-Host "  Diagnostico guardado en: $DiagPath" -ForegroundColor DarkGray
+  Write-Log "Activador finalizado correctamente con exito"
 }
 
 try {

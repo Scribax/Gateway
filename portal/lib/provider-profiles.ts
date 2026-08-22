@@ -18,7 +18,7 @@ function getPool() {
   return pool
 }
 
-type StoredProfile = {
+export type StoredProfile = {
   id: number
   name: string
   description: string
@@ -48,6 +48,13 @@ export type ProviderModelValidation = {
 
 function providerMutationToken() {
   return process.env.NEW_API_ADMIN_TOKEN?.trim() || undefined
+}
+
+export function cleanBaseUrl(input: string): string {
+  let url = input.trim().replace(/\/+$/, '')
+  // Normalize by removing trailing /v1 so New API does not duplicate /v1/v1
+  url = url.replace(/\/v1$/i, '')
+  return url.replace(/\/+$/, '')
 }
 
 async function ensureTables() {
@@ -83,38 +90,47 @@ function maskKey(key: string) {
 }
 
 export async function validateProviderEndpoint(baseUrl: string, apiKey: string): Promise<ProviderModelValidation> {
-  const endpoint = baseUrl.trim().replace(/\/$/, '')
+  const raw = baseUrl.trim().replace(/\/+$/, '')
   const key = apiKey.trim()
-  if (!endpoint || !key) throw new BackendError('Completá la Base URL y la API key para validar.', 400)
-  if (!/^https?:\/\//i.test(endpoint)) throw new BackendError('La Base URL debe comenzar con http:// o https://.', 400)
+  if (!raw || !key) throw new BackendError('Completá la Base URL y la API key para validar.', 400)
+  if (!/^https?:\/\//i.test(raw)) throw new BackendError('La Base URL debe comenzar con http:// o https://.', 400)
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 15_000)
-  try {
-    const response = await fetch(`${endpoint}/models`, {
-      method: 'GET',
-      headers: { Accept: 'application/json', Authorization: `Bearer ${key}` },
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    const body = await response.json().catch(() => null) as { data?: Array<{ id?: unknown }>; error?: { message?: unknown }; message?: unknown } | null
-    if (!response.ok) {
-      const message = String(body?.error?.message || body?.message || `El proveedor respondió HTTP ${response.status}.`)
-      throw new BackendError(`No se pudo validar el proveedor: ${message}`, response.status >= 500 ? 502 : 400)
+  const normalized = cleanBaseUrl(raw)
+  const candidateEndpoints = [
+    `${normalized}/v1/models`,
+    `${normalized}/models`,
+    `${raw}/models`,
+  ]
+  const uniqueEndpoints = [...new Set(candidateEndpoints)]
+
+  let lastErrorMessage = ''
+  for (const endpoint of uniqueEndpoints) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12_000)
+    try {
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: { Accept: 'application/json', Authorization: `Bearer ${key}` },
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      const body = await response.json().catch(() => null) as { data?: Array<{ id?: unknown }>; error?: { message?: unknown }; message?: unknown } | null
+      if (response.ok && Array.isArray(body?.data) && body.data.length > 0) {
+        const models = [...new Set(body.data.map((item) => String(item?.id || '').trim()).filter(Boolean))].sort()
+        const known = new Set(MODEL_CATALOG.map((model) => model.id))
+        return { models, knownModels: models.filter((model) => known.has(model)), unknownModels: models.filter((model) => !known.has(model)) }
+      }
+      if (!response.ok) {
+        lastErrorMessage = String(body?.error?.message || body?.message || `HTTP ${response.status}`)
+      }
+    } catch (error) {
+      if (error instanceof Error) lastErrorMessage = error.message
+    } finally {
+      clearTimeout(timeout)
     }
-    const models = Array.isArray(body?.data)
-      ? [...new Set(body.data.map((item) => String(item?.id || '').trim()).filter(Boolean))].sort()
-      : []
-    if (models.length === 0) throw new BackendError('El endpoint respondió, pero no devolvió modelos en data[].', 400)
-    const known = new Set(MODEL_CATALOG.map((model) => model.id))
-    return { models, knownModels: models.filter((model) => known.has(model)), unknownModels: models.filter((model) => !known.has(model)) }
-  } catch (error) {
-    if (error instanceof BackendError) throw error
-    if (error instanceof Error && error.name === 'AbortError') throw new BackendError('El proveedor tardó demasiado en responder.', 504)
-    throw new BackendError('No se pudo conectar con el endpoint del proveedor.', 502)
-  } finally {
-    clearTimeout(timeout)
   }
+
+  throw new BackendError(lastErrorMessage ? `No se pudo validar el endpoint (${lastErrorMessage})` : 'No se pudo conectar con el endpoint del proveedor ni obtener modelos.', 400)
 }
 
 function present(profile: StoredProfile): ProviderProfile {
@@ -132,9 +148,15 @@ export async function getProviderProfiles() {
   return result.rows.map(present)
 }
 
+export async function getStoredProfileById(id: number): Promise<StoredProfile | null> {
+  await ensureTables()
+  const result = await getPool().query<StoredProfile>('SELECT * FROM provider_profiles WHERE id = $1', [id])
+  return result.rows[0] || null
+}
+
 export async function getProviderGroups() {
   await ensureTables()
-  const result = await getPool().query<{ group: string }>(`SELECT \"group\" FROM channels WHERE \"group\" IS NOT NULL AND \"group\" <> '' ORDER BY id`)
+  const result = await getPool().query<{ group: string }>(`SELECT "group" FROM channels WHERE "group" IS NOT NULL AND "group" <> '' ORDER BY id`)
   return [...new Set(result.rows.flatMap((row) => row.group.split(',').map((group) => group.trim()).filter(Boolean)))]
 }
 
@@ -148,7 +170,7 @@ export async function createProviderProfile(input: {
 }) {
   await ensureTables()
   const name = input.name.trim()
-  const baseUrl = input.baseUrl.trim().replace(/\/$/, '')
+  const baseUrl = cleanBaseUrl(input.baseUrl)
   const apiKey = input.apiKey.trim()
   const groups = input.targetGroups.map((group) => group.trim()).filter(Boolean)
   const multiplier = Number(input.priceMultiplier ?? 1)
@@ -177,7 +199,7 @@ export async function updateProviderProfile(id: number, input: {
   const current = await getPool().query<StoredProfile>('SELECT * FROM provider_profiles WHERE id = $1', [id])
   if (!current.rows[0]) throw new BackendError('No se encontró el perfil.', 404)
   const profile = current.rows[0]
-  const baseUrl = input.baseUrl === undefined ? profile.base_url : input.baseUrl.trim().replace(/\/$/, '')
+  const baseUrl = input.baseUrl === undefined ? profile.base_url : cleanBaseUrl(input.baseUrl)
   const apiKey = input.apiKey?.trim() || profile.api_key
   const groups = input.targetGroups === undefined ? profile.target_groups : input.targetGroups.map((group) => group.trim()).filter(Boolean)
   const multiplier = input.priceMultiplier === undefined ? Number(profile.price_multiplier) : Number(input.priceMultiplier)
@@ -192,22 +214,24 @@ export async function updateProviderProfile(id: number, input: {
 }
 
 async function listTargetChannels(groups: string[]) {
-  const result = await getPool().query<ChannelRow>(`SELECT id, name, type, \"group\", models, base_url FROM channels ORDER BY id`)
+  const result = await getPool().query<ChannelRow>(`SELECT id, name, type, "group", models, base_url FROM channels ORDER BY id`)
   return result.rows.filter((channel) => channel.group.split(',').map((group) => group.trim()).some((group) => groups.includes(group)))
 }
 
 async function updateChannel(channelId: number, baseUrl: string, apiKey: string, models: string[]) {
   const id = Number(channelId)
   if (!Number.isInteger(id) || id <= 0) throw new BackendError('El ID del canal no es válido.', 400)
+  const cleanUrl = cleanBaseUrl(baseUrl)
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
     method: 'PUT',
-    body: JSON.stringify({ id, base_url: baseUrl, key: apiKey, models: models.join(',') }),
+    body: JSON.stringify({ id, base_url: cleanUrl, key: apiKey, models: models.join(',') }),
   }, providerMutationToken())
   requireSuccess(body)
 }
 
 async function createChannel(profile: StoredProfile, groups: string[], models: string[]) {
   const groupLabel = groups.join(', ')
+  const cleanUrl = cleanBaseUrl(profile.base_url)
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
     method: 'POST',
     body: JSON.stringify({
@@ -217,7 +241,7 @@ async function createChannel(profile: StoredProfile, groups: string[], models: s
         status: 1,
         name: `${profile.name} (${groupLabel})`,
         key: profile.api_key,
-        base_url: profile.base_url,
+        base_url: cleanUrl,
         models: models.join(','),
         group: groups.join(','),
         priority: 0,
@@ -276,7 +300,8 @@ export async function activateProviderProfile(id: number) {
     client.release()
   }
 
-  for (const channel of targetChannels) await updateChannel(channel.id, profile.base_url, profile.api_key, validation.models)
+  const cleanUrl = cleanBaseUrl(profile.base_url)
+  for (const channel of targetChannels) await updateChannel(channel.id, cleanUrl, profile.api_key, validation.models)
 
   await getPool().query(`UPDATE provider_profiles SET active = FALSE, updated_at = $1 WHERE id <> $2 AND target_groups && $3::text[]`, [now, id, profile.target_groups])
   const updated = await getPool().query<StoredProfile>(
@@ -288,10 +313,24 @@ export async function activateProviderProfile(id: number) {
 
 export async function restoreProviderBaselines() {
   await ensureTables()
-  const result = await getPool().query<{ channel_id: number; base_url: string; api_key: string }>(`SELECT channel_id, base_url, api_key FROM provider_channel_baselines ORDER BY channel_id`)
-  if (result.rows.length === 0) throw new BackendError('No hay una configuración anterior guardada para restaurar.', 400)
-  for (const baseline of result.rows) await updateChannel(baseline.channel_id, baseline.base_url, baseline.api_key, [])
-  await getPool().query('DELETE FROM provider_channel_baselines')
-  await getPool().query('UPDATE provider_profiles SET active = FALSE, updated_at = $1', [Math.floor(Date.now() / 1000)])
-  return { restoredChannels: result.rows.map((row) => row.channel_id) }
+  const client = await getPool().connect()
+  try {
+    await client.query('BEGIN')
+    const baselines = await client.query<{ channel_id: string; base_url: string; api_key: string }>('SELECT channel_id, base_url, api_key FROM provider_channel_baselines')
+    for (const baseline of baselines.rows) {
+      const id = Number(baseline.channel_id)
+      const current = await client.query<{ models: string }>('SELECT models FROM channels WHERE id = $1', [id])
+      const models = (current.rows[0]?.models || '').split(',').map((model) => model.trim()).filter(Boolean)
+      await updateChannel(id, baseline.base_url, baseline.api_key, models)
+    }
+    await client.query('DELETE FROM provider_channel_baselines')
+    await client.query('UPDATE provider_profiles SET active = FALSE')
+    await client.query('COMMIT')
+    return { restoredChannels: baselines.rows.length }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
 }

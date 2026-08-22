@@ -3,9 +3,11 @@ import {
   activateProviderProfile,
   createProviderProfile,
   getProviderProfiles,
+  getStoredProfileById,
   restoreProviderBaselines,
   validateProviderEndpoint,
   updateProviderProfile,
+  cleanBaseUrl,
 } from '@/lib/provider-profiles'
 
 const ADMIN_ROLE = 10
@@ -49,12 +51,13 @@ export async function PATCH(request: Request) {
     const id = payload.id === undefined ? null : Number(payload.id)
     let baseUrl = String(payload.baseUrl || '')
     let apiKey = String(payload.apiKey || '')
-    if (id !== null && Number.isInteger(id) && id > 0 && (!baseUrl.trim() || !apiKey.trim())) {
-      const profiles = await getProviderProfiles()
-      const profile = profiles.find((item) => item.id === id)
-      if (!profile) throw new BackendError('No se encontró el perfil.', 404)
-      baseUrl = baseUrl.trim() || profile.base_url
-      if (!apiKey.trim()) throw new BackendError('Para validar un perfil existente, ingresá nuevamente su API key madre.', 400)
+    if (id !== null && Number.isInteger(id) && id > 0) {
+      const stored = await getStoredProfileById(id)
+      if (!stored) throw new BackendError('No se encontró el perfil.', 404)
+      baseUrl = baseUrl.trim() || stored.base_url
+      if (!apiKey.trim()) {
+        apiKey = stored.api_key
+      }
     }
     return Response.json({ success: true, data: await validateProviderEndpoint(baseUrl, apiKey) })
   } catch (error) {
