@@ -347,8 +347,8 @@ function formatDuration(ms: number) {
   return `${minutes}m ${String(remaining).padStart(2, '0')}s`
 }
 
-function parseUsageMeta(log: UsageLog): UsageMeta {
-  const result: UsageMeta = {}
+function parseUsageMeta(log: UsageLog): UsageMeta & { create_cache_tokens?: number; cache_write_tokens?: number; cached_tokens?: number } {
+  const result: UsageMeta & { create_cache_tokens?: number; cache_write_tokens?: number; cached_tokens?: number } = {}
   if (log.other) {
     if (typeof log.other === 'object') {
       Object.assign(result, log.other)
@@ -362,13 +362,21 @@ function parseUsageMeta(log: UsageLog): UsageMeta {
     }
   }
 
+  // Support New API standard property names
+  if (result.cache_tokens && !result.cache_read_tokens) {
+    result.cache_read_tokens = Number(result.cache_tokens)
+  }
+  if (result.create_cache_tokens && !result.cache_creation_tokens) {
+    result.cache_creation_tokens = Number(result.create_cache_tokens)
+  }
+
   if (log.content && typeof log.content === 'string') {
-    const cacheCreationMatch = log.content.match(/cache\s*creation\s*[:\s]*(\d+)/i)
+    const cacheCreationMatch = log.content.match(/(?:cache\s*creation|create\s*cache|cache\s*write)[^0-9]*(\d+)/i)
     if (cacheCreationMatch && !result.cache_creation_tokens) {
       result.cache_creation_tokens = Number(cacheCreationMatch[1])
     }
 
-    const cacheReadMatch = log.content.match(/(?:cache\s*read|cache)\s*[:\s]*(\d+)\s*tokens/i)
+    const cacheReadMatch = log.content.match(/(?:cache\s*read|cached|cache)[^0-9]*(\d+)\s*tokens/i)
     if (cacheReadMatch && !result.cache_read_tokens) {
       result.cache_read_tokens = Number(cacheReadMatch[1])
       result.cache_tokens = Number(cacheReadMatch[1])
@@ -916,8 +924,8 @@ function Overview({ data, setView, locale }: { data: DashboardData; setView: (vi
           ) : (
             billableLogs.slice(0, 8).map((log) => {
               const meta = parseUsageMeta(log)
-              const cacheCreation = Number(meta.cache_creation_tokens || 0)
-              const cacheRead = Number(meta.cache_read_tokens || 0)
+              const cacheCreation = Number(meta.cache_creation_tokens || meta.create_cache_tokens || meta.cache_write_tokens || 0)
+              const cacheRead = Number(meta.cache_read_tokens || meta.cache_tokens || meta.cached_tokens || 0)
               const baseTokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
               const totalTokens = baseTokens + cacheCreation + cacheRead
               const isClaude = log.model_name?.includes('claude')
@@ -1781,8 +1789,8 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
       billingMode: 'prepaid',
       inputTokens: log.prompt_tokens || 0,
       outputTokens: log.completion_tokens || 0,
-      cacheReadTokens: Number(meta.cache_read_tokens || 0),
-      cacheCreationTokens: Number(meta.cache_creation_tokens || 0),
+      cacheReadTokens: Number(meta.cache_read_tokens || meta.cache_tokens || meta.cached_tokens || 0),
+      cacheCreationTokens: Number(meta.cache_creation_tokens || meta.create_cache_tokens || meta.cache_write_tokens || 0),
       rateMultiplier,
       billedCost,
       originalCost,
