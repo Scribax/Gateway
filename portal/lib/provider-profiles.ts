@@ -46,6 +46,10 @@ export type ProviderModelValidation = {
   unknownModels: string[]
 }
 
+function providerMutationToken() {
+  return process.env.NEW_API_ADMIN_TOKEN?.trim() || undefined
+}
+
 async function ensureTables() {
   await getPool().query(`
     CREATE TABLE IF NOT EXISTS provider_profiles (
@@ -196,7 +200,7 @@ async function updateChannel(channelId: number, baseUrl: string, apiKey: string,
   const body = await newApiFetch<NewApiEnvelope<unknown>>('/api/channel/', {
     method: 'PUT',
     body: JSON.stringify({ id: channelId, base_url: baseUrl, key: apiKey, models: models.join(',') }),
-  })
+  }, providerMutationToken())
   requireSuccess(body)
 }
 
@@ -219,7 +223,7 @@ async function createChannel(profile: StoredProfile, groups: string[], models: s
         auto_ban: 1,
       },
     }),
-  })
+  }, providerMutationToken())
   if (!body.success) throw new BackendError(body.message || 'New API rechazó la creación del canal.', 400)
 }
 
