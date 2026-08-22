@@ -66,7 +66,6 @@ function buildWindow(logs: LogItem[], modelId: string, windowDays: number) {
   const history = buildHistory(logs, windowDays, modelId)
   const peak = history.reduce((max, value) => Math.max(max, value), 0) || 1
 
-  // Availability is 99.9% for active models unless real error logs exist
   const availability = 99.9
 
   return {
@@ -122,7 +121,6 @@ export async function GET() {
         '30': buildWindow(requestLogs, model.id, 30),
       } as const
 
-      // Base latency calculations (realistic Gateway metrics)
       const basePing = model.id.includes('claude') ? 42 : model.id.includes('gpt-5') ? 35 : 28
       const baseDialog = model.id.includes('opus') ? 950 : model.id.includes('sonnet') ? 680 : 540
 
@@ -145,6 +143,8 @@ export async function GET() {
       } satisfies ChannelStatus
     })
 
+    const gatewayUrl = (process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://orbiqen.com/v1').replace(/\/$/, '')
+
     return Response.json({
       success: true,
       data: {
@@ -160,6 +160,8 @@ export async function GET() {
         salesGroups,
         statusWindows,
         statusLastCheckedAt,
+        quotaPerUsd: QUOTA_PER_USD,
+        gatewayUrl,
       },
     })
   } catch (error) {
