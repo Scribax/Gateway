@@ -8,3 +8,4 @@ portal/.next/
 portal/*.tsbuildinfo
 docs/*.private.html
 backups/
+.aider*

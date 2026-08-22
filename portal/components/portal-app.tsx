@@ -46,6 +46,8 @@ import {
   TrendingUp,
   Users,
   WalletCards,
+  Zap,
+  Play,
   X,
 } from 'lucide-react'
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
@@ -392,17 +394,21 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
   const [error, setError] = useState('')
   const english = locale === 'en'
   const copy = english ? {
-    welcome: 'Welcome', newAccount: 'New account', loginTitle: 'Sign in to your dashboard', registerTitle: 'Create your account',
+    welcome: 'WELCOME BACK', newAccount: 'GET STARTED FREE', loginTitle: 'Sign in to your dashboard', registerTitle: 'Create your developer account',
     username: 'Username', usernamePlaceholder: 'your_username', email: 'Email address', emailPlaceholder: 'you@yourcompany.com',
     verification: 'Verification code', sendCode: 'Send code', resend: 'Resend', password: 'Password', passwordPlaceholder: 'At least 8 characters',
-    sent: 'Code sent. Check your inbox and spam folder.', signIn: 'Sign in', create: 'Create account', createNew: 'Create a new account', already: 'I already have an account',
-    heroTitle: <>One API.<br />All your models.</>, heroText: 'Manage balance, keys and usage from a dashboard built for work.', proof: 'Isolated keys and usage control',
+    sent: 'Code sent. Check your inbox and spam folder.', signIn: 'Sign in to Dashboard', create: 'Create Account & Get API Key', createNew: "Don't have an account? Create one for free", already: 'Already have an account? Sign in',
+    heroTitle: <>Your AI Models.<br /><span className="gradient-title">One Unified Gateway.</span></>,
+    heroText: 'Manage balance, generate isolated API keys and connect Cursor or Claude Code in 60 seconds with prepaid balance.',
+    backHome: '← Back to Home',
   } : {
-    welcome: 'Bienvenido', newAccount: 'Nueva cuenta', loginTitle: 'Ingresá a tu panel', registerTitle: 'Creá tu cuenta',
+    welcome: 'BIENVENIDO DE VUELTA', newAccount: 'EMPEZÁ CON CRÉDITO GRATIS', loginTitle: 'Ingresá a tu panel', registerTitle: 'Creá tu cuenta de desarrollador',
     username: 'Usuario', usernamePlaceholder: 'tu_usuario', email: 'Correo electrónico', emailPlaceholder: 'vos@tuempresa.com',
     verification: 'Código de verificación', sendCode: 'Enviar código', resend: 'Reenviar', password: 'Contraseña', passwordPlaceholder: 'Mínimo 8 caracteres',
-    sent: 'Código enviado. Revisá también la carpeta de spam.', signIn: 'Ingresar', create: 'Crear cuenta', createNew: 'Crear una cuenta nueva', already: 'Ya tengo una cuenta',
-    heroTitle: <>Una API.<br />Todos tus modelos.</>, heroText: 'Administrá saldo, claves y consumo desde un panel hecho para trabajar.', proof: 'Claves aisladas y control de consumo',
+    sent: 'Código enviado. Revisá también la carpeta de spam.', signIn: 'Ingresar al Panel', create: 'Crear Cuenta y Obtener API Key', createNew: '¿No tenés cuenta? Creá una gratis acá', already: '¿Ya tenés una cuenta? Ingresá acá',
+    heroTitle: <>Tus Modelos de IA.<br /><span className="gradient-title">En un solo panel y en Pesos.</span></>,
+    heroText: 'Administrá saldo, generá subclaves para Cursor o Claude Code y recargá con Mercado Pago desde US$ 1.',
+    backHome: '← Volver al Inicio',
   }
   useEffect(() => {
     if (cooldown <= 0) return
@@ -450,66 +456,132 @@ function AuthScreen({ onAuthenticated, initialMode = 'login', locale = 'es' }: {
   return (
     <main className="auth-shell">
       <section className="auth-brand-panel">
-        <div className="brand brand-light"><BrandLogo light /></div>
+        <div className="auth-brand-top">
+          <a href={english ? '/en' : '/es'} className="brand brand-light" style={{ textDecoration: 'none' }}>
+            <BrandLogo light />
+          </a>
+          <a href={english ? '/en' : '/es'} className="auth-back-link">
+            {copy.backHome}
+          </a>
+        </div>
+
         <div className="auth-brand-content">
-          <div className="auth-signal"><span /><span /><span /></div>
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '16px' }}>
+            <span className="pulse-dot" />
+            <span>Latencia &lt; 350ms • 99.9% Uptime</span>
+          </div>
+
           <h1>{copy.heroTitle}</h1>
           <p>{copy.heroText}</p>
-        </div>
-        <div className="auth-proof"><ShieldCheck size={18} /><span>{copy.proof}</span></div>
-      </section>
-      <section className="auth-form-panel">
-        <div className="auth-mobile-brand brand"><BrandLogo /></div>
-        <div className="auth-language"><PublicLanguageSwitch locale={locale} englishPath={`/login?lang=en${mode === 'register' ? '&mode=register' : ''}`} spanishPath={`/login?lang=es${mode === 'register' ? '&mode=register' : ''}`} /></div>
-        <form className="auth-form" onSubmit={submit}>
-          <div>
-            <p className="eyebrow">{mode === 'login' ? copy.welcome : copy.newAccount}</p>
-            <h2>{mode === 'login' ? copy.loginTitle : copy.registerTitle}</h2>
+
+          <div className="auth-features-list">
+            <div className="auth-feature-item">
+              <div className="auth-feature-icon"><Zap size={16} /></div>
+              <div>
+                <strong>Claude 3.7 Sonnet &amp; GPT-5.5</strong>
+                <span>{english ? 'Instant access via API & OpenAI SDK' : 'Acceso inmediato vía API y OpenAI SDK'}</span>
+              </div>
+            </div>
+
+            <div className="auth-feature-item">
+              <div className="auth-feature-icon"><WalletCards size={16} /></div>
+              <div>
+                <strong>{english ? 'Mercado Pago & Crypto' : 'Mercado Pago & Criptomonedas'}</strong>
+                <span>{english ? 'Instant top-ups from $1 USD with no monthly fee' : 'Recargas instantáneas desde $1 USD a cotización fija ($1.600 ARS)'}</span>
+              </div>
+            </div>
+
+            <div className="auth-feature-item">
+              <div className="auth-feature-icon"><ShieldCheck size={16} /></div>
+              <div>
+                <strong>{english ? 'Isolated Sub-keys & No Expiry' : 'Subclaves Aisladas y Saldo sin Vencimiento'}</strong>
+                <span>{english ? 'Full control over token limits and allowed models' : 'Control estricto de gasto por proyecto y saldo que nunca vence'}</span>
+              </div>
+            </div>
           </div>
-          <label>
-            {copy.username}
-            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder={copy.usernamePlaceholder} required />
-          </label>
-          {mode === 'register' && <>
+        </div>
+
+        <div className="auth-proof">
+          <Server size={15} />
+          <span>Base URL: <code>https://orbiqen.com/v1</code></span>
+        </div>
+      </section>
+
+      <section className="auth-form-panel">
+        <div className="auth-top-nav">
+          <div className="auth-mobile-brand brand"><BrandLogo light /></div>
+          <div className="auth-language">
+            <PublicLanguageSwitch locale={locale} englishPath={`/login?lang=en${mode === 'register' ? '&mode=register' : ''}`} spanishPath={`/login?lang=es${mode === 'register' ? '&mode=register' : ''}`} />
+          </div>
+        </div>
+
+        <div className="auth-form-card">
+          <form className="auth-form" onSubmit={submit}>
+            <div className="auth-form-header">
+              <p className="eyebrow">{mode === 'login' ? copy.welcome : copy.newAccount}</p>
+              <h2>{mode === 'login' ? copy.loginTitle : copy.registerTitle}</h2>
+            </div>
+
             <label>
-              {copy.email}
-              <input value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }} type="email" autoComplete="email" placeholder={copy.emailPlaceholder} required />
+              {copy.username}
+              <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" placeholder={copy.usernamePlaceholder} required />
             </label>
+
+            {mode === 'register' && <>
+              <label>
+                {copy.email}
+                <input value={email} onChange={(event) => { setEmail(event.target.value); setCodeSent(false); setCooldown(0) }} type="email" autoComplete="email" placeholder={copy.emailPlaceholder} required />
+              </label>
+              <label>
+                {copy.verification}
+                <span className="verification-field">
+                  <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/[^a-fA-F0-9]/g, '').toLowerCase().slice(0, 6))} inputMode="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={6} placeholder="a1b2c3" pattern="[a-fA-F0-9]{6}" required />
+                  <button className="secondary-button verification-send" type="button" onClick={sendVerificationCode} disabled={sendingCode || cooldown > 0 || !email}>
+                    {sendingCode ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />}
+                    {cooldown > 0 ? `${cooldown}s` : codeSent ? copy.resend : copy.sendCode}
+                  </button>
+                </span>
+              </label>
+              {codeSent && <p className="form-success">{copy.sent}</p>}
+            </>}
+
             <label>
-              {copy.verification}
-              <span className="verification-field">
-                <input value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/[^a-fA-F0-9]/g, '').toLowerCase().slice(0, 6))} inputMode="text" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={6} placeholder="a1b2c3" pattern="[a-fA-F0-9]{6}" required />
-                <button className="secondary-button verification-send" type="button" onClick={sendVerificationCode} disabled={sendingCode || cooldown > 0 || !email}>
-                  {sendingCode ? <LoaderCircle className="spin" size={17} /> : <Mail size={17} />}
-                  {cooldown > 0 ? `${cooldown}s` : codeSent ? copy.resend : copy.sendCode}
-                </button>
+              {copy.password}
+              <span className="password-field">
+                <input value={password} onChange={(event) => setPassword(event.target.value)} type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={copy.passwordPlaceholder} required />
+                <button type="button" className="icon-button inline-icon" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </span>
             </label>
-            {codeSent && <p className="form-success">{copy.sent}</p>}
-          </>}
-          <label>
-            {copy.password}
-            <span className="password-field">
-              <input value={password} onChange={(event) => setPassword(event.target.value)} type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={copy.passwordPlaceholder} required />
-              <button type="button" className="icon-button inline-icon" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-            </span>
-          </label>
-          {error && <div className="form-error">{error}</div>}
-          <button className="primary-button auth-submit" disabled={loading}>{loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}{mode === 'login' ? copy.signIn : copy.create}</button>
-          <button className="text-button" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setCodeSent(false); setCooldown(0) }}>
-            {mode === 'login' ? copy.createNew : copy.already}
-          </button>
-        </form>
+
+            {error && <div className="form-error">{error}</div>}
+
+            <button className="primary-button auth-submit" disabled={loading}>
+              {loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={18} />}
+              {mode === 'login' ? copy.signIn : copy.create}
+            </button>
+
+            <button className="text-button auth-mode-toggle" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setCodeSent(false); setCooldown(0) }}>
+              {mode === 'login' ? copy.createNew : copy.already}
+            </button>
+          </form>
+        </div>
       </section>
     </main>
   )
 }
 
-function Stat({ label, value, hint, icon: Icon, tone }: { label: string; value: string; hint: string; icon: typeof Activity; tone: string }) {
+function Stat({ label, value, hint, icon: Icon, tone, action, onAction }: { label: string; value: string; hint: string; icon: typeof Activity; tone: string; action?: string; onAction?: () => void }) {
   return (
-    <article className="stat-card">
-      <div className={`stat-icon ${tone}`}><Icon size={19} /></div>
-      <div><p>{label}</p><strong>{value}</strong><span>{hint}</span></div>
+    <article className={`stat-card tone-${tone}`} onClick={onAction} style={{ cursor: onAction ? 'pointer' : 'default' }}>
+      <div className="stat-card-top">
+        <div className={`stat-icon ${tone}`}><Icon size={19} /></div>
+        {action && <span className="stat-action-pill">{action}</span>}
+      </div>
+      <div className="stat-card-body">
+        <p>{label}</p>
+        <strong>{value}</strong>
+        <span>{hint}</span>
+      </div>
     </article>
   )
 }
@@ -528,30 +600,215 @@ function UsageStat({ label, value, hint, icon: Icon, tone }: { label: string; va
 }
 
 function Overview({ data, setView, locale }: { data: DashboardData; setView: (view: View) => void; locale: PortalLocale }) {
+  const [copiedUrl, setCopiedUrl] = useState(false)
   const available = data.user.quota / data.quotaPerUsd
   const spent = data.user.used_quota / data.quotaPerUsd
   const activeKeys = data.keys.filter((key) => key.status === 1).length
   const billableLogs = data.logs.filter((log) => Boolean(log.model_name) && Boolean(log.token_name) && (((log.prompt_tokens || 0) + (log.completion_tokens || 0)) > 0 || (log.quota || 0) > 0))
+  const english = locale === 'en'
+
+  const copyEndpoint = () => {
+    navigator.clipboard.writeText(data.gatewayUrl)
+    setCopiedUrl(true)
+    setTimeout(() => setCopiedUrl(false), 2000)
+  }
+
+  const availableArs = Math.round(available * 1600).toLocaleString('es-AR')
+
   return (
     <div className="view-stack">
+      {/* 1. Greeting & Quick Actions Header */}
+      <section className="overview-greeting-card">
+        <div className="overview-greeting-copy">
+          <div className="overview-greeting-badge">
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'Cuenta Activa • Sin costos fijos', 'Active Account • No flat fees')}</span>
+          </div>
+          <h2>{tr(locale, `Hola, ${data.user.username || 'Desarrollador'} 👋`, `Welcome back, ${data.user.username || 'Developer'} 👋`)}</h2>
+          <p>
+            {tr(
+              locale,
+              `Tenés ${money(available, available < 1 ? 4 : 2)} (${availableArs} ARS) disponibles para tus aplicaciones y asistentes de código.`,
+              `You have ${money(available, available < 1 ? 4 : 2)} available for your coding assistants and applications.`
+            )}
+          </p>
+        </div>
+        <div className="overview-greeting-actions">
+          <button className="primary-button" onClick={() => setView('wallet')}>
+            <WalletCards size={17} />
+            <span>{tr(locale, 'Recargar Saldo', 'Top up Balance')}</span>
+          </button>
+          <button className="secondary-button" onClick={() => setView('keys')}>
+            <KeyRound size={17} />
+            <span>{tr(locale, 'Gestionar Keys', 'Manage Keys')}</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 2. Stat Cards Grid */}
       <section className="stats-grid">
-        <Stat label={tr(locale, 'Saldo disponible', 'Available balance')} value={money(available, available < 1 ? 4 : 2)} hint={tr(locale, 'Crédito actual', 'Current credit')} icon={CircleDollarSign} tone="green" />
-        <Stat label={tr(locale, 'Consumo histórico', 'Historical usage')} value={money(spent, spent < 1 ? 4 : 2)} hint={`${data.logTotal} ${tr(locale, 'solicitudes con consumo', 'usage requests')}`} icon={Activity} tone="coral" />
-        <Stat label={tr(locale, 'Solicitudes', 'Requests')} value={compactNumber(data.user.request_count)} hint={tr(locale, 'Procesadas correctamente', 'Processed successfully')} icon={Gauge} tone="blue" />
-        <Stat label={tr(locale, 'Claves activas', 'Active keys')} value={String(activeKeys)} hint={`${data.keys.length} ${tr(locale, 'creadas', 'created')}`} icon={KeyRound} tone="charcoal" />
+        <Stat
+          label={tr(locale, 'Saldo disponible', 'Available balance')}
+          value={money(available, available < 1 ? 4 : 2)}
+          hint={tr(locale, `~${availableArs} ARS al cambio`, 'Prepaid balance')}
+          icon={CircleDollarSign}
+          tone="green"
+          action={tr(locale, '+ Cargar', '+ Top up')}
+          onAction={() => setView('wallet')}
+        />
+        <Stat
+          label={tr(locale, 'Consumo histórico', 'Historical usage')}
+          value={money(spent, spent < 1 ? 4 : 2)}
+          hint={`${data.logTotal} ${tr(locale, 'solicitudes procesadas', 'processed requests')}`}
+          icon={Activity}
+          tone="coral"
+          action={tr(locale, 'Ver logs', 'View logs')}
+          onAction={() => setView('usage')}
+        />
+        <Stat
+          label={tr(locale, 'Total solicitudes', 'Total requests')}
+          value={compactNumber(data.user.request_count)}
+          hint={tr(locale, '100% gateway uptime', '100% gateway uptime')}
+          icon={Gauge}
+          tone="blue"
+        />
+        <Stat
+          label={tr(locale, 'API Keys activas', 'Active API keys')}
+          value={String(activeKeys)}
+          hint={`${data.keys.length} ${tr(locale, 'creadas en total', 'created total')}`}
+          icon={KeyRound}
+          tone="charcoal"
+          action={tr(locale, '+ Crear', '+ New key')}
+          onAction={() => setView('keys')}
+        />
       </section>
-      <section className="quick-band">
-        <div><span className="quick-icon"><Server size={20} /></span><div><strong>{tr(locale, 'Tu endpoint está listo', 'Your endpoint is ready')}</strong><code>{data.gatewayUrl}</code></div></div>
-        <button className="secondary-button" onClick={() => setView('setup')}>{tr(locale, 'Ver configuración', 'View setup')} <ChevronRight size={17} /></button>
+
+      {/* 3. Interactive Endpoint & Quick Launchers Band */}
+      <section className="overview-endpoint-card">
+        <div className="overview-endpoint-info">
+          <div className="overview-endpoint-head">
+            <span className="pulse-dot" />
+            <strong>{tr(locale, 'Tu Endpoint OpenAI-compatible', 'Your OpenAI-compatible Endpoint')}</strong>
+            <span className="endpoint-status-tag">{tr(locale, 'Listo para usar', 'Ready')}</span>
+          </div>
+          <div className="overview-endpoint-box">
+            <code>{data.gatewayUrl}</code>
+            <button className={`copy-btn ${copiedUrl ? 'copied' : ''}`} onClick={copyEndpoint} type="button">
+              {copiedUrl ? <Check size={13} /> : <Copy size={13} />}
+              <span>{copiedUrl ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="overview-launchers">
+          <span>{tr(locale, 'Conexión rápida:', 'Quick setup:')}</span>
+          <div className="launcher-chips">
+            <button type="button" onClick={() => setView('setup')} className="launcher-chip">
+              <Code2 size={14} />
+              <span>Cursor</span>
+            </button>
+            <button type="button" onClick={() => setView('setup')} className="launcher-chip">
+              <Terminal size={14} />
+              <span>Claude Code</span>
+            </button>
+            <button type="button" onClick={() => setView('setup')} className="launcher-chip">
+              <Cpu size={14} />
+              <span>Python SDK</span>
+            </button>
+          </div>
+        </div>
       </section>
+
+      {/* 4. Quickstart Guide (Visible especially if user has zero or low consumption) */}
+      {data.user.request_count === 0 && (
+        <section className="overview-quickstart-card">
+          <div className="quickstart-header">
+            <div className="landing-eyebrow-badge" style={{ marginBottom: 0 }}>
+              <Sparkles size={13} />
+              <span>{tr(locale, 'GUÍA RÁPIDA DE INICIO', 'QUICKSTART GUIDE')}</span>
+            </div>
+            <h3>{tr(locale, 'Empezá a programar con Orbiqen en 3 pasos', 'Start building with Orbiqen in 3 steps')}</h3>
+          </div>
+
+          <div className="quickstart-steps-grid">
+            <div className="quickstart-step">
+              <span className="step-number">1</span>
+              <h4>{tr(locale, 'Copiá tu API Key', 'Copy your API Key')}</h4>
+              <p>{tr(locale, 'En la pestaña API Keys tenés tu primera clave lista para usar.', 'Go to API Keys tab to reveal and copy your key.')}</p>
+              <button className="secondary-button step-btn" onClick={() => setView('keys')}>
+                <KeyRound size={14} />
+                <span>{tr(locale, 'Ver mis API Keys', 'View API Keys')}</span>
+              </button>
+            </div>
+
+            <div className="quickstart-step">
+              <span className="step-number">2</span>
+              <h4>{tr(locale, 'Configurá tu editor', 'Configure your editor')}</h4>
+              <p>{tr(locale, 'Pegá la Base URL en Cursor, Windsurf o exportala en Claude Code.', 'Paste Base URL in Cursor, Windsurf, or export for Claude.')}</p>
+              <button className="secondary-button step-btn" onClick={() => setView('setup')}>
+                <Code2 size={14} />
+                <span>{tr(locale, 'Ver guías de conexión', 'View setup guides')}</span>
+              </button>
+            </div>
+
+            <div className="quickstart-step">
+              <span className="step-number">3</span>
+              <h4>{tr(locale, 'Recargá cuando quieras', 'Top up anytime')}</h4>
+              <p>{tr(locale, 'Cargá saldo prepago con Mercado Pago o Cripto desde $1 USD.', 'Add prepaid balance with Mercado Pago or Crypto from $1.')}</p>
+              <button className="primary-button step-btn" onClick={() => setView('wallet')}>
+                <WalletCards size={14} />
+                <span>{tr(locale, 'Recargar saldo', 'Top up balance')}</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 5. Recent Activity Section */}
       <section className="section-block activity-card">
-        <div className="section-heading"><div><h3>{tr(locale, 'Actividad reciente', 'Recent activity')}</h3><p>{tr(locale, 'Solo mostramos solicitudes con consumo real.', 'Only requests with real usage are shown.')}</p></div><button className="text-action" onClick={() => setView('usage')}>{tr(locale, 'Ver usage', 'View usage')} <ArrowUpRight size={16} /></button></div>
+        <div className="section-heading">
+          <div>
+            <h3>{tr(locale, 'Actividad reciente', 'Recent activity')}</h3>
+            <p>{tr(locale, 'Registro en tiempo real de tus solicitudes y consumo de tokens.', 'Real-time log of your requests and token usage.')}</p>
+          </div>
+          <button className="text-action" onClick={() => setView('usage')}>
+            <span>{tr(locale, 'Ver analíticas completas', 'View full analytics')}</span>
+            <ArrowUpRight size={16} />
+          </button>
+        </div>
+
         <div className="activity-list">
-          {billableLogs.length === 0 && <div className="empty-row"><Activity size={20} />{tr(locale, 'Todavía no hay consumo registrado', 'No usage recorded yet')}</div>}
-          {billableLogs.slice(0, 8).map((log) => {
-            const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
-            return <article className="activity-item" key={log.id}><span className="activity-icon"><Bot size={17} /></span><div><strong>{log.model_name}</strong><small>{formatDate(log.created_at)} · {log.token_name}</small></div><div className="activity-metrics"><span>{compactNumber(tokens)} tokens</span><strong>{money((log.quota || 0) / data.quotaPerUsd, 6)}</strong></div></article>
-          })}
+          {billableLogs.length === 0 ? (
+            <div className="empty-activity-box">
+              <div className="empty-icon"><Activity size={24} /></div>
+              <h4>{tr(locale, 'Todavía no hay consumo registrado', 'No requests recorded yet')}</h4>
+              <p>{tr(locale, 'Tus llamadas desde Cursor, Claude Code o Python aparecerán acá en tiempo real.', 'Your requests from Cursor, Claude Code, or Python will appear here in real time.')}</p>
+              <button className="secondary-button" onClick={() => setView('setup')}>
+                <Play size={14} />
+                <span>{tr(locale, 'Hacer primera petición', 'Make first request')}</span>
+              </button>
+            </div>
+          ) : (
+            billableLogs.slice(0, 8).map((log) => {
+              const tokens = (log.prompt_tokens || 0) + (log.completion_tokens || 0)
+              const isClaude = log.model_name?.includes('claude')
+              return (
+                <article className="activity-item" key={log.id}>
+                  <span className={`activity-icon ${isClaude ? 'coral' : 'emerald'}`}>
+                    <Bot size={17} />
+                  </span>
+                  <div>
+                    <strong>{log.model_name}</strong>
+                    <small>{formatDate(log.created_at)} · {log.token_name}</small>
+                  </div>
+                  <div className="activity-metrics">
+                    <span>{compactNumber(tokens)} tokens</span>
+                    <strong>{money((log.quota || 0) / data.quotaPerUsd, 6)}</strong>
+                  </div>
+                </article>
+              )
+            })
+          )}
         </div>
       </section>
     </div>
@@ -559,7 +816,7 @@ function Overview({ data, setView, locale }: { data: DashboardData; setView: (vi
 }
 
 function KeyModal({ data, onClose, onCreated, locale }: { data: DashboardData; onClose: () => void; onCreated: (key: string) => void; locale: PortalLocale }) {
-  const [name, setName] = useState('mi-aplicacion')
+  const [name, setName] = useState('cursor-app')
   const [quota, setQuota] = useState(Math.min(10, Math.max(1, Math.floor(data.user.quota / data.quotaPerUsd))))
   const groupOptions = data.salesGroups.map((group) => ({
     id: group.code,
@@ -569,13 +826,13 @@ function KeyModal({ data, onClose, onCreated, locale }: { data: DashboardData; o
     multiplier: group.price_multiplier,
     matches: (id: string) => group.model_family === 'claude' ? id.includes('claude') : group.model_family === 'chatgpt' ? !id.includes('claude') : true,
   }))
-  const [group, setGroup] = useState<string | null>(null)
+  const [group, setGroup] = useState<string | null>(groupOptions[0]?.id || null)
   const selectedGroup = groupOptions.find((option) => option.id === group) || null
   const groupModels = selectedGroup ? data.keyModels.filter((model) => selectedGroup.matches(model.id)) : []
   const pricedGroupModels = groupModels.filter((model) => model.input > 0 || model.output > 0)
   const groupInputFrom = pricedGroupModels.length > 0 ? Math.min(...pricedGroupModels.map((model) => model.input * (selectedGroup?.multiplier || 1))) : 0
   const groupOutputFrom = pricedGroupModels.length > 0 ? Math.min(...pricedGroupModels.map((model) => model.output * (selectedGroup?.multiplier || 1))) : 0
-  const [models, setModels] = useState<string[]>([])
+  const [models, setModels] = useState<string[]>(groupModels.map(m => m.id))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -589,37 +846,241 @@ function KeyModal({ data, onClose, onCreated, locale }: { data: DashboardData; o
     setModels((current) => current.includes(id) ? current.filter((model) => model !== id) : [...current, id])
   }
 
+  function selectAllModels() {
+    setModels(groupModels.map(m => m.id))
+  }
+
+  function deselectAllModels() {
+    setModels([])
+  }
+
   async function create(event: FormEvent) {
-    event.preventDefault(); setLoading(true); setError('')
+    event.preventDefault()
+    setLoading(true)
+    setError('')
     try {
       const body = await readJson(await fetch('/api/keys', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, quotaUsd: quota, group, models }),
       }))
       onCreated(body.data.key)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo crear la clave.') }
-    finally { setLoading(false) }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (locale === 'en' ? 'Could not create key.' : 'No se pudo crear la clave.'))
+    } finally {
+      setLoading(false)
+    }
   }
 
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <form className="modal key-modal" onSubmit={create}>
-      <div className="modal-header"><div><p className="eyebrow">{tr(locale, 'Nueva credencial', 'New credential')}</p><h3>Crear API Key</h3></div><button type="button" className="icon-button" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button></div>
-      <div className="modal-body">
-        <label>{tr(locale, 'Nombre', 'Name')}<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} required /></label>
-        <label>{tr(locale, 'Límite de consumo (USD)', 'Usage limit (USD)')}<input type="number" min="0.01" step="0.01" value={quota} onChange={(event) => setQuota(Number(event.target.value))} required /></label>
-        <fieldset><legend>{tr(locale, '1. Elegí como querés enrutar esta key', '1. Choose how this key should route requests')}</legend><div className="group-choice-grid">{groupOptions.map((option) => { const availableModels = data.keyModels.filter((model) => option.matches(model.id)); const pricedModels = availableModels.filter((model) => model.input > 0 || model.output > 0); const inputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.input * option.multiplier)) : 0; const outputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.output * option.multiplier)) : 0; const available = availableModels.length > 0; return <label className={`group-choice ${group === option.id ? 'selected' : ''} ${!available ? 'disabled' : ''}`} key={option.id}><input type="radio" name="api-key-group" checked={group === option.id} disabled={!available} onChange={() => selectGroup(option.id)} /><span className="group-choice-mark">{group === option.id && <Check size={14} />}</span><span className="group-choice-copy"><strong>{option.label}</strong><small>{available ? option.note : tr(locale, 'Sin modelos disponibles ahora', 'No models available right now')}</small><span className="group-price-line"><b>{option.description}</b><em>Input {tr(locale, 'desde', 'from')} {tokenPrice(inputFrom)} · {tr(locale, 'Salida desde', 'Output from')} {tokenPrice(outputFrom)}</em></span></span></label> })}</div></fieldset>
-        {selectedGroup ? <fieldset><div className="model-field-head"><strong>2. {tr(locale, 'Elegí los modelos de', 'Choose models for')} {selectedGroup.label}</strong><span>{groupModels.length} {tr(locale, 'disponibles', 'available')}</span></div><div className="selected-group-summary"><div><small>Input {tr(locale, 'desde', 'from')}</small><strong>{tokenPrice(groupInputFrom)}</strong></div><div><small>{tr(locale, 'Salida desde', 'Output from')}</small><strong>{tokenPrice(groupOutputFrom)}</strong></div><div><small>{tr(locale, 'Precio', 'Price')}</small><strong>{selectedGroup.multiplier === 1 ? tr(locale, 'Base', 'Base') : `${selectedGroup.multiplier}x`}</strong></div></div>{groupModels.length > 0 ? <div className="model-check-grid priced">{groupModels.map((model) => <label className={`check-row priced ${models.includes(model.id) ? 'selected' : ''}`} key={model.id}><input type="checkbox" checked={models.includes(model.id)} onChange={() => toggleModel(model.id)} /><span>{models.includes(model.id) && <Check size={14} />}</span><div><strong>{model.label}</strong><small>Input {tokenPrice(model.input * selectedGroup.multiplier)} · {tr(locale, 'Salida', 'Output')} {tokenPrice(model.output * selectedGroup.multiplier)}{model.cacheWrite > 0 ? ` · Cache ${tokenPrice(model.cacheWrite * selectedGroup.multiplier)}` : ''}</small></div></label>)}</div> : <p className="field-note">{tr(locale, 'No hay modelos disponibles en este grupo.', 'No models are available in this group.')}</p>}</fieldset> : <div className="group-prompt"><Sparkles size={17} /><span>{tr(locale, 'Elegí un grupo para ver modelos y precios.', 'Choose a group to see models and prices.')}</span></div>}
-        {error && <div className="form-error">{error}</div>}
-      </div>
-      <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>{tr(locale, 'Cancelar', 'Cancel')}</button><button className="primary-button" disabled={loading || !group || models.length === 0}>{loading ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}{tr(locale, 'Crear clave', 'Create key')}</button></div>
-    </form>
-  </div>
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <form className="modal key-modal" onSubmit={create}>
+        {/* Header */}
+        <div className="modal-header">
+          <div>
+            <div className="landing-eyebrow-badge" style={{ marginBottom: '4px' }}>
+              <span className="pulse-dot" />
+              <span>{tr(locale, 'NUEVA CREDENCIAL', 'NEW CREDENTIAL')}</span>
+            </div>
+            <h3>{tr(locale, 'Crear API Key', 'Create API Key')}</h3>
+            <p className="modal-subtitle">{tr(locale, 'Generá una subclave con límite de gasto y modelos permitidos.', 'Create a subkey with spend limit and allowed models.')}</p>
+          </div>
+          <button type="button" className="icon-button modal-close-btn" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="modal-body">
+          {/* Top Inputs: Name & Quota */}
+          <div className="modal-inputs-row">
+            <label className="modal-field">
+              <span className="field-label">{tr(locale, 'Nombre de la clave', 'Key name')}</span>
+              <input
+                type="text"
+                className="modal-input"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={50}
+                placeholder="ej. cursor-pro, backend-prod..."
+                required
+              />
+              <span className="field-hint">{tr(locale, 'Para identificar dónde la usás', 'To identify where you use it')}</span>
+            </label>
+
+            <label className="modal-field">
+              <span className="field-label">{tr(locale, 'Límite de saldo (USD)', 'Spend limit (USD)')}</span>
+              <div className="input-with-affix">
+                <span className="affix">$</span>
+                <input
+                  type="number"
+                  className="modal-input with-affix"
+                  min="0.01"
+                  step="0.01"
+                  value={quota}
+                  onChange={(event) => setQuota(Number(event.target.value))}
+                  required
+                />
+              </div>
+              <span className="field-hint">{tr(locale, 'Tope máximo de gasto asignado', 'Maximum spending cap')}</span>
+            </label>
+          </div>
+
+          {/* Section 1: Sales Group Choices */}
+          <div className="modal-section">
+            <div className="modal-section-title">
+              <strong>1. {tr(locale, 'Elegí el grupo de enrutamiento', 'Choose routing group')}</strong>
+              <small>{tr(locale, 'Define los canales y multiplicador de precio', 'Defines channels & price multiplier')}</small>
+            </div>
+
+            <div className="group-choice-grid">
+              {groupOptions.map((option) => {
+                const availableModels = data.keyModels.filter((model) => option.matches(model.id))
+                const pricedModels = availableModels.filter((model) => model.input > 0 || model.output > 0)
+                const inputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.input * option.multiplier)) : 0
+                const outputFrom = pricedModels.length > 0 ? Math.min(...pricedModels.map((model) => model.output * option.multiplier)) : 0
+                const available = availableModels.length > 0
+                const isSelected = group === option.id
+
+                return (
+                  <div
+                    className={`group-choice-card ${isSelected ? 'selected' : ''} ${!available ? 'disabled' : ''}`}
+                    key={option.id}
+                    onClick={() => available && selectGroup(option.id)}
+                  >
+                    <div className="group-choice-header">
+                      <div className="group-choice-name">
+                        <span className={`custom-radio ${isSelected ? 'checked' : ''}`}>
+                          {isSelected && <span className="custom-radio-dot" />}
+                        </span>
+                        <strong>{option.label}</strong>
+                      </div>
+                      <span className="multiplier-badge">{option.multiplier}x</span>
+                    </div>
+
+                    <p className="group-choice-desc">{available ? option.note : tr(locale, 'Sin modelos disponibles', 'No models available')}</p>
+
+                    <div className="group-choice-footer">
+                      <span className="family-tag">{option.description}</span>
+                      <span className="price-tag">
+                        In <b>{tokenPrice(inputFrom)}</b> · Out <b>{tokenPrice(outputFrom)}</b>
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Section 2: Model Checklist */}
+          {selectedGroup && (
+            <div className="modal-section">
+              <div className="modal-section-title split">
+                <div>
+                  <strong>2. {tr(locale, 'Modelos habilitados', 'Allowed models')} ({selectedGroup.label})</strong>
+                  <small>{models.length} / {groupModels.length} {tr(locale, 'activos para esta key', 'active for this key')}</small>
+                </div>
+                <div className="quick-select-btns">
+                  <button type="button" onClick={selectAllModels} className="text-btn">
+                    {tr(locale, 'Todos', 'All')}
+                  </button>
+                  <span>·</span>
+                  <button type="button" onClick={deselectAllModels} className="text-btn">
+                    {tr(locale, 'Ninguno', 'None')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="model-checklist-box">
+                {groupModels.map((model) => {
+                  const isChecked = models.includes(model.id)
+                  return (
+                    <div
+                      className={`model-check-item ${isChecked ? 'checked' : ''}`}
+                      key={model.id}
+                      onClick={() => toggleModel(model.id)}
+                    >
+                      <div className={`custom-checkbox ${isChecked ? 'checked' : ''}`}>
+                        {isChecked && <Check size={12} strokeWidth={3} />}
+                      </div>
+                      <div className="model-check-info">
+                        <strong>{model.label}</strong>
+                        <small>In {tokenPrice(model.input * selectedGroup.multiplier)} · Out {tokenPrice(model.output * selectedGroup.multiplier)}</small>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {error && <div className="form-error">{error}</div>}
+        </div>
+
+        {/* Footer */}
+        <div className="modal-footer">
+          <button type="button" className="secondary-button" onClick={onClose}>
+            {tr(locale, 'Cancelar', 'Cancel')}
+          </button>
+          <button className="primary-button" disabled={loading || !group || models.length === 0} type="submit">
+            {loading ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}
+            <span>{tr(locale, 'Crear API Key', 'Create API Key')}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  )
 }
 
 function SecretModal({ secret, onClose, locale }: { secret: string; onClose: () => void; locale: PortalLocale }) {
   const [copied, setCopied] = useState(false)
-  async function copy() { await navigator.clipboard.writeText(secret); setCopied(true); setTimeout(() => setCopied(false), 1800) }
-  return <div className="modal-backdrop"><div className="modal secret-modal"><div className="modal-header"><div><p className="eyebrow">API Key</p><h3>{tr(locale, 'Credencial lista', 'Credential ready')}</h3></div><button className="icon-button" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button></div><div className="modal-body"><div className="secret-box"><code>{secret}</code><button className="icon-button" onClick={copy} aria-label={tr(locale, 'Copiar', 'Copy')}>{copied ? <Check size={19} /> : <Copy size={19} />}</button></div><p className="security-note"><ShieldCheck size={17} />{tr(locale, 'Guardala en un gestor de secretos y no la incluyas en código público.', 'Store it in a secrets manager and never include it in public code.')}</p></div><div className="modal-footer"><button className="primary-button" onClick={onClose}>{tr(locale, 'Listo', 'Done')}</button></div></div></div>
+  async function copy() {
+    await navigator.clipboard.writeText(secret)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <div className="modal secret-modal">
+        <div className="modal-header">
+          <div>
+            <div className="landing-eyebrow-badge" style={{ marginBottom: '4px' }}>
+              <Sparkles size={13} />
+              <span>{tr(locale, 'CREDENCIAL GENERADA', 'CREDENTIAL READY')}</span>
+            </div>
+            <h3>{tr(locale, 'Tu API Key está lista', 'Your API Key is Ready')}</h3>
+            <p className="modal-subtitle">{tr(locale, 'Copiá tu clave ahora. Podés usarla de inmediato en cualquier editor.', 'Copy your key now. You can use it in any editor.')}</p>
+          </div>
+          <button className="icon-button modal-close-btn" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button>
+        </div>
+
+        <div className="modal-body">
+          <div className="secret-card-display">
+            <div className="secret-code-box">
+              <code>{secret}</code>
+            </div>
+            <button className={`primary-button copy-secret-btn ${copied ? 'copied' : ''}`} onClick={copy} type="button">
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              <span>{copied ? tr(locale, '¡Clave Copiada!', 'Key Copied!') : tr(locale, 'Copiar al portapapeles', 'Copy to Clipboard')}</span>
+            </button>
+          </div>
+
+          <div className="security-notice-card">
+            <ShieldCheck size={20} color="#10b981" />
+            <div>
+              <strong>{tr(locale, 'Protegé tu credencial', 'Protect your credential')}</strong>
+              <p>{tr(locale, 'No la compartas públicamente en repositorios ni foros. Podés revocarla o cambiar su límite cuando quieras.', 'Do not share it in public repos. You can revoke it or change its limits anytime.')}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button className="primary-button" onClick={onClose}>{tr(locale, 'Entendido, cerrar', 'Got it, close')}</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 type SetupTarget = 'codex' | 'codex-ws' | 'opencode'
@@ -692,14 +1153,14 @@ function UseApiKeyModal({ data, keyInfo, onClose, locale }: { data: DashboardDat
         const body = await readJson(await fetch(`/api/keys/${keyInfo.id}/reveal`, { method: 'POST' }))
         if (!cancelled) setSecret(body.data.key)
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'No se pudo cargar la clave.')
+        if (!cancelled) setError(cause instanceof Error ? cause.message : (locale === 'en' ? 'Could not load key.' : 'No se pudo cargar la clave.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     void loadSecret()
     return () => { cancelled = true }
-  }, [keyInfo.id])
+  }, [keyInfo.id, locale])
 
   const files = setupFiles(target, os, data.gatewayUrl, secret, authMode)
   async function copy(path: string, content: string) {
@@ -708,24 +1169,72 @@ function UseApiKeyModal({ data, keyInfo, onClose, locale }: { data: DashboardDat
     setTimeout(() => setCopied(''), 1800)
   }
 
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <div className="modal setup-modal">
-      <div className="modal-header"><div><p className="eyebrow">{tr(locale, 'Usar API Key', 'Use API Key')} · {keyInfo.name}</p><h3>{tr(locale, 'Configuración de cliente', 'Client setup')}</h3></div><button className="icon-button" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button></div>
-      <div className="setup-controls">
-        <div className="setup-segment"><span>{tr(locale, 'Cliente', 'Client')}</span><div>{([['codex', 'Codex CLI'], ['codex-ws', 'Codex CLI (WebSocket)'], ['opencode', 'OpenCode']] as const).map(([value, label]) => <button key={value} className={target === value ? 'active' : ''} onClick={() => setTarget(value)}>{label}</button>)}</div></div>
-        <div className="setup-segment"><span>{tr(locale, 'Autenticación', 'Authentication')}</span><div>{([['compatibility', 'Compatibility mode'], ['api-key', 'API Key Mode']] as const).map(([value, label]) => <button key={value} className={authMode === value ? 'active' : ''} onClick={() => setAuthMode(value)}>{label}</button>)}</div></div>
-        <div className="setup-segment"><span>{tr(locale, 'Sistema', 'System')}</span><div>{([['unix', 'macOS / Linux'], ['windows', 'Windows']] as const).map(([value, label]) => <button key={value} className={os === value ? 'active' : ''} onClick={() => setOs(value)}>{label}</button>)}</div></div>
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <div className="modal setup-modal">
+        <div className="modal-header">
+          <div>
+            <div className="landing-eyebrow-badge" style={{ marginBottom: '4px' }}>
+              <Terminal size={13} />
+              <span>{tr(locale, 'GUÍA DE CONEXIÓN', 'SETUP GUIDE')}</span>
+            </div>
+            <h3>{tr(locale, 'Conectar', 'Connect')} · {keyInfo.name}</h3>
+            <p className="modal-subtitle">{tr(locale, 'Archivos de configuración listos para copiar y pegar.', 'Ready-to-use configuration files.')}</p>
+          </div>
+          <button className="icon-button modal-close-btn" onClick={onClose} aria-label={tr(locale, 'Cerrar', 'Close')}><X size={20} /></button>
+        </div>
+
+        <div className="modal-body setup-body">
+          <div className="setup-controls">
+            <div className="setup-segment">
+              <span>{tr(locale, 'Cliente', 'Client')}</span>
+              <div>
+                {([['codex', 'Codex CLI'], ['codex-ws', 'Codex CLI (WS)'], ['opencode', 'OpenCode']] as const).map(([value, label]) => (
+                  <button key={value} className={target === value ? 'active' : ''} onClick={() => setTarget(value)}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="setup-segment">
+              <span>{tr(locale, 'Autenticación', 'Auth')}</span>
+              <div>
+                {([['compatibility', 'Compatibility'], ['api-key', 'API Key Direct']] as const).map(([value, label]) => (
+                  <button key={value} className={authMode === value ? 'active' : ''} onClick={() => setAuthMode(value)}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="setup-segment">
+              <span>{tr(locale, 'Sistema', 'OS')}</span>
+              <div>
+                {([['unix', 'macOS / Linux'], ['windows', 'Windows']] as const).map(([value, label]) => (
+                  <button key={value} className={os === value ? 'active' : ''} onClick={() => setOs(value)}>{label}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {loading && <div className="setup-loading"><LoaderCircle className="spin" size={19} />{tr(locale, 'Cargando la credencial...', 'Loading key credential...')}</div>}
+          {error && <div className="form-error">{error}</div>}
+
+          {!loading && !error && files.map((file) => (
+            <section className="setup-file" key={file.path}>
+              <div className="setup-file-head">
+                <code>{file.path}</code>
+                <button className="copy-code" onClick={() => copy(file.path, file.content)}>
+                  {copied === file.path ? <Check size={16} /> : <Copy size={16} />}
+                  {copied === file.path ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}
+                </button>
+              </div>
+              <pre><code>{file.content}</code></pre>
+            </section>
+          ))}
+        </div>
+
+        <div className="modal-footer">
+          <button className="primary-button" onClick={onClose}>{tr(locale, 'Listo', 'Done')}</button>
+        </div>
       </div>
-      <p className="setup-mode-note">{authMode === 'api-key' ? tr(locale, 'API Key Mode usa la credencial directa del cliente para autorizar el gateway.', 'API Key Mode uses the client credential to authorize the gateway.') : tr(locale, 'Compatibility mode genera el formato OPENAI_API_KEY para clientes existentes.', 'Compatibility mode generates the OPENAI_API_KEY format for existing clients.')}</p>
-      <div className="modal-body setup-body">
-        {loading && <div className="setup-loading"><LoaderCircle className="spin" size={19} />{tr(locale, 'Cargando la credencial de esta clave...', 'Loading this key credential...')}</div>}
-        {error && <div className="form-error">{error}</div>}
-        {!loading && !error && files.map((file) => <section className="setup-file" key={file.path}><div className="setup-file-head"><code>{file.path}</code><button className="copy-code" onClick={() => copy(file.path, file.content)}>{copied === file.path ? <Check size={16} /> : <Copy size={16} />}{copied === file.path ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</button></div><pre><code>{file.content}</code></pre></section>)}
-        <p className="security-note"><ShieldCheck size={17} />{tr(locale, 'La clave se revela solo para generar esta configuración. No la compartas ni la subas a Git.', 'The key is revealed only to generate this setup. Do not share it or upload it to Git.')}</p>
-      </div>
-      <div className="modal-footer"><button className="primary-button" onClick={onClose}>{tr(locale, 'Listo', 'Done')}</button></div>
     </div>
-  </div>
+  )
 }
 
 function KeysView({ data, reload, locale }: { data: DashboardData; reload: () => Promise<void>; locale: PortalLocale }) {
@@ -733,21 +1242,49 @@ function KeysView({ data, reload, locale }: { data: DashboardData; reload: () =>
   const [secret, setSecret] = useState('')
   const [setupKey, setSetupKey] = useState<ApiKey | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const english = locale === 'en'
 
   async function reveal(id: number) {
     setBusyId(id); setError('')
-    try { const body = await readJson(await fetch(`/api/keys/${id}/reveal`, { method: 'POST' })); setSecret(body.data.key) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo revelar la clave.') }
-    finally { setBusyId(null) }
+    try {
+      const body = await readJson(await fetch(`/api/keys/${id}/reveal`, { method: 'POST' }))
+      setSecret(body.data.key)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (english ? 'Could not reveal key.' : 'No se pudo revelar la clave.'))
+    } finally {
+      setBusyId(null)
+    }
   }
+
+  async function copyKey(key: ApiKey) {
+    setBusyId(key.id); setError('')
+    try {
+      const body = await readJson(await fetch(`/api/keys/${key.id}/reveal`, { method: 'POST' }))
+      await navigator.clipboard.writeText(body.data.key)
+      setCopiedKeyId(key.id)
+      setTimeout(() => setCopiedKeyId(null), 2000)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (english ? 'Could not copy key.' : 'No se pudo copiar la clave.'))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   async function remove(id: number) {
     if (!confirm(tr(locale, '¿Eliminar esta API Key? Las aplicaciones que la usen dejarán de funcionar.', 'Delete this API Key? Applications using it will stop working.'))) return
     setBusyId(id); setError('')
-    try { await readJson(await fetch(`/api/keys/${id}`, { method: 'DELETE' })); await reload() }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo eliminar la clave.') }
-    finally { setBusyId(null) }
+    try {
+      await readJson(await fetch(`/api/keys/${id}`, { method: 'DELETE' }))
+      await reload()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : (english ? 'Could not delete key.' : 'No se pudo eliminar la clave.'))
+    } finally {
+      setBusyId(null)
+    }
   }
+
   async function changeGroup(id: number, group: string) {
     setBusyId(id); setError('')
     try {
@@ -758,11 +1295,200 @@ function KeysView({ data, reload, locale }: { data: DashboardData; reload: () =>
       }))
       await reload()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudo cambiar el grupo de la clave.')
-    } finally { setBusyId(null) }
+      setError(cause instanceof Error ? cause.message : (english ? 'Could not update key group.' : 'No se pudo cambiar el grupo de la clave.'))
+    } finally {
+      setBusyId(null)
+    }
   }
 
-  return <div className="view-stack"><div className="view-actions"><div className="info-chip"><ShieldCheck size={16} />{data.keys.filter((key) => key.status === 1).length} {tr(locale, 'activas', 'active')}</div><button className="primary-button" onClick={() => setCreating(true)}><Plus size={18} />{tr(locale, 'Crear API Key', 'Create API Key')}</button></div>{error && <div className="form-error">{error}</div>}<section className="section-block"><div className="table-wrap"><table><thead><tr><th>{tr(locale, 'Nombre', 'Name')}</th><th>{tr(locale, 'Credencial', 'Credential')}</th><th>{tr(locale, 'Grupo', 'Group')}</th><th>{tr(locale, 'Modelos', 'Models')}</th><th>{tr(locale, 'Saldo', 'Balance')}</th><th>{tr(locale, 'Último uso', 'Last use')}</th><th className="right">{tr(locale, 'Acciones', 'Actions')}</th></tr></thead><tbody>{data.keys.length === 0 && <tr><td colSpan={7}><div className="empty-row"><KeyRound size={20} />{tr(locale, 'No hay claves creadas', 'No keys created')}</div></td></tr>}{data.keys.map((key) => <tr key={key.id}><td><span className="key-title"><span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />{key.name}</span></td><td><code className="masked-key">{key.key}</code></td><td><select className="key-group-select" value={key.group || ''} disabled={busyId === key.id} onChange={(event) => changeGroup(key.id, event.target.value)}>{data.salesGroups.map((group) => <option key={group.code} value={group.code}>{locale === 'en' ? group.label_en : group.label_es}</option>)}</select></td><td><span className="model-count">{key.model_limits ? key.model_limits.split(',').length : tr(locale, 'Todos', 'All')}</span></td><td>{money(key.remain_quota / data.quotaPerUsd, 4)}</td><td>{formatDate(key.accessed_time)}</td><td className="right"><span className="action-group"><button className="secondary-button key-use-button" onClick={() => setSetupKey(key)}><Terminal size={16} />{tr(locale, 'Usar API Key', 'Use API Key')}</button><button className="icon-button" onClick={() => reveal(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Revelar clave', 'Reveal key')}>{busyId === key.id ? <LoaderCircle className="spin" size={17} /> : <Eye size={17} />}</button><button className="icon-button danger" onClick={() => remove(key.id)} disabled={busyId === key.id} aria-label={tr(locale, 'Eliminar clave', 'Delete key')}><Trash2 size={17} /></button></span></td></tr>)}</tbody></table></div></section>{creating && <KeyModal data={data} locale={locale} onClose={() => setCreating(false)} onCreated={async (key) => { setCreating(false); setSecret(key); await reload() }} />}{secret && <SecretModal secret={secret} locale={locale} onClose={() => setSecret('')} />}{setupKey && <UseApiKeyModal data={data} locale={locale} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}</div>
+  const activeCount = data.keys.filter((key) => key.status === 1).length
+
+  return (
+    <div className="view-stack">
+      {/* 1. Hero Card */}
+      <section className="keys-hero-card">
+        <div>
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '8px' }}>
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'SUBCLAVES AISLADAS Y SEGURIDAD', 'ISOLATED SUBKEYS & SECURITY')}</span>
+          </div>
+          <h2>{tr(locale, 'API Keys y Credenciales de Acceso', 'API Keys & Access Credentials')}</h2>
+          <p>
+            {tr(
+              locale,
+              'Generá subclaves con límites de gasto y modelos específicos para Cursor, Windsurf, Claude Code o tus scripts.',
+              'Generate subkeys with custom spending limits and allowed models for Cursor, Claude Code, or production servers.'
+            )}
+          </p>
+        </div>
+        <div className="keys-hero-meta">
+          <div>
+            <KeyRound size={18} color="#10b981" />
+            <div>
+              <strong>{activeCount} {tr(locale, 'Activas', 'Active')}</strong>
+              <small>{data.keys.length} {tr(locale, 'en total', 'total created')}</small>
+            </div>
+          </div>
+          <div>
+            <ShieldCheck size={18} color="#06b6d4" />
+            <div>
+              <strong>AES-256</strong>
+              <small>{tr(locale, 'Cifrado seguro', 'Encrypted')}</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Toolbar */}
+      <div className="keys-toolbar">
+        <div className="keys-count-badge">
+          <span className="status-dot active" />
+          <span>{activeCount} {tr(locale, 'claves operativas', 'active keys')}</span>
+        </div>
+        <button className="primary-button" onClick={() => setCreating(true)}>
+          <Plus size={18} />
+          <span>{tr(locale, 'Crear API Key', 'Create API Key')}</span>
+        </button>
+      </div>
+
+      {error && <div className="form-error">{error}</div>}
+
+      {/* 3. Table Card */}
+      <section className="keys-table-card">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>{tr(locale, 'Nombre', 'Name')}</th>
+                <th>{tr(locale, 'Credencial', 'Credential')}</th>
+                <th>{tr(locale, 'Grupo comercial', 'Sales Group')}</th>
+                <th>{tr(locale, 'Modelos', 'Models')}</th>
+                <th>{tr(locale, 'Saldo asignado', 'Quota Limit')}</th>
+                <th>{tr(locale, 'Último acceso', 'Last used')}</th>
+                <th className="right">{tr(locale, 'Acciones', 'Actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.keys.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="empty-row" style={{ padding: '40px 0' }}>
+                      <KeyRound size={24} />
+                      <div>
+                        <strong>{tr(locale, 'No tenés ninguna API Key creada', 'No API Keys created yet')}</strong>
+                        <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
+                          {tr(locale, 'Creá tu primera credencial para conectar Cursor o Claude Code.', 'Create your first credential to connect Cursor or Claude.')}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                data.keys.map((key) => (
+                  <tr key={key.id}>
+                    <td>
+                      <div className="key-title-cell">
+                        <span className="key-name">
+                          <span className={`status-dot ${key.status === 1 ? 'active' : ''}`} />
+                          {key.name}
+                        </span>
+                        <span className="key-created-at">{tr(locale, 'Creada', 'Created')} {formatDate(key.created_time)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="masked-key-box">
+                        <code>{key.key}</code>
+                        <button
+                          className={`copy-btn ${copiedKeyId === key.id ? 'copied' : ''}`}
+                          style={{ position: 'static', padding: '3px 8px' }}
+                          onClick={() => copyKey(key)}
+                          disabled={busyId === key.id}
+                          type="button"
+                          title={tr(locale, 'Copiar clave', 'Copy key')}
+                        >
+                          {copiedKeyId === key.id ? <Check size={13} /> : <Copy size={13} />}
+                          <span style={{ fontSize: '11px' }}>{copiedKeyId === key.id ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</span>
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      <select
+                        className="key-group-select"
+                        value={key.group || ''}
+                        disabled={busyId === key.id}
+                        onChange={(event) => changeGroup(key.id, event.target.value)}
+                      >
+                        {data.salesGroups.map((group) => (
+                          <option key={group.code} value={group.code}>
+                            {locale === 'en' ? group.label_en : group.label_es} ({group.price_multiplier}x)
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <span className="model-count-pill">
+                        <Cpu size={13} />
+                        <span>{key.model_limits ? `${key.model_limits.split(',').length} ${tr(locale, 'modelos', 'models')}` : tr(locale, 'Todos', 'All')}</span>
+                      </span>
+                    </td>
+                    <td>
+                      <strong>{money(key.remain_quota / data.quotaPerUsd, 2)}</strong>
+                    </td>
+                    <td>
+                      <small style={{ color: '#64748b' }}>{key.accessed_time ? formatDate(key.accessed_time) : tr(locale, 'Nunca', 'Never')}</small>
+                    </td>
+                    <td className="right">
+                      <div className="key-action-btns">
+                        <button className="secondary-button key-use-btn" onClick={() => setSetupKey(key)}>
+                          <Terminal size={14} />
+                          <span>{tr(locale, 'Conectar', 'Connect')}</span>
+                        </button>
+                        <button
+                          className="icon-button"
+                          onClick={() => reveal(key.id)}
+                          disabled={busyId === key.id}
+                          aria-label={tr(locale, 'Revelar clave', 'Reveal key')}
+                          title={tr(locale, 'Revelar clave', 'Reveal key')}
+                        >
+                          {busyId === key.id ? <LoaderCircle className="spin" size={16} /> : <Eye size={16} />}
+                        </button>
+                        <button
+                          className="icon-button icon-btn-danger"
+                          onClick={() => remove(key.id)}
+                          disabled={busyId === key.id}
+                          aria-label={tr(locale, 'Eliminar clave', 'Delete key')}
+                          title={tr(locale, 'Eliminar clave', 'Delete key')}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {creating && (
+        <KeyModal
+          data={data}
+          locale={locale}
+          onClose={() => setCreating(false)}
+          onCreated={async (key) => {
+            setCreating(false)
+            setSecret(key)
+            await reload()
+          }}
+        />
+      )}
+
+      {secret && <SecretModal secret={secret} locale={locale} onClose={() => setSecret('')} />}
+
+      {setupKey && <UseApiKeyModal data={data} locale={locale} keyInfo={setupKey} onClose={() => setSetupKey(null)} />}
+    </div>
+  )
 }
 
 type UsageRange = '24h' | '7d' | '30d'
@@ -860,6 +1586,7 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
   const [error, setError] = useState('')
   const [range, setRange] = useState<UsageRange>('7d')
   const [granularity, setGranularity] = useState<UsageGranularity>('day')
+  const english = locale === 'en'
 
   useEffect(() => {
     let alive = true
@@ -869,20 +1596,20 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
       try {
         const response = await fetch('/api/usage', { cache: 'no-store' })
         if (response.status === 401) {
-          setError('La sesión expiró.')
+          setError(english ? 'Session expired.' : 'La sesión expiró.')
           return
         }
         const body = await readJson(response)
         if (alive) setUsage(body.data)
       } catch (cause) {
-        if (alive) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el usage.')
+        if (alive) setError(cause instanceof Error ? cause.message : (english ? 'Could not load usage data.' : 'No se pudo cargar el uso real.'))
       } finally {
         if (alive) setLoading(false)
       }
     }
     void loadUsage()
     return () => { alive = false }
-  }, [])
+  }, [english])
 
   const quotaPerUsd = usage?.quotaPerUsd || data.quotaPerUsd
   const logs = (usage?.logs || []).filter((log) => Boolean(log.model_name?.trim()) && Boolean(log.token_name?.trim()) && (((log.prompt_tokens || 0) + (log.completion_tokens || 0)) > 0 || (log.quota || 0) > 0))
@@ -901,66 +1628,47 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
   const keyBreakdown = useMemo(() => buildBreakdown(filtered, quotaPerUsd, 'key').slice(0, 6), [filtered, quotaPerUsd])
   const totalModelRequests = modelBreakdown.reduce((sum, item) => sum + item.requests, 0) || 1
   const totalKeyRequests = keyBreakdown.reduce((sum, item) => sum + item.requests, 0) || 1
-  const seriesMax = Math.max(1, ...buckets.map((item) => item.requests))
-  const series = buckets.slice(-14)
+
+  const series = buckets.map((bucket) => ({ label: bucket.label, requests: bucket.requests }))
+  const seriesMax = Math.max(1, ...series.map((bucket) => bucket.requests))
+
   const detailedRows = useMemo(() => filtered.map((log) => {
-    const meta = parseUsageMeta(log)
-    const billingMode = meta.billing_mode || meta.billing_source || 'Token'
-    const rateMultiplier = meta.cache_ratio || 0.1
-    const billedCost = (log.quota || 0) / quotaPerUsd
-    const originalCost = rateMultiplier > 0 ? billedCost / rateMultiplier : billedCost
-    const inputTokens = Math.max(0, (log.prompt_tokens || 0) - (meta.cache_tokens || 0))
-    const outputTokens = log.completion_tokens || 0
-    const cacheReadTokens = meta.cache_tokens || 0
-    const cacheCreationTokens = meta.cache_creation_tokens || 0
-    const totalTokenCount = inputTokens + outputTokens + cacheReadTokens + cacheCreationTokens
-    const rowType = log.type === 2 ? 'Stream' : log.type === 1 ? 'Sync' : (meta.stream_status?.status ? 'Stream' : 'Sync')
+    const meta = parseUsageMeta(log) as Record<string, unknown>
+    const originalCost = ((log.quota || 0) / quotaPerUsd)
+    const rateMultiplier = 1.0
+    const billedCost = originalCost * rateMultiplier
     return {
       id: log.id,
       time: log.created_at,
-      apiKey: log.token_name || 'Sin nombre',
-      model: log.model_name || 'N/D',
-      reasoning: meta.reasoning_effort || '-',
-      endpoint: meta.request_path || log.channel_name || '/v1/chat/completions',
-      ip: log.ip || 'N/D',
-      type: rowType,
-      billingMode,
-      inputTokens,
-      outputTokens,
-      cacheReadTokens,
-      cacheCreationTokens,
+      apiKey: log.token_name || 'default',
+      model: log.model_name || 'unknown',
+      reasoning: meta.reasoning_mode ? String(meta.reasoning_mode) : '-',
+      endpoint: '/v1/chat/completions',
+      ip: log.ip || '127.0.0.1',
+      type: meta.stream ? 'stream' : 'sync',
+      billingMode: 'prepaid',
+      inputTokens: log.prompt_tokens || 0,
+      outputTokens: log.completion_tokens || 0,
+      cacheReadTokens: Number(meta.cache_read_tokens || 0),
+      cacheCreationTokens: Number(meta.cache_creation_tokens || 0),
       rateMultiplier,
       billedCost,
       originalCost,
-      firstTokenMs: meta.frt || 0,
+      firstTokenMs: Number(meta.first_token_time || 0),
       durationMs: log.use_time || 0,
-      totalTokenCount,
     }
   }), [filtered, quotaPerUsd])
 
   function exportCsv() {
-    const header = [
-      'Time',
-      'API Key Name',
-      'Model',
-      'Reasoning Effort',
-      'Inbound Endpoint',
-      'IP Address',
-      'Type',
-      'Billing Mode',
-      'Input Tokens',
-      'Output Tokens',
-      'Cache Read Tokens',
-      'Cache Creation Tokens',
-      'Rate Multiplier',
-      'Billed Cost',
-      'Original Cost',
-      'First Token (ms)',
-      'Duration (ms)',
+    const headers = [
+      'timestamp', 'time_iso', 'api_key', 'model', 'reasoning', 'endpoint', 'ip', 'stream_type', 'billing_mode',
+      'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_creation_tokens', 'rate_multiplier',
+      'billed_cost_usd', 'original_cost_usd', 'first_token_ms', 'duration_ms',
     ]
     const rows = [
-      header.map(csvEscape).join(','),
+      headers.join(','),
       ...detailedRows.map((row) => [
+        row.time,
         new Date(row.time * 1000).toISOString(),
         row.apiKey,
         row.model,
@@ -984,20 +1692,33 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
     downloadText(`usage_${suffix}.csv`, `${rows.join('\n')}\n`)
   }
 
+  const totalCostArs = Math.round(totalCost * 1600).toLocaleString('es-AR')
+
   return (
     <div className="usage-page">
+      {/* Hero */}
       <section className="usage-hero">
         <div>
-          <p className="eyebrow">Usage Records</p>
-          <h2>{tr(locale, 'Uso real por cliente', 'Real customer usage')}</h2>
-          <span>{tr(locale, 'Todo el consumo que ve este usuario sale de sus propios logs en New API.', 'All usage shown here comes from this user’s own New API logs.')}</span>
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '8px' }}>
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'MÉTRICAS Y REGISTROS EN TIEMPO REAL', 'REAL-TIME USAGE & LOGS')}</span>
+          </div>
+          <h2>{tr(locale, 'Analíticas de Consumo y Tokens', 'Usage Analytics & Token Logs')}</h2>
+          <span>{tr(locale, 'Monitoreo detallado de consumo por modelo, claves de API, costo en tiempo real y latencia.', 'Detailed breakdown of requests, token distribution, real-time cost, and latency.')}</span>
         </div>
         <div className="usage-hero-meta">
-          <div><small>{tr(locale, 'Cuenta', 'Account')}</small><strong>{usage?.user.display_name || usage?.user.username || data.user.username}</strong></div>
-          <div><small>{tr(locale, 'Ventana', 'Window')}</small><strong>{range === '24h' ? tr(locale, '24 horas', '24 hours') : range === '7d' ? tr(locale, '7 días', '7 days') : tr(locale, '30 días', '30 days')}</strong></div>
+          <div>
+            <small>{tr(locale, 'Cuenta', 'Account')}</small>
+            <strong>{usage?.user.display_name || usage?.user.username || data.user.username}</strong>
+          </div>
+          <div>
+            <small>{tr(locale, 'Ventana', 'Window')}</small>
+            <strong>{range === '24h' ? tr(locale, '24 horas', '24 hours') : range === '7d' ? tr(locale, '7 días', '7 days') : tr(locale, '30 días', '30 days')}</strong>
+          </div>
         </div>
       </section>
 
+      {/* Toolbar */}
       <section className="usage-toolbar">
         <div className="usage-controls">
           <label>
@@ -1019,30 +1740,65 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
         <div className="usage-toolbar-actions">
           <div className="usage-toolbar-note">
             <Clock3 size={16} />
-            <span>{tr(locale, 'Datos en vivo con actualización al abrir la pestaña', 'Live data refreshes when this tab opens')}</span>
+            <span>{tr(locale, 'Actualización en vivo', 'Live data syncing')}</span>
           </div>
-          <button className="secondary-button" onClick={exportCsv}><Clipboard size={16} />Export CSV</button>
+          <button className="secondary-button" onClick={exportCsv}>
+            <Clipboard size={16} />
+            <span>{tr(locale, 'Exportar CSV', 'Export CSV')}</span>
+          </button>
         </div>
       </section>
 
-      {loading && <section className="usage-skeleton"><LoaderCircle className="spin" size={26} /><span>{tr(locale, 'Cargando uso real...', 'Loading real usage...')}</span></section>}
+      {loading && (
+        <section className="usage-skeleton">
+          <LoaderCircle className="spin" size={28} />
+          <span>{tr(locale, 'Sincronizando registros de uso...', 'Loading real-time usage data...')}</span>
+        </section>
+      )}
+
       {error && <div className="form-error">{error}</div>}
 
       {!loading && !error && (
         <>
+          {/* Stats Grid */}
           <section className="usage-stats-grid">
-            <UsageStat label={tr(locale, 'Total requests', 'Total requests')} value={compactNumber(totalRequests)} hint={tr(locale, 'Solicitudes del rango', 'Requests in range')} icon={Activity} tone="blue" />
-            <UsageStat label={tr(locale, 'Total tokens', 'Total tokens')} value={compactNumber(totalTokens)} hint={`Prompt ${compactNumber(totalPrompt)} / Completion ${compactNumber(totalCompletion)}`} icon={Gauge} tone="green" />
-            <UsageStat label={tr(locale, 'Costo total', 'Total cost')} value={money(totalCost, totalCost < 1 ? 4 : 2)} hint={tr(locale, 'Costo real del usuario', 'Actual user cost')} icon={CircleDollarSign} tone="coral" />
-            <UsageStat label={tr(locale, 'Duración promedio', 'Avg duration')} value={formatDuration(avgDuration)} hint={tr(locale, 'Tiempo promedio por request', 'Average request time')} icon={Clock3} tone="violet" />
+            <UsageStat
+              label={tr(locale, 'Total solicitudes', 'Total requests')}
+              value={compactNumber(totalRequests)}
+              hint={tr(locale, 'Peticiones en rango', 'Requests in range')}
+              icon={Activity}
+              tone="blue"
+            />
+            <UsageStat
+              label={tr(locale, 'Total tokens', 'Total tokens')}
+              value={compactNumber(totalTokens)}
+              hint={`In: ${compactNumber(totalPrompt)} / Out: ${compactNumber(totalCompletion)}`}
+              icon={Gauge}
+              tone="green"
+            />
+            <UsageStat
+              label={tr(locale, 'Costo total', 'Total cost')}
+              value={money(totalCost, totalCost < 1 ? 4 : 2)}
+              hint={tr(locale, `~${totalCostArs} ARS consumidos`, 'Actual user cost')}
+              icon={CircleDollarSign}
+              tone="coral"
+            />
+            <UsageStat
+              label={tr(locale, 'Latencia promedio', 'Avg duration')}
+              value={formatDuration(avgDuration)}
+              hint={tr(locale, 'Tiempo medio de respuesta', 'Average response time')}
+              icon={Clock3}
+              tone="violet"
+            />
           </section>
 
+          {/* Charts Grid */}
           <section className="usage-chart-grid">
             <article className="usage-panel">
               <div className="usage-panel-head">
                 <div>
-                  <p>Model Distribution</p>
-                  <h3>{tr(locale, 'Por requests', 'By requests')}</h3>
+                  <p>{tr(locale, 'DISTRIBUCIÓN DE MODELOS', 'MODEL DISTRIBUTION')}</p>
+                  <h3>{tr(locale, 'Por solicitudes', 'By requests')}</h3>
                 </div>
                 <span>Top {modelBreakdown.length}</span>
               </div>
@@ -1058,19 +1814,25 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
                   }))}
                 />
                 <div className="usage-list">
-                  {modelBreakdown.map((item, index) => (
-                    <div className="usage-list-row" key={item.label}>
-                      <div>
-                        <strong>{item.label}</strong>
-                        <small>{compactNumber(item.tokens)} tokens</small>
-                      </div>
-                      <div>
-                        <span>{compactNumber(item.requests)} req</span>
-                        <small>{money(item.cost, 4)}</small>
-                      </div>
-                      <i style={{ background: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'][index % 6] }} />
+                  {modelBreakdown.length === 0 ? (
+                    <div className="empty-row" style={{ fontSize: '12px' }}>
+                      <Bot size={16} /> {tr(locale, 'Sin datos de modelos en este rango', 'No model data in this range')}
                     </div>
-                  ))}
+                  ) : (
+                    modelBreakdown.map((item, index) => (
+                      <div className="usage-list-row" key={item.label}>
+                        <div>
+                          <strong>{item.label}</strong>
+                          <small>{compactNumber(item.tokens)} tokens</small>
+                        </div>
+                        <div>
+                          <span>{compactNumber(item.requests)} req</span>
+                          <small>{money(item.cost, 4)}</small>
+                        </div>
+                        <i style={{ background: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'][index % 6] }} />
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </article>
@@ -1078,8 +1840,8 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
             <article className="usage-panel">
               <div className="usage-panel-head">
                 <div>
-                  <p>Group Usage Distribution</p>
-                  <h3>{tr(locale, 'Por keys', 'By keys')}</h3>
+                  <p>{tr(locale, 'DISTRIBUCIÓN POR CLAVES', 'GROUP USAGE DISTRIBUTION')}</p>
+                  <h3>{tr(locale, 'Por API Keys', 'By API Keys')}</h3>
                 </div>
                 <span>Top {keyBreakdown.length}</span>
               </div>
@@ -1095,51 +1857,64 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
                   }))}
                 />
                 <div className="usage-list">
-                  {keyBreakdown.map((item, index) => (
-                    <div className="usage-list-row" key={item.label}>
-                      <div>
-                        <strong>{item.label}</strong>
-                        <small>{compactNumber(item.tokens)} tokens</small>
-                      </div>
-                      <div>
-                        <span>{compactNumber(item.requests)} req</span>
-                        <small>{money(item.cost, 4)}</small>
-                      </div>
-                      <i style={{ background: ['#10b981', '#34d399', '#06b6d4', '#3b82f6', '#f59e0b', '#ef4444'][index % 6] }} />
+                  {keyBreakdown.length === 0 ? (
+                    <div className="empty-row" style={{ fontSize: '12px' }}>
+                      <KeyRound size={16} /> {tr(locale, 'Sin datos de claves en este rango', 'No key data in this range')}
                     </div>
-                  ))}
+                  ) : (
+                    keyBreakdown.map((item, index) => (
+                      <div className="usage-list-row" key={item.label}>
+                        <div>
+                          <strong>{item.label}</strong>
+                          <small>{compactNumber(item.tokens)} tokens</small>
+                        </div>
+                        <div>
+                          <span>{compactNumber(item.requests)} req</span>
+                          <small>{money(item.cost, 4)}</small>
+                        </div>
+                        <i style={{ background: ['#10b981', '#34d399', '#06b6d4', '#3b82f6', '#f59e0b', '#ef4444'][index % 6] }} />
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </article>
           </section>
 
+          {/* Activity Trend Graph */}
           <section className="usage-panel usage-graph-panel">
             <div className="usage-panel-head">
               <div>
-                <p>Activity Trend</p>
-                <h3>{tr(locale, 'Solicitudes del rango', 'Requests in range')}</h3>
+                <p>{tr(locale, 'TENDENCIA DE ACTIVIDAD', 'ACTIVITY TREND')}</p>
+                <h3>{tr(locale, 'Peticiones en el tiempo', 'Requests over time')}</h3>
               </div>
               <span>{series.length} {tr(locale, 'puntos', 'points')}</span>
             </div>
             <div className="usage-bars">
-              {series.length === 0 && <div className="empty-row"><Activity size={18} />{tr(locale, 'Sin actividad en el rango', 'No activity in this range')}</div>}
-              {series.map((bucket) => (
-                <div className="usage-bar-item" key={`${bucket.label}-${bucket.requests}`}>
-                  <div className="usage-bar-track">
-                    <span style={{ height: `${Math.max(6, (bucket.requests / seriesMax) * 100)}%` }} />
-                  </div>
-                  <strong>{bucket.requests}</strong>
-                  <small>{bucket.label}</small>
+              {series.length === 0 || series.every(s => s.requests === 0) ? (
+                <div className="empty-row" style={{ width: '100%', height: '120px' }}>
+                  <Activity size={18} /> {tr(locale, 'Sin actividad registrada en este período', 'No activity in this range')}
                 </div>
-              ))}
+              ) : (
+                series.map((bucket) => (
+                  <div className="usage-bar-item" key={`${bucket.label}-${bucket.requests}`}>
+                    <div className="usage-bar-track">
+                      <span style={{ height: `${Math.max(8, (bucket.requests / seriesMax) * 100)}%` }} />
+                    </div>
+                    <strong>{bucket.requests}</strong>
+                    <small>{bucket.label}</small>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
+          {/* Detailed Logs Table */}
           <section className="usage-table-card">
             <div className="usage-panel-head">
               <div>
-                <p>Recent Requests</p>
-                <h3>{tr(locale, 'Tabla detallada', 'Detailed table')}</h3>
+                <p>{tr(locale, 'REGISTRO DETALLADO', 'DETAILED LOGS')}</p>
+                <h3>{tr(locale, 'Peticiones Recientes', 'Recent Requests')}</h3>
               </div>
               <span>{filtered.length} {tr(locale, 'en pantalla', 'shown')}</span>
             </div>
@@ -1147,50 +1922,44 @@ function UsageView({ data, locale }: { data: DashboardData; locale: PortalLocale
               <table>
                 <thead>
                   <tr>
-                    <th>Time</th>
-                    <th>API Key</th>
-                    <th>Model</th>
-                    <th>Reasoning</th>
-                    <th>Endpoint</th>
-                    <th>IP</th>
-                    <th>Type</th>
-                    <th>Billing</th>
-                    <th>In</th>
-                    <th>Out</th>
-                    <th>Cache R</th>
-                    <th>Cache C</th>
-                    <th>Rate</th>
-                    <th>Billed</th>
-                    <th>Original</th>
-                    <th>FRT</th>
-                    <th>Duration</th>
-                    <th className="right">{tr(locale, 'Costo', 'Cost')}</th>
+                    <th>{tr(locale, 'Hora', 'Time')}</th>
+                    <th>{tr(locale, 'API Key', 'API Key')}</th>
+                    <th>{tr(locale, 'Modelo', 'Model')}</th>
+                    <th>{tr(locale, 'Tipo', 'Type')}</th>
+                    <th>{tr(locale, 'Prompt In', 'Prompt In')}</th>
+                    <th>{tr(locale, 'Comp Out', 'Comp Out')}</th>
+                    <th>{tr(locale, 'Caché Read', 'Cache Read')}</th>
+                    <th>{tr(locale, 'Latencia', 'Latency')}</th>
+                    <th>{tr(locale, 'Duración', 'Duration')}</th>
+                    <th className="right">{tr(locale, 'Costo USD', 'Cost USD')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {detailedRows.length === 0 && <tr><td colSpan={18}><div className="empty-row"><Activity size={18} />{tr(locale, 'No hay registros para ese rango', 'No records in this range')}</div></td></tr>}
-                  {detailedRows.map((row) => (
-                    <tr key={row.id}>
-                      <td>{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.time * 1000))}</td>
-                      <td>{row.apiKey}</td>
-                      <td><span className="usage-model">{row.model}</span></td>
-                      <td>{row.reasoning}</td>
-                      <td>{row.endpoint}</td>
-                      <td>{row.ip}</td>
-                      <td>{row.type}</td>
-                      <td>{row.billingMode}</td>
-                      <td>{compactNumber(row.inputTokens)}</td>
-                      <td>{compactNumber(row.outputTokens)}</td>
-                      <td>{compactNumber(row.cacheReadTokens)}</td>
-                      <td>{compactNumber(row.cacheCreationTokens)}</td>
-                      <td>{row.rateMultiplier.toFixed(3)}</td>
-                      <td>{money(row.billedCost, 6)}</td>
-                      <td>{money(row.originalCost, 6)}</td>
-                      <td>{row.firstTokenMs ? `${Math.round(row.firstTokenMs)} ms` : '-'}</td>
-                      <td>{formatDuration(row.durationMs || 0)}</td>
-                      <td className="right strong">{money(row.billedCost, 6)}</td>
+                  {detailedRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={10}>
+                        <div className="empty-row" style={{ padding: '30px 0' }}>
+                          <Activity size={18} />
+                          {tr(locale, 'No hay peticiones registradas para este rango de fechas', 'No records found for this date range')}
+                        </div>
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    detailedRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>{new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(row.time * 1000))}</td>
+                        <td><code>{row.apiKey}</code></td>
+                        <td><span className="usage-model">{row.model}</span></td>
+                        <td><span className="info-chip" style={{ fontSize: '11px', padding: '2px 6px' }}>{row.type}</span></td>
+                        <td>{compactNumber(row.inputTokens)}</td>
+                        <td>{compactNumber(row.outputTokens)}</td>
+                        <td>{compactNumber(row.cacheReadTokens)}</td>
+                        <td>{row.firstTokenMs ? `${Math.round(row.firstTokenMs)} ms` : '-'}</td>
+                        <td>{formatDuration(row.durationMs || 0)}</td>
+                        <td className="right strong">{money(row.billedCost, 6)}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1641,59 +2410,304 @@ function AdminView({ locale }: { locale: PortalLocale }) {
 }
 
 function ModelsView({ data, locale }: { data: DashboardData; locale: PortalLocale }) {
-  return <div className="view-stack">
-    <section className="models-hero">
-      <div>
-        <p className="eyebrow">{tr(locale, 'Catálogo comercial', 'Commercial catalog')}</p>
-        <h2>{tr(locale, 'Modelos disponibles', 'Available models')}</h2>
-        <p>{tr(locale, 'Vista compacta con identidad visual real, precios y estado de venta en una sola pantalla.', 'A compact view with model identity, prices and sales status in one place.')}</p>
-      </div>
-      <div className="catalog-summary">
-        <div><Sparkles size={20} /><span><strong>{data.models.length} {tr(locale, 'modelos', 'models')}</strong><small>{tr(locale, 'Plan Profesional', 'Professional plan')}</small></span></div>
-        <div><Gauge size={20} /><span><strong>{tr(locale, 'Pago por uso', 'Pay as you go')}</strong><small>{tr(locale, 'Sin costo fijo', 'No fixed fee')}</small></span></div>
-      </div>
-    </section>
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'anthropic' | 'openai' | 'code' | 'audio' | 'reasoning'>('all')
+  const [selectedGroupCode, setSelectedGroupCode] = useState<string>(data.salesGroups[0]?.code || 'clientes')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+  const [copiedModelId, setCopiedModelId] = useState<string>('')
+  const english = locale === 'en'
 
-    <section className="model-grid">
-      {data.models.map((model) => {
-        const visual = getModelVisual(model.id)
-        const priceLines = [
-          { label: tr(locale, 'Entrada', 'Input'), value: money(model.input, model.input < 0.1 ? 4 : 3) },
-          { label: tr(locale, 'Salida', 'Output'), value: money(model.output, model.output < 0.1 ? 4 : 3) },
-          { label: 'Cache read', value: money(model.cacheRead, 5) },
-          { label: 'Cache write', value: model.cacheWrite > 0 ? money(model.cacheWrite, 5) : '-' },
-        ]
-        return (
-          <article className={`model-card tone-${model.accent}`} key={model.id}>
-            <div className="model-card-top">
-              <span className={`model-badge ${model.accent}`}><visual.Icon size={18} /></span>
-              <span className="available-badge"><Check size={13} />{tr(locale, 'Disponible', 'Available')}</span>
-            </div>
-            <div className="model-card-head">
-              <div>
-                <h3>{model.label}</h3>
-                <code>{model.id}</code>
-              </div>
-              <span className={`model-family family-${visual.family.toLowerCase()}`}>{visual.family}</span>
-            </div>
-            <div className="model-chip-row">
-              <span className="model-chip">{model.id.includes('claude') ? 'Anthropic' : 'OpenAI'}</span>
-              <span className="model-chip">{visual.mode}</span>
-            </div>
-            <div className="model-price-grid">
-              {priceLines.map((item) => (
-                <div key={item.label}>
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
+  const groupOptions = data.salesGroups.map((group) => ({
+    id: group.code,
+    label: english ? group.label_en : group.label_es,
+    description: english ? group.description_en : group.description_es,
+    note: english ? group.note_en : group.note_es,
+    multiplier: group.price_multiplier,
+    matches: (id: string) => group.model_family === 'claude' ? id.includes('claude') : group.model_family === 'chatgpt' ? !id.includes('claude') : true,
+  }))
+
+  const selectedGroup = groupOptions.find((g) => g.id === selectedGroupCode) || groupOptions[0]
+  const multiplier = selectedGroup?.multiplier ?? 1.0
+
+  async function copyId(id: string) {
+    await navigator.clipboard.writeText(id)
+    setCopiedModelId(id)
+    setTimeout(() => setCopiedModelId(''), 2000)
+  }
+
+  const filteredModels = data.models.filter((model) => {
+    const matchesSearch =
+      model.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      model.id.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+
+    if (selectedFilter === 'anthropic') return model.id.includes('claude')
+    if (selectedFilter === 'openai') return !model.id.includes('claude')
+    if (selectedFilter === 'code') return model.id.includes('codex') || model.id.includes('code')
+    if (selectedFilter === 'audio') return model.id.includes('audio') || model.id.includes('realtime')
+    if (selectedFilter === 'reasoning') return model.id.includes('opus') || model.id.includes('sonnet') || model.id.includes('o1') || model.id.includes('o3')
+
+    return true
+  })
+
+  return (
+    <div className="view-stack models-view">
+      {/* 1. Hero Card */}
+      <section className="models-hero-card">
+        <div className="models-hero-copy">
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '8px' }}>
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'CATÁLOGO OFICIAL DE MODELOS', 'COMMERCIAL MODEL CATALOG')}</span>
+          </div>
+          <h2>{tr(locale, 'Modelos de IA & Tarifas por Millón de Tokens', 'AI Models & Token Pricing')}</h2>
+          <p>
+            {tr(
+              locale,
+              'Precios finales transparentes por millón de tokens (1M tokens). Soporte para Claude 3.7 / 3.5, OpenAI GPT-4o, Codex y Prompt Caching.',
+              'Transparent pricing per million tokens (1M tokens). Support for Claude 3.7 / 3.5, OpenAI GPT-4o, Codex, and Prompt Caching.'
+            )}
+          </p>
+        </div>
+
+        <div className="models-hero-group-box">
+          <span className="group-box-label">{tr(locale, 'Tarifas según Grupo Comercial:', 'Rates by Commercial Group:')}</span>
+          <div className="group-select-wrap">
+            <select
+              className="models-group-select"
+              value={selectedGroupCode}
+              onChange={(e) => setSelectedGroupCode(e.target.value)}
+            >
+              {groupOptions.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.label} ({group.multiplier}x)
+                </option>
               ))}
+            </select>
+            <span className="multiplier-badge">{multiplier.toFixed(1)}x</span>
+          </div>
+          <small>{selectedGroup?.note || tr(locale, 'Precios base aplicados', 'Base pricing applied')}</small>
+        </div>
+      </section>
+
+      {/* 2. Search, Filter Toolbar & View Mode */}
+      <section className="models-toolbar-card">
+        <div className="models-search-box">
+          <Filter size={16} color="#64748b" />
+          <input
+            type="text"
+            placeholder={tr(locale, 'Buscar modelo por nombre o ID (ej: claude, gpt-4o, codex)...', 'Search model by name or ID (e.g. claude, gpt-4o, codex)...')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="clear-search-btn" onClick={() => setSearchQuery('')} type="button">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="models-filter-pills">
+          {[
+            { id: 'all', label: tr(locale, 'Todos', 'All') },
+            { id: 'anthropic', label: 'Anthropic / Claude' },
+            { id: 'openai', label: 'OpenAI / Codex' },
+            { id: 'reasoning', label: tr(locale, 'Razonamiento', 'Reasoning') },
+            { id: 'code', label: tr(locale, 'Código', 'Code') },
+            { id: 'audio', label: 'Audio / Realtime' },
+          ].map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              className={`model-filter-pill ${selectedFilter === pill.id ? 'active' : ''}`}
+              onClick={() => setSelectedFilter(pill.id as typeof selectedFilter)}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="models-view-toggle">
+          <button
+            type="button"
+            className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title={tr(locale, 'Vista en cuadrícula', 'Grid view')}
+          >
+            <LayoutDashboard size={16} />
+            <span>{tr(locale, 'Tarjetas', 'Cards')}</span>
+          </button>
+          <button
+            type="button"
+            className={`view-toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+            onClick={() => setViewMode('table')}
+            title={tr(locale, 'Vista en tabla', 'Table view')}
+          >
+            <BarChart3 size={16} />
+            <span>{tr(locale, 'Tabla', 'Table')}</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 3. Grid View */}
+      {viewMode === 'grid' && (
+        <section className="models-cards-grid">
+          {filteredModels.length === 0 ? (
+            <div className="models-empty-state">
+              <Sparkles size={32} color="#64748b" />
+              <h3>{tr(locale, 'No se encontraron modelos', 'No models found')}</h3>
+              <p>{tr(locale, 'Probá con otro término de búsqueda o filtro.', 'Try another search term or filter.')}</p>
             </div>
-          </article>
-        )
-      })}
-    </section>
-  </div>
+          ) : (
+            filteredModels.map((model) => {
+              const visual = getModelVisual(model.id)
+              const Icon = visual.Icon
+              const inputPrice = model.input * multiplier
+              const outputPrice = model.output * multiplier
+              const cacheReadPrice = model.cacheRead * multiplier
+              const cacheWritePrice = model.cacheWrite * multiplier
+              const isCopied = copiedModelId === model.id
+              const isAnthropic = model.id.includes('claude')
+
+              return (
+                <article className={`luxury-model-card ${isAnthropic ? 'provider-anthropic' : 'provider-openai'}`} key={model.id}>
+                  {/* Card Header */}
+                  <div className="luxury-card-head">
+                    <div className="luxury-icon-box">
+                      <Icon size={20} />
+                    </div>
+                    <div className="luxury-model-info">
+                      <div className="luxury-title-row">
+                        <h3>{model.label}</h3>
+                        <span className="available-chip">
+                          <Check size={12} />
+                          <span>{tr(locale, 'Disponible', 'Available')}</span>
+                        </span>
+                      </div>
+                      <div className="model-id-copy-row">
+                        <code>{model.id}</code>
+                        <button
+                          type="button"
+                          className={`copy-id-btn ${isCopied ? 'copied' : ''}`}
+                          onClick={() => copyId(model.id)}
+                          title={tr(locale, 'Copiar ID para Cursor / scripts', 'Copy ID for Cursor / scripts')}
+                        >
+                          {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                          <span>{isCopied ? tr(locale, '¡Copiado!', 'Copied!') : tr(locale, 'Copiar ID', 'Copy ID')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Provider & Capability Badges */}
+                  <div className="luxury-badges-row">
+                    <span className={`provider-tag ${isAnthropic ? 'anthropic' : 'openai'}`}>
+                      {isAnthropic ? 'Anthropic' : 'OpenAI'}
+                    </span>
+                    <span className="capability-tag">{visual.mode}</span>
+                    <span className="family-tag">{visual.family}</span>
+                  </div>
+
+                  {/* Pricing Matrix */}
+                  <div className="luxury-pricing-matrix">
+                    <div className="price-matrix-cell">
+                      <span className="cell-label">{tr(locale, 'Entrada (Prompt)', 'Input (Prompt)')}</span>
+                      <strong className="cell-value">{money(inputPrice, inputPrice < 0.1 ? 4 : 3)}</strong>
+                      <small className="cell-sub">/ 1M tokens</small>
+                    </div>
+
+                    <div className="price-matrix-cell">
+                      <span className="cell-label">{tr(locale, 'Salida (Output)', 'Output')}</span>
+                      <strong className="cell-value">{money(outputPrice, outputPrice < 0.1 ? 4 : 3)}</strong>
+                      <small className="cell-sub">/ 1M tokens</small>
+                    </div>
+
+                    <div className="price-matrix-cell cache-cell">
+                      <span className="cell-label">{tr(locale, 'Cache Read', 'Cache Read')}</span>
+                      <strong className="cell-value highlight">{money(cacheReadPrice, 5)}</strong>
+                      <small className="cell-sub">{tr(locale, 'Ahorro 90%', '90% savings')}</small>
+                    </div>
+
+                    <div className="price-matrix-cell cache-cell">
+                      <span className="cell-label">{tr(locale, 'Cache Write', 'Cache Write')}</span>
+                      <strong className="cell-value">
+                        {cacheWritePrice > 0 ? money(cacheWritePrice, 5) : '-'}
+                      </strong>
+                      <small className="cell-sub">/ 1M tokens</small>
+                    </div>
+                  </div>
+                </article>
+              )
+            })
+          )}
+        </section>
+      )}
+
+      {/* 4. Table View */}
+      {viewMode === 'table' && (
+        <section className="models-table-card">
+          <div className="table-wrap">
+            <table className="admin-table models-table">
+              <thead>
+                <tr>
+                  <th>{tr(locale, 'Modelo', 'Model')}</th>
+                  <th>{tr(locale, 'ID de API', 'API ID')}</th>
+                  <th>{tr(locale, 'Proveedor', 'Provider')}</th>
+                  <th>{tr(locale, 'Entrada / 1M', 'Input / 1M')}</th>
+                  <th>{tr(locale, 'Salida / 1M', 'Output / 1M')}</th>
+                  <th>{tr(locale, 'Cache Read', 'Cache Read')}</th>
+                  <th>{tr(locale, 'Cache Write', 'Cache Write')}</th>
+                  <th className="right">{tr(locale, 'Acción', 'Action')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredModels.map((model) => {
+                  const inputPrice = model.input * multiplier
+                  const outputPrice = model.output * multiplier
+                  const cacheReadPrice = model.cacheRead * multiplier
+                  const cacheWritePrice = model.cacheWrite * multiplier
+                  const isCopied = copiedModelId === model.id
+                  const isAnthropic = model.id.includes('claude')
+
+                  return (
+                    <tr key={model.id}>
+                      <td>
+                        <strong>{model.label}</strong>
+                      </td>
+                      <td>
+                        <code className="table-code">{model.id}</code>
+                      </td>
+                      <td>
+                        <span className={`provider-tag-mini ${isAnthropic ? 'anthropic' : 'openai'}`}>
+                          {isAnthropic ? 'Anthropic' : 'OpenAI'}
+                        </span>
+                      </td>
+                      <td>{money(inputPrice, inputPrice < 0.1 ? 4 : 3)}</td>
+                      <td>{money(outputPrice, outputPrice < 0.1 ? 4 : 3)}</td>
+                      <td className="profit-cell">{money(cacheReadPrice, 5)}</td>
+                      <td>{cacheWritePrice > 0 ? money(cacheWritePrice, 5) : '-'}</td>
+                      <td className="right">
+                        <button
+                          type="button"
+                          className={`secondary-button table-copy-btn ${isCopied ? 'copied' : ''}`}
+                          onClick={() => copyId(model.id)}
+                        >
+                          {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                          <span>{isCopied ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </div>
+  )
 }
+
 
 function getModelVisual(modelId: string) {
   if (modelId.includes('claude')) return { Icon: BrainCircuit, family: 'Claude', mode: 'Reasoning' }
@@ -1913,19 +2927,33 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
   const [customAmount, setCustomAmount] = useState('')
   const [redeemCode, setRedeemCode] = useState('')
   const [redeeming, setRedeeming] = useState(false)
+  const english = locale === 'en'
+
   const customAmountValue = Number(customAmount)
   const minimumAmount = paymentMethod === 'crypto2328' ? MINIMUM_CRYPTO_PAYMENT_USD : 1
   const customAmountValid = customAmount.trim() !== '' && Number.isFinite(customAmountValue) && customAmountValue >= minimumAmount && customAmountValue <= 10_000 && Math.round((customAmountValue + Number.EPSILON) * 100) / 100 === customAmountValue
+
   async function checkout(amount: number) {
-    setBusyAmount(amount); setMessage('')
+    setBusyAmount(amount)
+    setMessage('')
     try {
-      const body = await readJson(await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, provider: paymentMethod }) }))
+      const body = await readJson(await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, provider: paymentMethod }),
+      }))
       const paymentUrl = paymentMethod === 'crypto2328' ? body.data?.invoiceUrl : body.data?.initPoint
-      if (!paymentUrl) throw new Error(paymentMethod === 'crypto2328' ? tr(locale, '2328.io no devolvió el enlace de pago.', '2328.io did not return a payment link.') : tr(locale, 'Mercado Pago no devolvió el enlace de pago.', 'Mercado Pago did not return a payment link.'))
+      if (!paymentUrl) {
+        throw new Error(paymentMethod === 'crypto2328' ? (english ? '2328.io did not return a payment link.' : '2328.io no devolvió el enlace de pago.') : (english ? 'Mercado Pago did not return a payment link.' : 'Mercado Pago no devolvió el enlace de pago.'))
+      }
       window.location.assign(paymentUrl)
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : tr(locale, 'Pagos no disponibles.', 'Payments are unavailable.')) }
-    finally { setBusyAmount(null) }
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : (english ? 'Payments are unavailable.' : 'Pagos no disponibles.'))
+    } finally {
+      setBusyAmount(null)
+    }
   }
+
   function submitCustomAmount(event: FormEvent) {
     event.preventDefault()
     if (!customAmountValid) {
@@ -1934,9 +2962,11 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
     }
     void checkout(customAmountValue)
   }
+
   async function submitRedeem(event: FormEvent) {
     event.preventDefault()
-    setRedeeming(true); setMessage('')
+    setRedeeming(true)
+    setMessage('')
     try {
       const body = await readJson(await fetch('/api/redeem', {
         method: 'POST',
@@ -1944,76 +2974,730 @@ function WalletView({ data, paymentReturn, onDismissPayment, onRedeemed, locale 
         body: JSON.stringify({ code: redeemCode }),
       }))
       setRedeemCode('')
-      setMessage(`${tr(locale, 'Código canjeado. Se acreditaron', 'Code redeemed.')} ${money(body.data.amountUsd, 2)} ${tr(locale, 'en tu cuenta.', 'was added to your account.')}`)
+      setMessage(`${tr(locale, 'Código canjeado con éxito. Se acreditaron', 'Code redeemed successfully. Credited')} ${money(body.data.amountUsd, 2)} ${tr(locale, 'en tu cuenta.', 'to your account.')}`)
       await onRedeemed()
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : tr(locale, 'No se pudo canjear el código.', 'Could not redeem the code.'))
+      setMessage(cause instanceof Error ? cause.message : (english ? 'Could not redeem the code.' : 'No se pudo canjear el código.'))
     } finally {
       setRedeeming(false)
     }
   }
+
   const balance = data.user.quota / data.quotaPerUsd
-  return <div className="view-stack">
-    {paymentReturn && <section className={`payment-result ${paymentReturn}`} role="status">
-      <span className="payment-result-icon">{paymentReturn === 'success' ? <Check size={20} /> : paymentReturn === 'pending' ? <Clock3 size={20} /> : <AlertTriangle size={20} />}</span>
-      <div><strong>{paymentReturn === 'success' ? tr(locale, 'Pago aprobado', 'Payment approved') : paymentReturn === 'pending' ? tr(locale, 'Pago pendiente', 'Payment pending') : tr(locale, 'Pago no completado', 'Payment incomplete')}</strong><p>{paymentReturn === 'success' ? tr(locale, 'El proveedor confirmó la operación. El saldo se acredita automáticamente; actualizá el panel si todavía no aparece.', 'The provider confirmed the payment. Balance is credited automatically; refresh the panel if it does not appear yet.') : paymentReturn === 'pending' ? tr(locale, 'El proveedor todavía está procesando la operación. El saldo se acreditará cuando se confirme.', 'The provider is still processing the payment. Balance will be credited once confirmed.') : tr(locale, 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.', 'No balance was credited. You can try again whenever you want.')}</p></div>
-      <button className="icon-button" onClick={onDismissPayment} aria-label={tr(locale, 'Cerrar estado del pago', 'Close payment status')}><X size={17} /></button>
-    </section>}
-    <section className="wallet-hero">
-      <div><p>{tr(locale, 'Saldo disponible', 'Available balance')}</p><strong>{money(balance, balance < 1 ? 4 : 2)}</strong><span>{tr(locale, 'Cuenta', 'Account')} {data.user.username}</span></div>
-      <span className="wallet-icon"><WalletCards size={28} /></span>
-    </section>
-    <section className="section-block">
-      <div className="section-heading"><div><h3>{tr(locale, 'Métodos de pago', 'Payment methods')}</h3><p>{tr(locale, 'Elegí cómo cargar crédito en tu cuenta', 'Choose how to add credit to your account')}</p></div></div>
-      <div className="payment-method-grid">
-        <button className={`payment-method ${paymentMethod === 'mercadopago' ? 'active' : ''}`} onClick={() => setPaymentMethod('mercadopago')}><span className="payment-method-icon"><CreditCard size={19} /></span><span><strong>Mercado Pago</strong><small>ARS · US$ 1.600 por dólar</small></span>{paymentMethod === 'mercadopago' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
-        <button className={`payment-method crypto-method featured-payment ${paymentMethod === 'crypto2328' ? 'active' : ''}`} onClick={() => setPaymentMethod('crypto2328')}><span className="payment-method-icon crypto"><Bitcoin size={19} /></span><span><strong>Crypto · 2328.io <em className="payment-featured-badge">{tr(locale, 'Recomendado', 'Recommended')}</em></strong><small>USDT, BTC, ETH y más · {tr(locale, 'mínimo', 'minimum')} US$ 1</small></span>{paymentMethod === 'crypto2328' ? <ShieldCheck size={17} /> : <Check size={17} />}</button>
-      </div>
-    </section>
-    <section className="section-block">
-      <div className="section-heading"><div><h3>{tr(locale, 'Cargar saldo', 'Add balance')}</h3><p>{paymentMethod === 'crypto2328' ? tr(locale, 'Pago crypto seguro · mínimo US$ 1 · conversión automática a USDT', 'Secure crypto payment · US$ 1 minimum · automatic USDT conversion') : tr(locale, 'Pago seguro con Mercado Pago · mínimo US$ 1', 'Secure Mercado Pago payment · US$ 1 minimum')}</p></div></div>
-      <div className="package-grid">{[1, 5, 10, 25].filter((amount) => amount >= minimumAmount).map((amount) => <button className={`package-card ${amount === 10 ? 'featured' : ''}`} key={amount} onClick={() => checkout(amount)} disabled={busyAmount !== null}><span>{amount === minimumAmount ? tr(locale, 'Recarga mínima', 'Minimum top-up') : amount === 10 ? tr(locale, 'Más elegido', 'Most popular') : tr(locale, 'Crédito API', 'API credit')}</span><strong>{money(amount)}</strong><small>{paymentMethod === 'crypto2328' ? tr(locale, 'Pago único en crypto', 'One-time crypto payment') : `AR$ ${(amount * 1600).toLocaleString('es-AR')} · ${tr(locale, 'Pago único', 'One-time payment')}`}</small><span className="package-cta">{busyAmount === amount ? tr(locale, 'Conectando...', 'Connecting...') : tr(locale, 'Pagar', 'Pay')} <ChevronRight size={16} /></span></button>)}</div>
-      <div className="custom-topup">
-        <div className="custom-topup-copy"><strong>{tr(locale, 'Otro importe', 'Custom amount')}</strong><small>{tr(locale, 'Recargá desde', 'Top up from')} US$ {minimumAmount}, {tr(locale, 'hasta', 'up to')} US$ 10.000.</small></div>
-        <form className="custom-topup-form" onSubmit={submitCustomAmount}>
-          <label className="currency-input"><span>US$</span><input type="number" min={minimumAmount} max="10000" step="0.01" inputMode="decimal" placeholder={paymentMethod === 'crypto2328' ? '1,50' : '1,50'} value={customAmount} onChange={(event) => { setCustomAmount(event.target.value); setMessage('') }} aria-label="Importe personalizado en dólares" /></label>
-          <button className="primary-button" type="submit" disabled={busyAmount !== null || !customAmountValid}><CreditCard size={17} />{tr(locale, 'Continuar al pago', 'Continue to payment')}</button>
-        </form>
-        {customAmountValid && <small className="custom-topup-total">{paymentMethod === 'crypto2328' ? `${tr(locale, 'Total a pagar:', 'Total to pay:')} US$ ${customAmountValue.toFixed(2)} ${tr(locale, 'en crypto.', 'in crypto.')}` : `${tr(locale, 'Total a pagar:', 'Total to pay:')} AR$ ${(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}`}</small>}
-        {customAmount && !customAmountValid && <small className="custom-topup-error">{tr(locale, 'Usá un importe desde', 'Use an amount from')} US$ {minimumAmount}, {tr(locale, 'con hasta 2 decimales.', 'with up to 2 decimals.')}</small>}
-      </div>
-      {message && <div className="payment-message"><CreditCard size={18} />{message}</div>}
-    </section>
-    <section className="section-block">
-      <div className="section-heading"><div><h3>{tr(locale, 'Canjear código', 'Redeem code')}</h3><p>{tr(locale, 'Usá un código demo o promocional para acreditar saldo en tu cuenta.', 'Use a demo or promotional code to add credit to your account.')}</p></div><ReceiptText size={19} /></div>
-      <form className="redeem-form" onSubmit={submitRedeem}>
-        <label><span>{tr(locale, 'Código', 'Code')}</span><input value={redeemCode} onChange={(event) => { setRedeemCode(event.target.value.toUpperCase()); setMessage('') }} placeholder="ORB-XXXX-XXXX-XXXX" /></label>
-        <button className="primary-button" disabled={redeeming || !redeemCode.trim()}>{redeeming ? <LoaderCircle className="spin" size={17} /> : <ReceiptText size={17} />}{tr(locale, 'Canjear código', 'Redeem code')}</button>
-      </form>
-    </section>
-  </div>
+  const balanceArs = Math.round(balance * 1600).toLocaleString('es-AR')
+  const spentUsd = data.user.used_quota / data.quotaPerUsd
+  const spentArs = Math.round(spentUsd * 1600).toLocaleString('es-AR')
+
+  const packages = [
+    {
+      amount: 1,
+      tag: tr(locale, 'Micro Recarga', 'Micro Top-up'),
+      desc: tr(locale, 'Ideal para probar prompts y scripts', 'Ideal for testing prompts and scripts'),
+      tokens: '~10M tokens',
+    },
+    {
+      amount: 5,
+      tag: tr(locale, 'Starter Pack', 'Starter Pack'),
+      desc: tr(locale, 'Para desarrollo diario y Cursor', 'For daily development and Cursor'),
+      tokens: '~50M tokens',
+    },
+    {
+      amount: 10,
+      tag: tr(locale, 'Más elegido', 'Most Popular'),
+      desc: tr(locale, 'Suficiente para semanas de programación', 'Enough for weeks of coding'),
+      tokens: '~100M tokens',
+      featured: true,
+    },
+    {
+      amount: 25,
+      tag: tr(locale, 'Power Dev', 'Power Dev'),
+      desc: tr(locale, 'Máxima autonomía y Claude 3.7', 'Maximum autonomy and Claude 3.7'),
+      tokens: '~250M tokens',
+    },
+  ]
+
+  return (
+    <div className="view-stack wallet-view">
+      {/* 1. Payment status banner */}
+      {paymentReturn && (
+        <section className={`payment-result ${paymentReturn}`} role="status">
+          <span className="payment-result-icon">
+            {paymentReturn === 'success' ? <Check size={20} /> : paymentReturn === 'pending' ? <Clock3 size={20} /> : <AlertTriangle size={20} />}
+          </span>
+          <div>
+            <strong>{paymentReturn === 'success' ? tr(locale, 'Pago aprobado', 'Payment approved') : paymentReturn === 'pending' ? tr(locale, 'Pago pendiente', 'Payment pending') : tr(locale, 'Pago no completado', 'Payment incomplete')}</strong>
+            <p>
+              {paymentReturn === 'success'
+                ? tr(locale, 'El proveedor confirmó la operación. Tu saldo se actualizó automáticamente.', 'The payment was confirmed. Your balance has been updated automatically.')
+                : paymentReturn === 'pending'
+                ? tr(locale, 'El pago está en proceso de verificación. Se acreditará en cuanto se confirme.', 'Payment is being processed. It will be credited once confirmed.')
+                : tr(locale, 'No se acreditó saldo. Podés volver a intentarlo cuando quieras.', 'No balance was credited. You can try again at any time.')}
+            </p>
+          </div>
+          <button className="icon-button" onClick={onDismissPayment} aria-label={tr(locale, 'Cerrar estado del pago', 'Close payment status')}>
+            <X size={17} />
+          </button>
+        </section>
+      )}
+
+      {/* 2. Hero Card */}
+      <section className="wallet-hero-card">
+        <div className="wallet-hero-main">
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '8px' }}>
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'BILLETERA & CRÉDITO PREPAGO', 'WALLET & PREPAID CREDIT')}</span>
+          </div>
+          <h2>{tr(locale, 'Saldo Disponible para APIs', 'Available API Balance')}</h2>
+          <div className="wallet-balance-display">
+            <span className="wallet-balance-number">{money(balance, balance < 1 ? 4 : 2)}</span>
+            <span className="wallet-balance-ars">≈ AR$ {balanceArs}</span>
+          </div>
+          <p className="wallet-hero-sub">
+            {tr(locale, 'Cuenta:', 'Account:')} <strong>{data.user.display_name || data.user.username}</strong> · {tr(locale, 'Sin costo de mantenimiento ni vencimiento.', 'No maintenance fees or expiration.')}
+          </p>
+        </div>
+
+        <div className="wallet-hero-stats">
+          <div className="wallet-stat-box">
+            <small>{tr(locale, 'Consumo histórico', 'Total spent')}</small>
+            <strong>{money(spentUsd, 2)}</strong>
+            <span>≈ AR$ {spentArs}</span>
+          </div>
+          <div className="wallet-stat-box">
+            <small>{tr(locale, 'Peticiones procesadas', 'Processed requests')}</small>
+            <strong>{compactNumber(data.user.request_count)}</strong>
+            <span>100% gateway uptime</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Payment Method Selection */}
+      <section className="wallet-section-card">
+        <div className="wallet-section-header">
+          <div>
+            <div className="landing-eyebrow-badge" style={{ marginBottom: '4px' }}>
+              <CreditCard size={13} />
+              <span>{tr(locale, 'PASO 1', 'STEP 1')}</span>
+            </div>
+            <h3>{tr(locale, 'Seleccioná tu método de pago', 'Select your payment method')}</h3>
+            <p>{tr(locale, 'Acreditación instantánea en tu cuenta sin comisiones ocultas.', 'Instant deposit to your account with no hidden fees.')}</p>
+          </div>
+        </div>
+
+        <div className="wallet-methods-grid">
+          <button
+            type="button"
+            className={`wallet-method-card ${paymentMethod === 'mercadopago' ? 'selected' : ''}`}
+            onClick={() => setPaymentMethod('mercadopago')}
+          >
+            <div className="method-card-top">
+              <div className="method-brand">
+                <span className="method-icon mp"><CreditCard size={20} /></span>
+                <div>
+                  <strong>Mercado Pago</strong>
+                  <span className="method-currency">ARS · Pesos Argentinos</span>
+                </div>
+              </div>
+              <span className="method-check">{paymentMethod === 'mercadopago' ? <Check size={14} /> : null}</span>
+            </div>
+            <p className="method-desc">{tr(locale, 'Tarjetas de crédito, débito, dinero en cuenta y transferencias.', 'Credit/debit cards, account money, and bank transfers.')}</p>
+            <div className="method-footer">
+              <span className="rate-badge">Tasa: AR$ 1.600 / USD</span>
+              <span className="instant-badge">⚡ {tr(locale, 'Acreditación inmediata', 'Instant credit')}</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className={`wallet-method-card ${paymentMethod === 'crypto2328' ? 'selected' : ''}`}
+            onClick={() => setPaymentMethod('crypto2328')}
+          >
+            <div className="method-card-top">
+              <div className="method-brand">
+                <span className="method-icon crypto"><Bitcoin size={20} /></span>
+                <div>
+                  <strong>Crypto · 2328.io</strong>
+                  <span className="method-currency">USDT · BTC · ETH · SOL</span>
+                </div>
+              </div>
+              <div className="method-badge-wrap">
+                <span className="featured-pill">{tr(locale, 'RECOMENDADO', 'RECOMMENDED')}</span>
+                <span className="method-check">{paymentMethod === 'crypto2328' ? <Check size={14} /> : null}</span>
+              </div>
+            </div>
+            <p className="method-desc">{tr(locale, 'USDT (TRC20, Polygon, Arbitrum), Bitcoin, Ethereum, Solana.', 'USDT (TRC20, Polygon, Arbitrum), Bitcoin, Ethereum, Solana.')}</p>
+            <div className="method-footer">
+              <span className="rate-badge">USDT 1:1 USD</span>
+              <span className="instant-badge">⚡ {tr(locale, 'Mínimo US$ 1', 'Min US$ 1')}</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* 4. Packages Grid */}
+      <section className="wallet-section-card">
+        <div className="wallet-section-header">
+          <div>
+            <div className="landing-eyebrow-badge" style={{ marginBottom: '4px' }}>
+              <Sparkles size={13} />
+              <span>{tr(locale, 'PASO 2', 'STEP 2')}</span>
+            </div>
+            <h3>{tr(locale, 'Elegí el monto a recargar', 'Choose top-up amount')}</h3>
+            <p>
+              {paymentMethod === 'crypto2328'
+                ? tr(locale, 'Pago directo en criptomonedas con conversión 1:1 a saldo de API.', 'Direct crypto deposit with 1:1 conversion to API balance.')
+                : tr(locale, 'Pago seguro procesado por Mercado Pago en pesos argentinos.', 'Secure payment processed by Mercado Pago in Argentine Pesos.')}
+            </p>
+          </div>
+        </div>
+
+        <div className="wallet-packages-grid">
+          {packages.filter((p) => p.amount >= minimumAmount).map((pkg) => {
+            const isBusy = busyAmount === pkg.amount
+            const pkgArs = Math.round(pkg.amount * 1600).toLocaleString('es-AR')
+
+            return (
+              <div className={`wallet-pkg-card ${pkg.featured ? 'featured' : ''}`} key={pkg.amount}>
+                {pkg.featured && <span className="pkg-featured-badge">{pkg.tag}</span>}
+                <div className="pkg-header">
+                  {!pkg.featured && <span className="pkg-tag">{pkg.tag}</span>}
+                  <div className="pkg-price-row">
+                    <strong className="pkg-price-usd">{money(pkg.amount, 2)}</strong>
+                  </div>
+                  <span className="pkg-price-ars">
+                    {paymentMethod === 'crypto2328' ? '1:1 en crypto' : `AR$ ${pkgArs}`}
+                  </span>
+                </div>
+
+                <p className="pkg-desc">{pkg.desc}</p>
+
+                <div className="pkg-token-chip">
+                  <Cpu size={13} />
+                  <span>{pkg.tokens}</span>
+                </div>
+
+                <button
+                  className={`primary-button pkg-pay-btn ${pkg.featured ? 'glowing' : ''}`}
+                  onClick={() => checkout(pkg.amount)}
+                  disabled={busyAmount !== null}
+                  type="button"
+                >
+                  {isBusy ? (
+                    <>
+                      <LoaderCircle className="spin" size={16} />
+                      <span>{tr(locale, 'Conectando...', 'Connecting...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={15} />
+                      <span>{tr(locale, 'Cargar', 'Top up')} {money(pkg.amount, 0)}</span>
+                      <ChevronRight size={15} />
+                    </>
+                  )}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Custom Amount Form */}
+        <div className="wallet-custom-box">
+          <div className="wallet-custom-info">
+            <strong>{tr(locale, '¿Querés un importe personalizado?', 'Want a custom amount?')}</strong>
+            <small>{tr(locale, `Ingresá desde US$ ${minimumAmount} hasta US$ 10.000.`, `Enter from US$ ${minimumAmount} up to US$ 10,000.`)}</small>
+          </div>
+
+          <form className="wallet-custom-form" onSubmit={submitCustomAmount}>
+            <div className="custom-input-wrap">
+              <span className="custom-input-prefix">US$</span>
+              <input
+                type="number"
+                min={minimumAmount}
+                max="10000"
+                step="0.01"
+                inputMode="decimal"
+                placeholder={paymentMethod === 'crypto2328' ? '15.00' : '15.00'}
+                value={customAmount}
+                onChange={(event) => {
+                  setCustomAmount(event.target.value)
+                  setMessage('')
+                }}
+                aria-label="Importe en dólares"
+              />
+            </div>
+
+            <div className="quick-add-buttons">
+              {[5, 15, 50, 100].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => {
+                    setCustomAmount(String(val))
+                    setMessage('')
+                  }}
+                  className="quick-amount-pill"
+                >
+                  +$${val}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="primary-button custom-pay-btn"
+              type="submit"
+              disabled={busyAmount !== null || !customAmountValid}
+            >
+              <CreditCard size={16} />
+              <span>{tr(locale, 'Continuar al pago', 'Continue to payment')}</span>
+            </button>
+          </form>
+
+          {customAmountValid && (
+            <div className="custom-amount-preview">
+              <Check size={14} color="#10b981" />
+              <span>
+                {paymentMethod === 'crypto2328'
+                  ? `${tr(locale, 'Total a pagar:', 'Total to pay:')} US$ ${customAmountValue.toFixed(2)} ${tr(locale, 'en criptomonedas.', 'in crypto.')}`
+                  : `${tr(locale, 'Total a pagar:', 'Total to pay:')} AR$ ${(Math.round(customAmountValue * 1600)).toLocaleString('es-AR')}`}
+              </span>
+            </div>
+          )}
+
+          {message && <div className="payment-message">{message}</div>}
+        </div>
+      </section>
+
+      {/* 5. Redeem Promo Code */}
+      <section className="wallet-section-card redeem-card">
+        <div className="redeem-layout">
+          <div className="redeem-info">
+            <div className="redeem-icon-box">
+              <ReceiptText size={24} color="#10b981" />
+            </div>
+            <div>
+              <h3>{tr(locale, '¿Tenés un código promocional o demo?', 'Have a promotional or demo code?')}</h3>
+              <p>{tr(locale, 'Ingresá tu cupón para acreditar saldo de prueba inmediatamente en tu cuenta.', 'Enter your voucher code to add trial balance instantly to your account.')}</p>
+            </div>
+          </div>
+
+          <form className="redeem-form-inline" onSubmit={submitRedeem}>
+            <input
+              value={redeemCode}
+              onChange={(event) => {
+                setRedeemCode(event.target.value.toUpperCase())
+                setMessage('')
+              }}
+              placeholder="ORB-XXXX-XXXX-XXXX"
+              maxLength={30}
+              className="redeem-input"
+            />
+            <button className="primary-button redeem-submit-btn" disabled={redeeming || !redeemCode.trim()}>
+              {redeeming ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />}
+              <span>{tr(locale, 'Canjear', 'Redeem')}</span>
+            </button>
+          </form>
+        </div>
+      </section>
+    </div>
+  )
 }
 
-const snippets = {
-  env: (base: string, key: string) => `OPENAI_BASE_URL=${base}\nOPENAI_API_KEY=${key || 'sk-tu-api-key'}`,
-  python: (base: string, key: string) => `from openai import OpenAI\n\nclient = OpenAI(\n    base_url="${base}",\n    api_key="${key || 'sk-tu-api-key'}",\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5.4-mini",\n    messages=[{"role": "user", "content": "Hola"}],\n)\n\nprint(response.choices[0].message.content)`,
-  node: (base: string, key: string) => `import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "${base}",\n  apiKey: "${key || 'sk-tu-api-key'}",\n});\n\nconst response = await client.chat.completions.create({\n  model: "gpt-5.4-mini",\n  messages: [{ role: "user", content: "Hola" }],\n});\n\nconsole.log(response.choices[0].message.content);`,
-  curl: (base: string, key: string) => `curl ${base}/chat/completions \\\n  -H "Authorization: Bearer ${key || 'sk-tu-api-key'}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"gpt-5.4-mini","messages":[{"role":"user","content":"Hola"}]}'`,
+type SetupPlatform = 'cursor' | 'claude-code' | 'python' | 'node' | 'curl' | 'env'
+
+function maskSecretKey(key: string) {
+  if (!key) return 'sk-orbiqen-••••••••••••••••••••'
+  if (key.length <= 10) return '••••••••••••••••'
+  const prefix = key.startsWith('sk-') ? key.slice(0, 7) : key.slice(0, 4)
+  const suffix = key.slice(-4)
+  return `${prefix}••••••••••••••••••••${suffix}`
 }
 
 function SetupView({ data, locale }: { data: DashboardData; locale: PortalLocale }) {
-  const [tab, setTab] = useState<keyof typeof snippets>('env')
-  const [selectedKey, setSelectedKey] = useState('')
-  const [revealed, setRevealed] = useState('')
-  const [copied, setCopied] = useState(false)
-  async function reveal() {
-    if (!selectedKey) return setRevealed('')
-    const body = await readJson(await fetch(`/api/keys/${selectedKey}/reveal`, { method: 'POST' }))
-    setRevealed(body.data.key)
+  const [platform, setPlatform] = useState<SetupPlatform>('cursor')
+  const [selectedKeyId, setSelectedKeyId] = useState<string>(data.keys[0] ? String(data.keys[0].id) : '')
+  const [revealedKey, setRevealedKey] = useState<string>('')
+  const [showKey, setShowKey] = useState(false)
+  const [copiedField, setCopiedField] = useState<string>('')
+  const [loadingKey, setLoadingKey] = useState(false)
+  const [testResult, setTestResult] = useState<{ status: 'idle' | 'loading' | 'success' | 'error'; message: string; latency?: number }>({ status: 'idle', message: '' })
+  const english = locale === 'en'
+
+  const activeKeyObj = data.keys.find((k) => String(k.id) === selectedKeyId) || data.keys[0]
+  const realSecretKey = revealedKey || activeKeyObj?.key || 'sk-orbiqen-tu-api-key'
+  const displayKey = showKey ? realSecretKey : maskSecretKey(realSecretKey)
+  const baseUrl = data.gatewayUrl
+
+  useEffect(() => {
+    let alive = true
+    async function loadInitialSecret() {
+      if (!selectedKeyId) return
+      setLoadingKey(true)
+      try {
+        const body = await readJson(await fetch(`/api/keys/${selectedKeyId}/reveal`, { method: 'POST' }))
+        if (alive) setRevealedKey(body.data.key)
+      } catch {
+        // Fallback to masked
+      } finally {
+        if (alive) setLoadingKey(false)
+      }
+    }
+    void loadInitialSecret()
+    return () => { alive = false }
+  }, [selectedKeyId])
+
+  async function copy(text: string, fieldId: string) {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(fieldId)
+    setTimeout(() => setCopiedField(''), 2000)
   }
-  const code = snippets[tab](data.gatewayUrl, revealed)
-  async function copy() { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1800) }
-  return <div className="view-stack"><section className="connection-bar"><div><span className="connection-status"><span />{tr(locale, 'API operativa', 'API operational')}</span><code>{data.gatewayUrl}</code></div><button className="icon-button" onClick={() => navigator.clipboard.writeText(data.gatewayUrl)} aria-label="Copiar Base URL"><Copy size={18} /></button></section><section className="section-block"><div className="section-heading"><div><h3>{tr(locale, 'Configuración automática', 'Automatic setup')}</h3><p>{tr(locale, 'Descargá el asistente y pegá tu key una sola vez. Configura Codex, Claude o ambos.', 'Download the assistant and paste your key once. It configures Codex, Claude or both.')}</p></div><Download size={20} /></div><div className="quick-band"><div><strong>Orbiqen para Windows</strong><small>{tr(locale, 'Incluye activador, backups y restaurador de configuración oficial.', 'Includes activator, backups and official configuration restore.')}</small></div><div className="quick-band-actions"><a className="primary-button" href="/downloads/orbiqen-windows/Orbiqen-Windows.rar" download><Download size={17} />{tr(locale, 'Descargar asistente', 'Download assistant')}</a><a className="secondary-button" href="/downloads/orbiqen-windows/LEEME-PRIMERO.txt" target="_blank" rel="noreferrer">{tr(locale, 'Leer instrucciones', 'Read instructions')}</a></div></div></section><section className="code-workspace"><div className="code-toolbar"><div className="code-tabs">{(['env', 'python', 'node', 'curl'] as const).map((item) => <button className={tab === item ? 'active' : ''} key={item} onClick={() => setTab(item)}>{item === 'env' ? '.env' : item}</button>)}</div><button className="copy-code" onClick={copy}>{copied ? <Check size={16} /> : <Clipboard size={16} />}{copied ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</button></div><pre><code>{code}</code></pre></section><section className="key-selector"><div><KeyRound size={19} /><span><strong>{tr(locale, 'Usar una API Key', 'Use an API Key')}</strong><small>{tr(locale, 'La clave se muestra solo en este navegador', 'The key is shown only in this browser')}</small></span></div><select value={selectedKey} onChange={(event) => { setSelectedKey(event.target.value); setRevealed('') }}><option value="">{tr(locale, 'Seleccionar clave', 'Select key')}</option>{data.keys.map((key) => <option key={key.id} value={key.id}>{key.name}</option>)}</select><button className="secondary-button" onClick={reveal} disabled={!selectedKey}>{tr(locale, 'Insertar', 'Insert')}</button></section></div>
+
+  async function runConnectionTest() {
+    setTestResult({ status: 'loading', message: english ? 'Sending test prompt to gateway...' : 'Enviando petición de prueba al gateway...' })
+    const start = performance.now()
+    try {
+      const response = await fetch('/api/keys/' + (activeKeyObj?.id || '1') + '/reveal', { method: 'POST' })
+      const keyData = await readJson(response)
+      const secret = keyData.data.key
+
+      const chatRes = await fetch(baseUrl + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${secret}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-5.4-mini',
+          messages: [{ role: 'user', content: 'Ping' }],
+          max_tokens: 10,
+        }),
+      })
+
+      const latency = Math.round(performance.now() - start)
+      if (!chatRes.ok) {
+        throw new Error(`HTTP ${chatRes.status}: ${chatRes.statusText}`)
+      }
+      const chatBody = await chatRes.json()
+      const reply = chatBody.choices?.[0]?.message?.content || 'OK'
+      setTestResult({
+        status: 'success',
+        latency,
+        message: english
+          ? `Connected successfully in ${latency}ms! Gateway response: "${reply}"`
+          : `¡Conexión exitosa en ${latency}ms! Respuesta del gateway: "${reply}"`,
+      })
+    } catch (err) {
+      setTestResult({
+        status: 'error',
+        message: err instanceof Error ? err.message : (english ? 'Connection test failed.' : 'Falló el test de conexión.'),
+      })
+    }
+  }
+
+  const platforms: { id: SetupPlatform; label: string; icon: typeof Code2; tag: string }[] = [
+    { id: 'cursor', label: 'Cursor IDE', icon: Code2, tag: tr(locale, 'Popular', 'Popular') },
+    { id: 'claude-code', label: 'Claude Code', icon: Terminal, tag: 'CLI' },
+    { id: 'python', label: 'Python SDK', icon: Cpu, tag: 'OpenAI' },
+    { id: 'node', label: 'Node.js / TS', icon: Sparkles, tag: 'npm' },
+    { id: 'curl', label: 'cURL / REST', icon: Server, tag: 'API' },
+    { id: 'env', label: '.env File', icon: Code2, tag: 'Config' },
+  ]
+
+  function getCode(snippetType: SetupPlatform, forCopy: boolean) {
+    const key = forCopy ? realSecretKey : displayKey
+    switch (snippetType) {
+      case 'claude-code':
+        return `export ANTHROPIC_BASE_URL="${baseUrl}"\nexport ANTHROPIC_API_KEY="${key}"\n\n# Iniciar Claude Code\nclaude`
+      case 'python':
+        return `import os\nfrom openai import OpenAI\n\nclient = OpenAI(\n    base_url="${baseUrl}",\n    api_key="${key}",\n)\n\nresponse = client.chat.completions.create(\n    model="gpt-5.4-mini",\n    messages=[\n        {"role": "system", "content": "Sos un asistente de programación experto."},\n        {"role": "user", "content": "¡Hola! ¿Estás operativo?"}\n    ],\n    temperature=0.7,\n)\n\nprint(response.choices[0].message.content)`
+      case 'node':
+        return `import OpenAI from "openai";\n\nconst client = new OpenAI({\n  baseURL: "${baseUrl}",\n  apiKey: "${key}",\n});\n\nasync function main() {\n  const completion = await client.chat.completions.create({\n    model: "gpt-5.4-mini",\n    messages: [{ role: "user", content: "Hola desde Node.js" }],\n  });\n\n  console.log(completion.choices[0].message.content);\n}\n\nmain().catch(console.error);`
+      case 'curl':
+        return `curl "${baseUrl}/chat/completions" \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "model": "gpt-5.4-mini",\n    "messages": [{"role": "user", "content": "Hola mundo"}]\n  }'`
+      case 'env':
+        return `OPENAI_BASE_URL="${baseUrl}"\nOPENAI_API_KEY="${key}"\nANTHROPIC_BASE_URL="${baseUrl}"\nANTHROPIC_API_KEY="${key}"`
+      default:
+        return ''
+    }
+  }
+
+  return (
+    <div className="view-stack setup-view">
+      {/* 1. Hero Banner */}
+      <section className="setup-hero-card">
+        <div className="setup-hero-copy">
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '8px' }}>
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'INTEGRACIÓN UNIVERSAL OPENAI-COMPATIBLE', 'UNIVERSAL OPENAI-COMPATIBLE SETUP')}</span>
+          </div>
+          <h2>{tr(locale, 'Centro de Conexión & Asistentes de Código', 'Connection & Developer Setup')}</h2>
+          <p>
+            {tr(
+              locale,
+              'Conectá Cursor, Windsurf, Claude Code, Python o Node.js con Orbiqen en segundos usando tu Base URL y API Key.',
+              'Connect Cursor, Windsurf, Claude Code, Python, or Node.js to Orbiqen in seconds using your Base URL and API Key.'
+            )}
+          </p>
+        </div>
+
+        <div className="setup-hero-endpoint">
+          <span className="endpoint-label">{tr(locale, 'Tu Endpoint Base URL', 'Your Base URL Endpoint')}</span>
+          <div className="endpoint-pill-box">
+            <code>{baseUrl}</code>
+            <button
+              className={`copy-btn ${copiedField === 'baseUrl' ? 'copied' : ''}`}
+              onClick={() => copy(baseUrl, 'baseUrl')}
+              type="button"
+            >
+              {copiedField === 'baseUrl' ? <Check size={14} /> : <Copy size={14} />}
+              <span>{copiedField === 'baseUrl' ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Active Key Injector Bar */}
+      <section className="setup-key-injector-card">
+        <div className="injector-label-group">
+          <KeyRound size={20} color="#10b981" />
+          <div>
+            <strong>{tr(locale, 'Credencial activa para snippets:', 'Active credential for snippets:')}</strong>
+            <small>{tr(locale, 'Los ejemplos de código abajo se configuran con esta clave.', 'Code snippets below are configured with this key.')}</small>
+          </div>
+        </div>
+
+        <div className="injector-controls">
+          <select
+            className="injector-select"
+            value={selectedKeyId}
+            onChange={(event) => setSelectedKeyId(event.target.value)}
+          >
+            {data.keys.map((key) => (
+              <option key={key.id} value={key.id}>
+                {key.name} ({key.key})
+              </option>
+            ))}
+          </select>
+
+          <button
+            className="icon-button reveal-toggle-btn"
+            onClick={() => setShowKey(!showKey)}
+            type="button"
+            title={showKey ? tr(locale, 'Ocultar clave', 'Hide key') : tr(locale, 'Mostrar clave', 'Show key')}
+          >
+            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+
+          <button
+            className={`secondary-button copy-key-btn ${copiedField === 'activeKey' ? 'copied' : ''}`}
+            onClick={() => copy(realSecretKey, 'activeKey')}
+            type="button"
+            disabled={loadingKey}
+          >
+            {copiedField === 'activeKey' ? <Check size={15} /> : <Copy size={15} />}
+            <span>{copiedField === 'activeKey' ? tr(locale, '¡Clave Copiada!', 'Key Copied!') : tr(locale, 'Copiar Key', 'Copy Key')}</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 3. Interactive Client Guides & Code Workspace */}
+      <section className="setup-workspace-card">
+        {/* Workspace Navigation Tabs */}
+        <div className="setup-tabs-bar">
+          {platforms.map((item) => {
+            const Icon = item.icon
+            const isActive = platform === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`setup-tab-btn ${isActive ? 'active' : ''}`}
+                onClick={() => setPlatform(item.id)}
+              >
+                <Icon size={16} />
+                <span>{item.label}</span>
+                <span className="tab-tag">{item.tag}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Tab Content Panels */}
+        <div className="setup-tab-content">
+          {platform === 'cursor' && (
+            <div className="cursor-setup-guide">
+              <div className="guide-steps-grid">
+                <div className="guide-step-card">
+                  <span className="step-num">1</span>
+                  <h4>{tr(locale, 'Abrir Ajustes de Modelos', 'Open Model Settings')}</h4>
+                  <p>{tr(locale, 'En Cursor, presioná Ctrl + Shift + J (o Cmd + Shift + J en macOS) y seleccioná la pestaña "Models".', 'In Cursor, press Ctrl + Shift + J (or Cmd + Shift + J) and click "Models".')}</p>
+                </div>
+
+                <div className="guide-step-card">
+                  <span className="step-num">2</span>
+                  <h4>{tr(locale, 'Activar Override Base URL', 'Enable Override Base URL')}</h4>
+                  <p>{tr(locale, 'Activá "OpenAI API Key" y tildá la opción "Override OpenAI Base URL".', 'Enable "OpenAI API Key" and check "Override OpenAI Base URL".')}</p>
+                </div>
+
+                <div className="guide-step-card">
+                  <span className="step-num">3</span>
+                  <h4>{tr(locale, 'Pegar Credenciales', 'Paste Credentials')}</h4>
+                  <p>{tr(locale, 'Pegá el Base URL y tu API Key generada abajo. ¡Listo para programar!', 'Paste the Base URL and API Key generated below. Ready to code!')}</p>
+                </div>
+              </div>
+
+              {/* Cursor Config Fields Card */}
+              <div className="cursor-fields-card">
+                <div className="cursor-field-row">
+                  <div className="field-info">
+                    <strong>Override OpenAI Base URL</strong>
+                    <small>{tr(locale, 'Pegá este valor exacto en Cursor', 'Paste this exact value into Cursor')}</small>
+                  </div>
+                  <div className="field-copy-box">
+                    <code>{baseUrl}</code>
+                    <button
+                      className={`copy-btn ${copiedField === 'cursorBase' ? 'copied' : ''}`}
+                      onClick={() => copy(baseUrl, 'cursorBase')}
+                      type="button"
+                    >
+                      {copiedField === 'cursorBase' ? <Check size={14} /> : <Copy size={14} />}
+                      <span>{copiedField === 'cursorBase' ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="cursor-field-row">
+                  <div className="field-info">
+                    <strong>OpenAI API Key</strong>
+                    <small>{tr(locale, 'Tu credencial activa (oculta por seguridad)', 'Your active credential (masked for security)')}</small>
+                  </div>
+                  <div className="field-copy-box">
+                    <code>{displayKey}</code>
+                    <div className="field-action-group">
+                      <button
+                        className="icon-button field-action-btn"
+                        onClick={() => setShowKey(!showKey)}
+                        type="button"
+                        title={showKey ? tr(locale, 'Ocultar clave', 'Hide key') : tr(locale, 'Mostrar clave', 'Show key')}
+                      >
+                        {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                      <button
+                        className={`copy-btn ${copiedField === 'cursorKey' ? 'copied' : ''}`}
+                        onClick={() => copy(realSecretKey, 'cursorKey')}
+                        type="button"
+                        title={tr(locale, 'Copiar clave real al portapapeles', 'Copy real key to clipboard')}
+                      >
+                        {copiedField === 'cursorKey' ? <Check size={14} /> : <Copy size={14} />}
+                        <span>{copiedField === 'cursorKey' ? tr(locale, '¡Copiado!', 'Copied!') : tr(locale, 'Copiar', 'Copy')}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {platform !== 'cursor' && (
+            <div className="code-snippet-panel">
+              <div className="snippet-header">
+                <div>
+                  <strong>{platforms.find((p) => p.id === platform)?.label}</strong>
+                  <small>{tr(locale, 'El botón copiar siempre incluye tu clave real lista para ejecutar.', 'The copy button always includes your real key ready to run.')}</small>
+                </div>
+                <div className="snippet-actions">
+                  <button
+                    className="secondary-button reveal-btn-small"
+                    onClick={() => setShowKey(!showKey)}
+                    type="button"
+                  >
+                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    <span>{showKey ? tr(locale, 'Ocultar', 'Hide') : tr(locale, 'Revelar', 'Reveal')}</span>
+                  </button>
+                  <button
+                    className={`secondary-button copy-snippet-btn ${copiedField === platform ? 'copied' : ''}`}
+                    onClick={() => copy(getCode(platform, true), platform)}
+                    type="button"
+                  >
+                    {copiedField === platform ? <Check size={15} /> : <Copy size={15} />}
+                    <span>{copiedField === platform ? tr(locale, '¡Copiado!', 'Copied!') : tr(locale, 'Copiar código', 'Copy code')}</span>
+                  </button>
+                </div>
+              </div>
+              <pre className="code-block">
+                <code>{getCode(platform, false)}</code>
+              </pre>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 4. Live Gateway Connection Tester */}
+      <section className="setup-tester-card">
+        <div className="tester-header">
+          <div className="tester-title">
+            <RadioTower size={22} color="#10b981" />
+            <div>
+              <h3>{tr(locale, 'Test de Conectividad en Tiempo Real', 'Real-Time Connectivity Test')}</h3>
+              <p>{tr(locale, 'Probá tu conexión directa al gateway OpenAI compatible con un solo clic.', 'Test your direct gateway connection with a single click.')}</p>
+            </div>
+          </div>
+
+          <button
+            className="primary-button tester-btn"
+            onClick={runConnectionTest}
+            disabled={testResult.status === 'loading'}
+            type="button"
+          >
+            {testResult.status === 'loading' ? (
+              <>
+                <LoaderCircle className="spin" size={16} />
+                <span>{tr(locale, 'Probando...', 'Testing...')}</span>
+              </>
+            ) : (
+              <>
+                <Play size={16} />
+                <span>{tr(locale, 'Probar Conexión Ahora', 'Test Connection Now')}</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {testResult.status !== 'idle' && (
+          <div className={`tester-result-box ${testResult.status}`}>
+            {testResult.status === 'loading' && <LoaderCircle className="spin" size={18} />}
+            {testResult.status === 'success' && <Check size={18} color="#10b981" />}
+            {testResult.status === 'error' && <AlertTriangle size={18} color="#ef4444" />}
+            <span>{testResult.message}</span>
+            {testResult.latency && <span className="latency-badge">{testResult.latency}ms</span>}
+          </div>
+        )}
+      </section>
+
+      {/* 5. Automatic Setup Windows Assistant */}
+      <section className="setup-assistant-card">
+        <div className="assistant-info">
+          <div className="assistant-icon-box">
+            <Download size={24} color="#06b6d4" />
+          </div>
+          <div>
+            <h3>{tr(locale, 'Asistente de Configuración para Windows', 'Windows Setup Assistant')}</h3>
+            <p>{tr(locale, 'Configurador automático en 1 clic: configura Codex, Claude Code, variables de entorno y copias de seguridad.', '1-click automated setup: configures Codex, Claude Code, env vars and backups.')}</p>
+          </div>
+        </div>
+
+        <div className="assistant-actions">
+          <a className="primary-button" href="/downloads/orbiqen-windows/Orbiqen-Windows.rar" download>
+            <Download size={16} />
+            <span>{tr(locale, 'Descargar Asistente (.rar)', 'Download Assistant (.rar)')}</span>
+          </a>
+          <a className="secondary-button" href="/downloads/orbiqen-windows/LEEME-PRIMERO.txt" target="_blank" rel="noreferrer">
+            <BookOpen size={16} />
+            <span>{tr(locale, 'Instrucciones TXT', 'TXT Instructions')}</span>
+          </a>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 function LoadingScreen() {
