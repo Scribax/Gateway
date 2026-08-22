@@ -4992,3 +4992,254 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover td { background: #fb
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================================
+   ADMIN VIEW LUXURY STYLING
+   ========================================================================== */
+
+.admin-hero-card {
+  padding: clamp(24px, 4vw, 32px);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #05080c 0%, #111a28 50%, #0d2238 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  color: #ffffff;
+}
+
+.admin-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 620px;
+}
+
+.admin-hero-copy h2 {
+  margin: 0;
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.admin-hero-copy p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.admin-hero-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-range-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 40px;
+}
+
+.admin-range-selector select {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 750;
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-range-selector select option {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+.refresh-admin-btn {
+  height: 40px;
+  width: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.export-btn {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 750;
+  gap: 6px;
+}
+
+/* Sub-Navigation Tabs */
+.admin-subnav-bar {
+  display: flex;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 6px;
+  gap: 6px;
+  overflow-x: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.admin-tab-btn {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 750;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.admin-tab-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.admin-tab-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.admin-tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.customer-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-search-input {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  outline: none;
+  min-width: 240px;
+  transition: all 0.15s;
+}
+
+.admin-search-input:focus {
+  border-color: #10b981;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.multiplier-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.voucher-code-chip {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 750;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  letter-spacing: 0.04em;
+}
+
+.form-header-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.form-header-box strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.form-header-box small {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.rank-money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.rank-money strong {
+  font-size: 14px;
+  font-weight: 850;
+  color: #0f172a;
+}
+
+.rank-money small {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 700;
+}
+
+.risk-req-pill {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-all-clear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  gap: 8px;
+}
+
+.admin-all-clear strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.admin-all-clear span {
+  font-size: 13px;
+  color: #64748b;
+}

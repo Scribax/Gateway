@@ -1991,7 +1991,10 @@ const PROVIDER_GROUP_META: Record<string, { labelEs: string; labelEn: string; de
   },
 }
 
+type AdminTab = 'metrics' | 'customers' | 'groups' | 'providers' | 'models' | 'vouchers'
+
 function AdminView({ locale }: { locale: PortalLocale }) {
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab>('metrics')
   const [admin, setAdmin] = useState<AdminResponse | null>(null)
   const [redeemCodes, setRedeemCodes] = useState<RedeemCodeRow[]>([])
   const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
@@ -2021,11 +2024,15 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const [groupMultiplier, setGroupMultiplier] = useState('1')
   const [groupPublished, setGroupPublished] = useState(true)
   const [savingGroup, setSavingGroup] = useState(false)
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [copiedCode, setCopiedCode] = useState<string>('')
+  const english = locale === 'en'
 
   useEffect(() => {
     let alive = true
     async function loadAdmin() {
-      setLoading(true); setError('')
+      setLoading(true)
+      setError('')
       try {
         const [body, redeemBody] = await Promise.all([
           readJson(await fetch(`/api/admin?range=${range}`, { cache: 'no-store' })),
@@ -2047,14 +2054,25 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     if (!admin) return
     const rows = [
       ['Cliente', 'Grupo', 'Estado', 'Saldo USD', 'Requests', 'Tokens', 'Facturado USD', 'Costo estimado USD', 'Errores'],
-      ...admin.customers.map((customer) => [customer.username, customer.group, customer.status === 1 ? 'Activo' : 'Bloqueado', customer.balanceUsd, customer.requests, customer.tokens, customer.revenueUsd, customer.costUsd, customer.errors]),
+      ...admin.customers.map((customer) => [
+        customer.username,
+        customer.group,
+        customer.status === 1 ? 'Activo' : 'Bloqueado',
+        customer.balanceUsd,
+        customer.requests,
+        customer.tokens,
+        customer.revenueUsd,
+        customer.costUsd,
+        customer.errors,
+      ]),
     ]
     downloadText(`admin_clientes_${range}.csv`, `${rows.map((row) => row.map(csvEscape).join(',')).join('\n')}\n`)
   }
 
   async function toggleModel(modelId: string, enabled: boolean) {
     if (!admin) return
-    setSavingModel(modelId); setError('')
+    setSavingModel(modelId)
+    setError('')
     try {
       const body = await readJson(await fetch('/api/admin/models', {
         method: 'PUT',
@@ -2077,7 +2095,8 @@ function AdminView({ locale }: { locale: PortalLocale }) {
 
   async function createRedeemCodes(event: FormEvent) {
     event.preventDefault()
-    setCreatingRedeem(true); setError('')
+    setCreatingRedeem(true)
+    setError('')
     try {
       const body = await readJson(await fetch('/api/admin/redeem-codes', {
         method: 'POST',
@@ -2112,10 +2131,12 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setProviderGroups(profile.target_groups)
     setProviderMultiplier(String(profile.price_multiplier))
     setProviderValidation(null)
+    setActiveAdminTab('providers')
   }
 
   async function validateProvider() {
-    setValidatingProvider(true); setError('')
+    setValidatingProvider(true)
+    setError('')
     try {
       const body = await readJson(await fetch('/api/admin/providers', {
         method: 'PATCH',
@@ -2126,11 +2147,15 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     } catch (cause) {
       setProviderValidation(null)
       setError(cause instanceof Error ? cause.message : 'No se pudo validar el proveedor.')
-    } finally { setValidatingProvider(false) }
+    } finally {
+      setValidatingProvider(false)
+    }
   }
 
   async function saveProvider(event: FormEvent) {
-    event.preventDefault(); setSavingProvider(true); setError('')
+    event.preventDefault()
+    setSavingProvider(true)
+    setError('')
     try {
       const payload: Record<string, unknown> = {
         name: providerName,
@@ -2145,11 +2170,16 @@ function AdminView({ locale }: { locale: PortalLocale }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(providerEditingId === null ? payload : { ...payload, id: providerEditingId }),
       }))
-      setAdmin((current) => current ? { ...current, providerProfiles: providerEditingId === null ? [response.data, ...current.providerProfiles] : current.providerProfiles.map((profile) => profile.id === providerEditingId ? response.data : profile) } : current)
+      setAdmin((current) => current ? {
+        ...current,
+        providerProfiles: providerEditingId === null ? [response.data, ...current.providerProfiles] : current.providerProfiles.map((profile) => profile.id === providerEditingId ? response.data : profile),
+      } : current)
       resetProviderForm()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo guardar el perfil.')
-    } finally { setSavingProvider(false) }
+    } finally {
+      setSavingProvider(false)
+    }
   }
 
   function toggleProviderGroup(group: string) {
@@ -2157,24 +2187,30 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   }
 
   async function activateProvider(id: number) {
-    setProviderAction(id); setError('')
+    setProviderAction(id)
+    setError('')
     try {
       const response = await readJson(await fetch('/api/admin/providers', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'activate', id }) }))
       setRefreshKey((value) => value + 1)
       setError(response.data?.validation?.unknownModels?.length ? `Proveedor aplicado. ${response.data.validation.unknownModels.length} modelos no están todavía en nuestro catálogo y no fueron publicados.` : '')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo activar el perfil.')
-    } finally { setProviderAction(null) }
+    } finally {
+      setProviderAction(null)
+    }
   }
 
   async function restoreProviders() {
-    setProviderAction('restore'); setError('')
+    setProviderAction('restore')
+    setError('')
     try {
       await readJson(await fetch('/api/admin/providers', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'restore' }) }))
       setRefreshKey((value) => value + 1)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo restaurar la configuración.')
-    } finally { setProviderAction(null) }
+    } finally {
+      setProviderAction(null)
+    }
   }
 
   function editSalesGroup(group: SalesGroup) {
@@ -2184,7 +2220,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setGroupFamily(group.model_family)
     setGroupMultiplier(String(group.price_multiplier))
     setGroupPublished(group.published)
-    window.setTimeout(() => document.querySelector('.sales-group-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+    setActiveAdminTab('groups')
   }
 
   function resetSalesGroupForm() {
@@ -2205,11 +2241,13 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     setProviderGroups([group.code])
     setProviderMultiplier(String(group.price_multiplier))
     setProviderValidation(null)
-    document.querySelector('.provider-profile-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setActiveAdminTab('providers')
   }
 
   async function saveSalesGroup(event: FormEvent) {
-    event.preventDefault(); setSavingGroup(true); setError('')
+    event.preventDefault()
+    setSavingGroup(true)
+    setError('')
     try {
       await readJson(await fetch('/api/admin/sales-groups', {
         method: 'POST',
@@ -2232,7 +2270,9 @@ function AdminView({ locale }: { locale: PortalLocale }) {
       setRefreshKey((value) => value + 1)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo guardar el grupo.')
-    } finally { setSavingGroup(false) }
+    } finally {
+      setSavingGroup(false)
+    }
   }
 
   async function removeSalesGroup(code: string) {
@@ -2249,6 +2289,7 @@ function AdminView({ locale }: { locale: PortalLocale }) {
   const margin = admin?.totals.revenueUsd
     ? (admin.totals.netProfitUsd / admin.totals.revenueUsd) * 100
     : 0
+
   const selectableProviderGroups = admin
     ? Array.from(new Set([
       ...admin.salesGroups.map((group) => group.code),
@@ -2258,21 +2299,25 @@ function AdminView({ locale }: { locale: PortalLocale }) {
       'claude',
     ]))
     : []
+
   function salesGroupLabel(code: string) {
     const group = admin?.salesGroups.find((item) => item.code === code)
     if (group) return locale === 'en' ? group.label_en : group.label_es
     const meta = PROVIDER_GROUP_META[code]
     return meta ? tr(locale, meta.labelEs, meta.labelEn) : code
   }
+
   function salesGroupDescription(code: string) {
     const group = admin?.salesGroups.find((item) => item.code === code)
     if (group) return `${locale === 'en' ? group.description_en : group.description_es}${group.note_es || group.note_en ? ` · ${locale === 'en' ? group.note_en : group.note_es}` : ''}`
     const meta = PROVIDER_GROUP_META[code]
     return meta ? tr(locale, meta.descriptionEs, meta.descriptionEn) : `New API: ${code}`
   }
+
   function catalogForGroup(group: SalesGroup) {
     return MODEL_CATALOG.filter((model) => group.model_family === 'claude' ? model.id.includes('claude') : group.model_family === 'chatgpt' ? !model.id.includes('claude') : true)
   }
+
   function groupPriceSummary(group: SalesGroup) {
     const priced = catalogForGroup(group).filter((model) => model.input > 0 || model.output > 0 || model.cacheWrite > 0)
     const minInput = Math.min(...priced.filter((model) => model.input > 0).map((model) => model.input * group.price_multiplier))
@@ -2286,128 +2331,796 @@ function AdminView({ locale }: { locale: PortalLocale }) {
     }
   }
 
-  return <div className="admin-page">
-    <section className="admin-command-bar">
-      <div>
-        <p className="eyebrow">Control financiero</p>
-        <h2>{tr(locale, 'Rentabilidad del gateway', 'Gateway profitability')}</h2>
-        <span>{tr(locale, 'Datos administrativos de New API', 'New API administrative data')}</span>
-      </div>
-      <div className="admin-actions">
-        <label><CalendarRange size={16} /><select value={range} onChange={(event) => setRange(event.target.value as typeof range)}><option value="7d">{tr(locale, '7 días', '7 days')}</option><option value="30d">{tr(locale, '30 días', '30 days')}</option><option value="90d">{tr(locale, '90 días', '90 days')}</option><option value="all">{tr(locale, 'Histórico', 'All time')}</option></select></label>
-        <button className="icon-button" onClick={() => setRefreshKey((value) => value + 1)} disabled={loading} aria-label="Actualizar administración"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button>
-        <button className="secondary-button" onClick={exportCustomers} disabled={!admin}><Download size={17} />Exportar</button>
-      </div>
-    </section>
+  async function copyVoucher(code: string) {
+    await navigator.clipboard.writeText(code)
+    setCopiedCode(code)
+    setTimeout(() => setCopiedCode(''), 2000)
+  }
 
-    {error && <div className="form-error">{error}</div>}
-    {loading && !admin && <section className="usage-skeleton"><LoaderCircle className="spin" size={25} /><span>{tr(locale, 'Cargando métricas administrativas...', 'Loading administrative metrics...')}</span></section>}
-    {admin && <>
-      <section className="admin-stats-grid">
-        <UsageStat label={tr(locale, 'Facturado por uso', 'Usage revenue')} value={money(admin.totals.revenueUsd, admin.totals.revenueUsd < 1 ? 4 : 2)} hint={`${compactNumber(admin.totals.requests)} ${tr(locale, 'solicitudes', 'requests')}`} icon={ReceiptText} tone="blue" />
-        <UsageStat label={tr(locale, 'Costo proveedor', 'Provider cost')} value={money(admin.totals.costUsd, admin.totals.costUsd < 1 ? 4 : 2)} hint={admin.config.providerCostIsEstimate ? `${tr(locale, 'Estimado al', 'Estimated at')} ${(admin.config.upstreamFactor * 100).toFixed(1)}%` : tr(locale, 'Costo conciliado', 'Reconciled cost')} icon={CircleDollarSign} tone="coral" />
-        <UsageStat label={tr(locale, 'Ganancia neta', 'Net profit')} value={money(admin.totals.netProfitUsd, Math.abs(admin.totals.netProfitUsd) < 1 ? 4 : 2)} hint={`${margin.toFixed(1)}% ${tr(locale, 'de margen', 'margin')}`} icon={TrendingUp} tone="green" />
-        <UsageStat label={tr(locale, 'Clientes activos', 'Active customers')} value={`${admin.totals.activeCustomers}/${admin.totals.customers}`} hint={`${admin.totals.errors} ${tr(locale, 'errores en el rango', 'errors in range')}`} icon={Users} tone="violet" />
-      </section>
+  // Filtered customers
+  const filteredCustomers = admin?.customers.filter((c) => {
+    return (
+      c.username.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.displayName.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.group.toLowerCase().includes(customerSearch.toLowerCase())
+    )
+  }) || []
 
-      <section className="admin-ledger-strip">
-        <div><small>Tokens procesados</small><strong>{compactNumber(admin.totals.totalTokens)}</strong></div>
-        <div><small>Comisiones estimadas</small><strong>{money(admin.totals.paymentFeesUsd, 4)}</strong></div>
-        <div><small>{tr(locale, 'Crédito asignado', 'Credited balance')}</small><strong>{money(admin.totals.creditedUsd, 4)}</strong></div>
-        <div><small>{tr(locale, 'Última actualización', 'Last updated')}</small><strong>{new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(admin.generatedAt))}</strong></div>
-      </section>
-
-      {admin.truncated && <div className="admin-warning"><AlertTriangle size={17} />{tr(locale, 'El rango supera 2.000 registros por categoría; las tablas muestran una muestra limitada.', 'The range exceeds 2,000 records per category; tables show a limited sample.')}</div>}
-
-      <section className="section-block redeem-admin-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Códigos demo', 'Demo codes')}</h3><p>{tr(locale, 'Generá crédito de prueba para nuevos clientes. Valor recomendado: US$ 0.50.', 'Generate trial credit for new customers. Recommended value: US$ 0.50.')}</p></div><span className="info-chip"><ReceiptText size={15} />{redeemCodes.filter((code) => code.status === 'active').length} {tr(locale, 'activos', 'active')}</span></div>
-        <form className="redeem-admin-form" onSubmit={createRedeemCodes}>
-          <label>Monto USD<input type="number" min="0.01" max="100" step="0.01" value={redeemAmount} onChange={(event) => setRedeemAmount(event.target.value)} /></label>
-          <label>Cantidad<input type="number" min="1" max="100" step="1" value={redeemCount} onChange={(event) => setRedeemCount(Number(event.target.value))} /></label>
-          <label>Nota<input value={redeemNote} onChange={(event) => setRedeemNote(event.target.value)} placeholder="Campaña o cliente" /></label>
-          <button className="primary-button" disabled={creatingRedeem}>{creatingRedeem ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />}{tr(locale, 'Generar códigos', 'Generate codes')}</button>
-        </form>
-        <div className="table-wrap"><table className="admin-table redeem-table"><thead><tr><th>Código</th><th>Monto</th><th>Estado</th><th>Nota</th><th>Creado</th><th className="right">Acción</th></tr></thead><tbody>
-          {redeemCodes.length === 0 && <tr><td colSpan={6}><div className="empty-row"><ReceiptText size={18} />{tr(locale, 'Todavía no hay códigos demo', 'No demo codes yet')}</div></td></tr>}
-          {redeemCodes.slice(0, 40).map((code) => <tr key={code.id}><td><code>{code.code}</code></td><td>{money(Number(code.amount_usd), 2)}</td><td><span className={`admin-state ${code.status === 'active' ? 'active' : code.status === 'redeemed' ? 'blocked' : ''}`}>{code.status === 'active' ? 'Disponible' : code.status === 'redeemed' ? 'Canjeado' : code.status}</span></td><td>{code.note || '-'}</td><td>{formatDate(Number(code.created_at))}</td><td className="right"><button className="secondary-button key-use-button" onClick={() => navigator.clipboard.writeText(code.code)} type="button"><Copy size={15} />Copiar</button></td></tr>)}
-        </tbody></table></div>
-      </section>
-
-      <section className="section-block provider-profile-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Conexiones de proveedor', 'Provider connections')}</h3><p>{tr(locale, 'Acá solo cambiás Base URL, key madre y qué grupo usa ese endpoint. Los precios se editan abajo en Grupos y precios.', 'Here you only change Base URL, master key and which group uses that endpoint. Prices are edited below in Groups and prices.')}</p></div><span className="info-chip"><Server size={15} />{admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}</span></div>
-        <div className="provider-profile-layout">
-          <div className="provider-profile-list">
-            {admin.providerProfiles.length === 0 && <div className="empty-row"><Server size={18} />{tr(locale, 'Todavía no hay perfiles configurados.', 'No provider profiles configured yet.')}</div>}
-            {admin.providerProfiles.map((profile) => <article className={`provider-profile-row ${profile.active ? 'active' : ''}`} key={profile.id}><div className="provider-profile-icon"><Server size={17} /></div><div className="provider-profile-copy"><strong>{profile.name}</strong><small>{profile.description || tr(locale, 'Sin descripción', 'No description')}</small><code>{profile.base_url}</code><span>{profile.target_groups.map(salesGroupLabel).join(', ')} · {profile.price_multiplier}x · {profile.keyConfigured ? profile.maskedKey : tr(locale, 'Sin key', 'No key')}</span></div><div className="provider-profile-actions"><span className={`admin-state ${profile.active ? 'active' : ''}`}>{profile.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Disponible', 'Available')}</span><button type="button" className="secondary-button" onClick={() => editProvider(profile)}><Eye size={15} />{tr(locale, 'Editar', 'Edit')}</button><button type="button" className="primary-button" onClick={() => activateProvider(profile.id)} disabled={providerAction === profile.id}>{providerAction === profile.id ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}{tr(locale, 'Aplicar', 'Apply')}</button></div></article>)}
-            {admin.providerProfiles.length > 0 && <button type="button" className="secondary-button provider-restore-button" onClick={restoreProviders} disabled={providerAction === 'restore'}>{providerAction === 'restore' ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{tr(locale, 'Restaurar configuración anterior', 'Restore previous configuration')}</button>}
+  return (
+    <div className="view-stack admin-view">
+      {/* 1. Command Bar & Hero */}
+      <section className="admin-hero-card">
+        <div className="admin-hero-copy">
+          <div className="landing-eyebrow-badge" style={{ marginBottom: '8px' }}>
+            <span className="pulse-dot" />
+            <span>{tr(locale, 'CENTRO DE CONTROL FINANCIERO & GATEWAY', 'FINANCIAL CONTROL & GATEWAY HUB')}</span>
           </div>
-          <form className="provider-profile-form" onSubmit={saveProvider}>
-            <div className="provider-form-title"><strong>{providerEditingId === null ? tr(locale, 'Nuevo perfil', 'New profile') : tr(locale, 'Editar perfil', 'Edit profile')}</strong><small>{tr(locale, 'Las credenciales quedan solo en el servidor.', 'Credentials stay on the server only.')}</small></div>
-            <label>{tr(locale, 'Nombre', 'Name')}<input name="provider-profile-name" autoComplete="off" value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="FastAI 0.2x" required /></label>
-            <label>{tr(locale, 'Descripción', 'Description')}<input name="provider-profile-description" autoComplete="off" value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Proveedor de respaldo" /></label>
-            <label>Base URL<input name="provider-base-url" autoComplete="url" spellCheck={false} value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required /></label>
-            <label>API key madre<input name="provider-api-key" autoComplete="new-password" type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} /></label>
-            <fieldset className="provider-group-picker"><legend>{tr(locale, '¿Qué grupo de clientes usará este proveedor?', 'Which customer group will use this provider?')}</legend><div className="provider-group-options">{selectableProviderGroups.map((group) => <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}><input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} /><span className="provider-group-check">{providerGroups.includes(group) && <Check size={13} />}</span><span className="provider-group-copy"><strong>{salesGroupLabel(group)}</strong><small>{salesGroupDescription(group)}</small></span></label>)}</div><small className="provider-group-help">{tr(locale, 'Si creás un grupo abajo, aparecerá acá para conectarle Base URL y key madre.', 'If you create a group below, it appears here so you can connect a Base URL and master key.')}</small></fieldset>
-            <label>{tr(locale, 'Referencia del proveedor', 'Provider reference')}<input name="provider-price-multiplier" autoComplete="off" type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required /><small className="field-help">{tr(locale, 'Solo sirve como nota interna. Lo que se cobra al cliente se define abajo.', 'Internal note only. Customer billing is defined below.')}</small></label>
-            {providerValidation && <div className="provider-validation-result"><div><Check size={15} /><strong>{providerValidation.models.length} {tr(locale, 'modelos detectados', 'models detected')}</strong></div><small>{providerValidation.knownModels.length} {tr(locale, 'coinciden con nuestro catálogo', 'match our catalog')} · {providerValidation.unknownModels.length} {tr(locale, 'requieren revisión', 'need review')}</small><code>{providerValidation.models.slice(0, 12).join(' · ')}{providerValidation.models.length > 12 ? ' · ...' : ''}</code></div>}
-            <div className="provider-form-actions"><button type="button" className="secondary-button" onClick={validateProvider} disabled={validatingProvider || !providerBaseUrl.trim() || !providerApiKey.trim()}>{validatingProvider ? <LoaderCircle className="spin" size={16} /> : <RefreshCw size={16} />}{tr(locale, 'Validar endpoint', 'Validate endpoint')}</button><button type="submit" className="primary-button" disabled={savingProvider}>{savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar perfil', 'Save profile')}</button>{providerEditingId !== null && <button type="button" className="secondary-button" onClick={resetProviderForm}>{tr(locale, 'Cancelar', 'Cancel')}</button>}</div>
-          </form>
+          <h2>{tr(locale, 'Panel de Administración Integral', 'Administration Command Center')}</h2>
+          <p>
+            {tr(
+              locale,
+              'Supervisá métricas de rentabilidad, balance de clientes, grupos comerciales y conexiones con proveedores upstream.',
+              'Monitor profitability metrics, customer balances, sales groups, and upstream provider connections.'
+            )}
+          </p>
+        </div>
+
+        <div className="admin-hero-controls">
+          <label className="admin-range-selector">
+            <CalendarRange size={16} color="#94a3b8" />
+            <select value={range} onChange={(event) => setRange(event.target.value as typeof range)}>
+              <option value="7d">{tr(locale, 'Últimos 7 días', 'Last 7 days')}</option>
+              <option value="30d">{tr(locale, 'Últimos 30 días', 'Last 30 days')}</option>
+              <option value="90d">{tr(locale, 'Últimos 90 días', 'Last 90 days')}</option>
+              <option value="all">{tr(locale, 'Histórico completo', 'All time')}</option>
+            </select>
+          </label>
+
+          <button
+            className="icon-button refresh-admin-btn"
+            onClick={() => setRefreshKey((value) => value + 1)}
+            disabled={loading}
+            title={tr(locale, 'Actualizar datos', 'Refresh data')}
+            type="button"
+          >
+            <RefreshCw className={loading ? 'spin' : ''} size={16} />
+          </button>
+
+          <button
+            className="secondary-button export-btn"
+            onClick={exportCustomers}
+            disabled={!admin}
+            type="button"
+          >
+            <Download size={15} />
+            <span>CSV</span>
+          </button>
         </div>
       </section>
 
-      <section className="section-block sales-group-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Grupos y precios', 'Groups and prices')}</h3><p>{tr(locale, 'Esto es lo que ve y paga el cliente al crear o cambiar una API key.', 'This is what customers see and pay when creating or changing an API key.')}</p></div><span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span></div>
-        <div className="sales-group-layout">
-          <div className="table-wrap"><table className="admin-table unified-group-table"><thead><tr><th>{tr(locale, 'Grupo cliente', 'Customer group')}</th><th>{tr(locale, 'Precio cliente', 'Customer price')}</th><th>{tr(locale, 'Proveedor activo', 'Active provider')}</th><th>Endpoint</th><th>{tr(locale, 'Estado', 'Status')}</th><th className="right">{tr(locale, 'Acción', 'Action')}</th></tr></thead><tbody>{admin.salesGroups.map((group) => { const providers = admin.providerProfiles.filter((profile) => profile.target_groups.includes(group.code)); const activeProvider = providers.find((profile) => profile.active) || providers[0]; const priceSummary = groupPriceSummary(group); return <tr key={group.code}><td><strong>{locale === 'en' ? group.label_en : group.label_es}</strong><small>{locale === 'en' ? group.note_en : group.note_es}</small><code>{group.code}</code></td><td><span className="price-summary"><strong>{group.price_multiplier}x</strong><small>Input {tr(locale, 'desde', 'from')} {priceSummary.input} · {tr(locale, 'salida', 'output')} {priceSummary.output}</small><small>Cache {priceSummary.cache} · {priceSummary.pricedCount} {tr(locale, 'modelos con precio', 'priced models')}</small></span></td><td>{activeProvider ? <span className="provider-mini"><strong>{activeProvider.name}</strong><small>{activeProvider.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Guardado, falta aplicar', 'Saved, needs apply')}</small></span> : <span className="muted-mini">{tr(locale, 'Sin proveedor conectado', 'No provider connected')}</span>}</td><td>{activeProvider ? <code>{activeProvider.base_url}</code> : <button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Plus size={15} />{tr(locale, 'Conectar', 'Connect')}</button>}</td><td><span className={`admin-state ${group.published ? 'active' : ''}`}>{group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}</span></td><td className="right"><span className="action-group"><button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}><Pencil size={15} />{tr(locale, 'Editar precio', 'Edit price')}</button><button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}><Server size={15} />{tr(locale, 'Conexión', 'Connection')}</button>{!['clientes', 'clientes_025', 'claude'].includes(group.code) && <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}><Trash2 size={15} /></button>}</span></td></tr> })}</tbody></table></div>
-          <form className="sales-group-form" onSubmit={saveSalesGroup}>
-            <strong>{tr(locale, 'Crear o editar grupo', 'Create or edit group')}</strong>
-            <label>{tr(locale, 'Código técnico', 'Technical code')}<input value={groupCode} onChange={(event) => setGroupCode(event.target.value)} placeholder="fastai_02" required /></label>
-            <label>{tr(locale, 'Nombre visible', 'Visible name')}<input value={groupLabel} onChange={(event) => setGroupLabel(event.target.value)} placeholder="FastAI barato" required /></label>
-            <label>{tr(locale, 'Descripción corta', 'Short description')}<input value={groupNote} onChange={(event) => setGroupNote(event.target.value)} placeholder="Proveedor alternativo" /></label>
-            <label>{tr(locale, 'Familia de modelos', 'Model family')}<select value={groupFamily} onChange={(event) => setGroupFamily(event.target.value as typeof groupFamily)}><option value="chatgpt">ChatGPT / OpenAI</option><option value="claude">Claude / Anthropic</option><option value="all">{tr(locale, 'Todos', 'All')}</option></select></label>
-            <label>{tr(locale, 'Multiplicador de cobro al cliente', 'Customer billing multiplier')}<input type="number" min="0.001" step="0.001" value={groupMultiplier} onChange={(event) => setGroupMultiplier(event.target.value)} required /><small className="field-help">{tr(locale, 'Ejemplo: 1 mantiene el precio base, 2.5 cobra 2.5 veces más. Se sincroniza con New API.', 'Example: 1 keeps the base price, 2.5 charges 2.5x more. It syncs with New API.')}</small></label>
-            <label className="check-inline"><input type="checkbox" checked={groupPublished} onChange={(event) => setGroupPublished(event.target.checked)} />{tr(locale, 'Publicado para clientes', 'Published for customers')}</label>
-            <div className="provider-form-actions"><button className="primary-button" disabled={savingGroup}>{savingGroup ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}{tr(locale, 'Guardar grupo', 'Save group')}</button><button type="button" className="secondary-button" onClick={resetSalesGroupForm}>{tr(locale, 'Limpiar', 'Clear')}</button></div>
-          </form>
-        </div>
+      {error && <div className="form-error">{error}</div>}
+
+      {/* 2. Sub-Navigation Tabs */}
+      <section className="admin-subnav-bar">
+        {[
+          { id: 'metrics', label: tr(locale, 'Finanzas & Rentabilidad', 'Finance & Profitability'), icon: TrendingUp },
+          { id: 'customers', label: `${tr(locale, 'Clientes', 'Customers')} (${admin?.customers.length || 0})`, icon: Users },
+          { id: 'groups', label: `${tr(locale, 'Grupos & Precios', 'Groups & Pricing')} (${admin?.salesGroups.length || 0})`, icon: KeyRound },
+          { id: 'providers', label: `${tr(locale, 'Proveedores Upstream', 'Upstream Providers')} (${admin?.providerProfiles.length || 0})`, icon: Server },
+          { id: 'models', label: `${tr(locale, 'Catálogo', 'Catalog')} (${admin?.modelControls.length || 0})`, icon: Sparkles },
+          { id: 'vouchers', label: `${tr(locale, 'Códigos Demo', 'Demo Codes')} (${redeemCodes.length})`, icon: ReceiptText },
+        ].map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeAdminTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`admin-tab-btn ${isActive ? 'active' : ''}`}
+              onClick={() => setActiveAdminTab(tab.id as AdminTab)}
+            >
+              <Icon size={16} />
+              <span>{tab.label}</span>
+            </button>
+          )
+        })}
       </section>
 
-      <section className="section-block model-control-section">
-        <div className="section-heading"><div><h3>{tr(locale, 'Catálogo y grupos de venta', 'Catalog and sales groups')}</h3><p>{tr(locale, 'La selección es manual. El estado HTTP solo se muestra como diagnóstico.', 'Selection is manual. HTTP status is shown for diagnostics only.')}</p></div><span className="info-chip"><Sparkles size={15} />{admin.modelControls.filter((model) => model.enabled).length} {tr(locale, 'publicados', 'published')}</span></div>
-        <div className="model-control-groups">
-          {(['clientes', 'claude'] as const).map((group) => <div className="model-control-group" key={group}><div className="model-control-group-title"><strong>{group === 'claude' ? 'Claude' : 'ChatGPT'}</strong><span>{group === 'claude' ? 'Modelos Anthropic' : 'Modelos GPT, Codex y otros'}</span></div><div className="model-control-list">{admin.modelControls.filter((model) => model.group === group).map((model) => <div className="model-control-row" key={model.modelId}><div><strong>{model.label}</strong><code>{model.modelId}</code></div><button type="button" className={`model-toggle ${model.enabled ? 'enabled' : ''}`} aria-pressed={model.enabled} onClick={() => toggleModel(model.modelId, !model.enabled)} disabled={savingModel === model.modelId}>{savingModel === model.modelId ? <LoaderCircle className="spin" size={16} /> : model.enabled ? <><Check size={15} />Publicado</> : 'Oculto'}</button></div>)}</div></div>)}
-        </div>
-      </section>
+      {loading && !admin && (
+        <section className="usage-skeleton">
+          <LoaderCircle className="spin" size={26} />
+          <span>{tr(locale, 'Cargando métricas administrativas...', 'Loading administrative metrics...')}</span>
+        </section>
+      )}
 
-      <section className="section-block">
-        <div className="section-heading"><div><h3>Clientes registrados</h3><p>Saldo, consumo y rentabilidad por cuenta</p></div><span className="info-chip"><Users size={15} />{admin.customers.length} clientes</span></div>
-        <div className="table-wrap"><table className="admin-table"><thead><tr><th>Cliente</th><th>Grupo</th><th>Estado</th><th>Saldo</th><th>Requests</th><th>Tokens</th><th>Facturado</th><th>Costo est.</th><th>Ganancia bruta</th><th className="right">Alertas</th></tr></thead><tbody>
-          {admin.customers.length === 0 && <tr><td colSpan={10}><div className="empty-row"><Users size={18} />No hay clientes registrados</div></td></tr>}
-          {admin.customers.map((customer) => <tr key={customer.username}><td><span className="admin-customer"><span className={`status-dot ${customer.status === 1 ? 'active' : ''}`} /><span><strong>{customer.displayName}</strong><small>{customer.username}</small></span></span></td><td><code>{customer.group}</code></td><td><span className={`admin-state ${customer.status === 1 ? 'active' : 'blocked'}`}>{customer.status === 1 ? 'Activo' : 'Bloqueado'}</span></td><td>{money(customer.balanceUsd, 4)}</td><td>{compactNumber(customer.requests)}</td><td>{compactNumber(customer.tokens)}</td><td>{money(customer.revenueUsd, 4)}</td><td>{money(customer.costUsd, 4)}</td><td className="profit-cell">{money(customer.revenueUsd - customer.costUsd, 4)}</td><td className="right">{customer.errors ? <span className="risk-badge"><AlertTriangle size={13} />{customer.errors}</span> : <span className="clean-badge">Normal</span>}</td></tr>)}
-        </tbody></table></div>
-      </section>
+      {admin && (
+        <>
+          {/* TAB 1: METRICS & FINANCE */}
+          {activeAdminTab === 'metrics' && (
+            <div className="admin-tab-pane">
+              <section className="admin-stats-grid">
+                <UsageStat
+                  label={tr(locale, 'Facturado por uso', 'Usage revenue')}
+                  value={money(admin.totals.revenueUsd, admin.totals.revenueUsd < 1 ? 4 : 2)}
+                  hint={`${compactNumber(admin.totals.requests)} ${tr(locale, 'solicitudes', 'requests')}`}
+                  icon={ReceiptText}
+                  tone="blue"
+                />
+                <UsageStat
+                  label={tr(locale, 'Costo proveedor', 'Provider cost')}
+                  value={money(admin.totals.costUsd, admin.totals.costUsd < 1 ? 4 : 2)}
+                  hint={admin.config.providerCostIsEstimate ? `${tr(locale, 'Estimado al', 'Estimated at')} ${(admin.config.upstreamFactor * 100).toFixed(1)}%` : tr(locale, 'Costo conciliado', 'Reconciled cost')}
+                  icon={CircleDollarSign}
+                  tone="coral"
+                />
+                <UsageStat
+                  label={tr(locale, 'Ganancia neta', 'Net profit')}
+                  value={money(admin.totals.netProfitUsd, Math.abs(admin.totals.netProfitUsd) < 1 ? 4 : 2)}
+                  hint={`${margin.toFixed(1)}% ${tr(locale, 'de margen', 'margin')}`}
+                  icon={TrendingUp}
+                  tone="green"
+                />
+                <UsageStat
+                  label={tr(locale, 'Clientes activos', 'Active customers')}
+                  value={`${admin.totals.activeCustomers}/${admin.totals.customers}`}
+                  hint={`${admin.totals.errors} ${tr(locale, 'errores en el rango', 'errors in range')}`}
+                  icon={Users}
+                  tone="violet"
+                />
+              </section>
 
-      <section className="admin-split-grid">
-        <article className="admin-panel">
-          <div className="section-heading"><div><h3>{tr(locale, 'Modelos más utilizados', 'Most used models')}</h3><p>{tr(locale, 'Ordenados por facturación', 'Sorted by revenue')}</p></div><BarChart3 size={18} /></div>
-          <div className="admin-ranking">{admin.models.length === 0 && <div className="empty-row"><BarChart3 size={18} />Sin consumo</div>}{admin.models.slice(0, 8).map((model, index) => <div className="admin-rank-row" key={model.model}><span className="rank-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{model.model}</strong><small>{compactNumber(model.requests)} req · {compactNumber(model.tokens)} tokens</small></div><span><strong>{money(model.revenueUsd, 4)}</strong><small>{money(model.profitUsd, 4)} margen</small></span></div>)}</div>
-        </article>
-        <article className="admin-panel">
-          <div className="section-heading"><div><h3>Consumo sospechoso</h3><p>Errores repetidos o volumen alto</p></div><AlertTriangle size={18} /></div>
-          <div className="admin-risk-list">{admin.suspicious.length === 0 && <div className="admin-all-clear"><ShieldCheck size={24} /><strong>Sin alertas</strong><span>No se detectaron patrones anormales.</span></div>}{admin.suspicious.map((customer) => <div className="admin-risk-row" key={customer.username}><span className="risk-icon"><AlertTriangle size={16} /></span><div><strong>{customer.username}</strong><small>{customer.reason}</small></div><span>{compactNumber(customer.requests)} req</span></div>)}</div>
-        </article>
-      </section>
+              <section className="admin-ledger-strip">
+                <div>
+                  <small>{tr(locale, 'Tokens procesados', 'Processed tokens')}</small>
+                  <strong>{compactNumber(admin.totals.totalTokens)}</strong>
+                </div>
+                <div>
+                  <small>{tr(locale, 'Comisiones pasarela', 'Payment gateway fees')}</small>
+                  <strong>{money(admin.totals.paymentFeesUsd, 4)}</strong>
+                </div>
+                <div>
+                  <small>{tr(locale, 'Crédito asignado', 'Credited balance')}</small>
+                  <strong>{money(admin.totals.creditedUsd, 4)}</strong>
+                </div>
+                <div>
+                  <small>{tr(locale, 'Última conciliación', 'Last reconciled')}</small>
+                  <strong>{new Intl.DateTimeFormat(english ? 'en-US' : 'es-AR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(admin.generatedAt))}</strong>
+                </div>
+              </section>
 
-      <section className="section-block">
-        <div className="section-heading"><div><h3>Ganancia por API key</h3><p>Rentabilidad agrupada por credencial</p></div><KeyRound size={18} /></div>
-        <div className="table-wrap"><table className="admin-table"><thead><tr><th>API Key</th><th>Cliente</th><th>Requests</th><th>Tokens</th><th>Facturado</th><th>Costo est.</th><th className="right">Ganancia bruta</th></tr></thead><tbody>
-          {admin.keys.length === 0 && <tr><td colSpan={7}><div className="empty-row"><KeyRound size={18} />Sin consumo por API key</div></td></tr>}
-          {admin.keys.slice(0, 50).map((key) => <tr key={`${key.username}-${key.key}`}><td><span className="key-title"><KeyRound size={15} />{key.key}</span></td><td>{key.username}</td><td>{compactNumber(key.requests)}</td><td>{compactNumber(key.tokens)}</td><td>{money(key.revenueUsd, 4)}</td><td>{money(key.costUsd, 4)}</td><td className="right profit-cell">{money(key.profitUsd, 4)}</td></tr>)}
-        </tbody></table></div>
-      </section>
-    </>}
-  </div>
+              {admin.truncated && (
+                <div className="admin-warning">
+                  <AlertTriangle size={17} />
+                  <span>{tr(locale, 'El rango supera 2.000 registros por categoría; las tablas muestran una muestra representativa.', 'The range exceeds 2,000 records per category; tables show a representative sample.')}</span>
+                </div>
+              )}
+
+              <section className="admin-split-grid">
+                <article className="admin-panel">
+                  <div className="section-heading">
+                    <div>
+                      <h3>{tr(locale, 'Modelos más utilizados', 'Most used models')}</h3>
+                      <p>{tr(locale, 'Ordenados por volumen de facturación', 'Sorted by billing volume')}</p>
+                    </div>
+                    <BarChart3 size={18} />
+                  </div>
+                  <div className="admin-ranking">
+                    {admin.models.length === 0 && <div className="empty-row"><BarChart3 size={18} />{tr(locale, 'Sin consumo registrado', 'No usage recorded')}</div>}
+                    {admin.models.slice(0, 8).map((model, index) => (
+                      <div className="admin-rank-row" key={model.model}>
+                        <span className="rank-number">{String(index + 1).padStart(2, '0')}</span>
+                        <div>
+                          <strong>{model.model}</strong>
+                          <small>{compactNumber(model.requests)} req · {compactNumber(model.tokens)} tokens</small>
+                        </div>
+                        <div className="rank-money">
+                          <strong>{money(model.revenueUsd, 4)}</strong>
+                          <small>{money(model.profitUsd, 4)} {tr(locale, 'margen', 'margin')}</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+
+                <article className="admin-panel">
+                  <div className="section-heading">
+                    <div>
+                      <h3>{tr(locale, 'Monitoreo de Anomalías & Riesgo', 'Anomaly & Risk Monitoring')}</h3>
+                      <p>{tr(locale, 'Detección de errores repetidos o consumo inusual', 'Repeated errors or unusual burst patterns')}</p>
+                    </div>
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div className="admin-risk-list">
+                    {admin.suspicious.length === 0 ? (
+                      <div className="admin-all-clear">
+                        <ShieldCheck size={28} color="#10b981" />
+                        <strong>{tr(locale, 'Sin alertas críticas', 'No critical alerts')}</strong>
+                        <span>{tr(locale, 'Todos los clientes operan dentro de los parámetros esperados.', 'All customers operate within expected parameters.')}</span>
+                      </div>
+                    ) : (
+                      admin.suspicious.map((customer) => (
+                        <div className="admin-risk-row" key={customer.username}>
+                          <span className="risk-icon"><AlertTriangle size={16} /></span>
+                          <div>
+                            <strong>{customer.username}</strong>
+                            <small>{customer.reason}</small>
+                          </div>
+                          <span className="risk-req-pill">{compactNumber(customer.requests)} req</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </article>
+              </section>
+
+              {/* API Keys Profitability Table */}
+              <section className="section-block">
+                <div className="section-heading">
+                  <div>
+                    <h3>{tr(locale, 'Rentabilidad por API Key', 'Profitability by API Key')}</h3>
+                    <p>{tr(locale, 'Facturación, costo estimado y margen bruto por credencial activa', 'Revenue, estimated cost and gross profit per active credential')}</p>
+                  </div>
+                  <KeyRound size={18} />
+                </div>
+                <div className="table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>API Key</th>
+                        <th>{tr(locale, 'Cliente', 'Customer')}</th>
+                        <th>Requests</th>
+                        <th>Tokens</th>
+                        <th>{tr(locale, 'Facturado', 'Revenue')}</th>
+                        <th>{tr(locale, 'Costo est.', 'Est. Cost')}</th>
+                        <th className="right">{tr(locale, 'Ganancia bruta', 'Gross Profit')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {admin.keys.length === 0 && (
+                        <tr>
+                          <td colSpan={7}>
+                            <div className="empty-row"><KeyRound size={18} />{tr(locale, 'Sin consumo por API key en el rango', 'No API key usage in range')}</div>
+                          </td>
+                        </tr>
+                      )}
+                      {admin.keys.slice(0, 50).map((key) => (
+                        <tr key={`${key.username}-${key.key}`}>
+                          <td>
+                            <span className="key-title">
+                              <KeyRound size={15} />
+                              <code>{key.key}</code>
+                            </span>
+                          </td>
+                          <td><strong>{key.username}</strong></td>
+                          <td>{compactNumber(key.requests)}</td>
+                          <td>{compactNumber(key.tokens)}</td>
+                          <td>{money(key.revenueUsd, 4)}</td>
+                          <td>{money(key.costUsd, 4)}</td>
+                          <td className="right profit-cell">{money(key.profitUsd, 4)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 2: CUSTOMERS */}
+          {activeAdminTab === 'customers' && (
+            <div className="admin-tab-pane">
+              <section className="section-block">
+                <div className="section-heading">
+                  <div>
+                    <h3>{tr(locale, 'Clientes Registrados en la Plataforma', 'Registered Customers')}</h3>
+                    <p>{tr(locale, 'Control de saldos prepagos, volumen de tráfico y margen individual', 'Prepaid balance tracking, traffic volume and individual margins')}</p>
+                  </div>
+                  <div className="customer-toolbar-right">
+                    <input
+                      type="text"
+                      className="admin-search-input"
+                      placeholder={tr(locale, 'Buscar por nombre, usuario o grupo...', 'Search by name, user or group...')}
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                    />
+                    <span className="info-chip"><Users size={15} />{filteredCustomers.length} {tr(locale, 'cuentas', 'accounts')}</span>
+                  </div>
+                </div>
+                <div className="table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>{tr(locale, 'Cliente', 'Customer')}</th>
+                        <th>{tr(locale, 'Grupo', 'Group')}</th>
+                        <th>{tr(locale, 'Estado', 'Status')}</th>
+                        <th>{tr(locale, 'Saldo USD', 'Balance USD')}</th>
+                        <th>Requests</th>
+                        <th>Tokens</th>
+                        <th>{tr(locale, 'Facturado', 'Revenue')}</th>
+                        <th>{tr(locale, 'Costo est.', 'Est. Cost')}</th>
+                        <th>{tr(locale, 'Ganancia bruta', 'Gross Profit')}</th>
+                        <th className="right">{tr(locale, 'Alertas', 'Alerts')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCustomers.length === 0 && (
+                        <tr>
+                          <td colSpan={10}>
+                            <div className="empty-row"><Users size={18} />{tr(locale, 'No se encontraron clientes', 'No customers found')}</div>
+                          </td>
+                        </tr>
+                      )}
+                      {filteredCustomers.map((customer) => (
+                        <tr key={customer.username}>
+                          <td>
+                            <span className="admin-customer">
+                              <span className={`status-dot ${customer.status === 1 ? 'active' : ''}`} />
+                              <span>
+                                <strong>{customer.displayName || customer.username}</strong>
+                                <small>{customer.username}</small>
+                              </span>
+                            </span>
+                          </td>
+                          <td><code>{customer.group}</code></td>
+                          <td>
+                            <span className={`admin-state ${customer.status === 1 ? 'active' : 'blocked'}`}>
+                              {customer.status === 1 ? tr(locale, 'Activo', 'Active') : tr(locale, 'Bloqueado', 'Blocked')}
+                            </span>
+                          </td>
+                          <td><strong>{money(customer.balanceUsd, 4)}</strong></td>
+                          <td>{compactNumber(customer.requests)}</td>
+                          <td>{compactNumber(customer.tokens)}</td>
+                          <td>{money(customer.revenueUsd, 4)}</td>
+                          <td>{money(customer.costUsd, 4)}</td>
+                          <td className="profit-cell">{money(customer.revenueUsd - customer.costUsd, 4)}</td>
+                          <td className="right">
+                            {customer.errors ? (
+                              <span className="risk-badge"><AlertTriangle size={13} />{customer.errors}</span>
+                            ) : (
+                              <span className="clean-badge">{tr(locale, 'Normal', 'Normal')}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 3: SALES GROUPS & PRICING */}
+          {activeAdminTab === 'groups' && (
+            <div className="admin-tab-pane">
+              <section className="section-block sales-group-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>{tr(locale, 'Grupos Comerciales & Multiplicadores de Cobro', 'Commercial Groups & Pricing Multipliers')}</h3>
+                    <p>{tr(locale, 'Configuración de paquetes comerciales y multiplicadores sobre el catálogo base aplicados en New API.', 'Sales group setup and multipliers over base catalog applied in New API.')}</p>
+                  </div>
+                  <span className="info-chip"><KeyRound size={15} />{admin.salesGroups.filter((group) => group.published).length} {tr(locale, 'publicados', 'published')}</span>
+                </div>
+                <div className="sales-group-layout">
+                  <div className="table-wrap">
+                    <table className="admin-table unified-group-table">
+                      <thead>
+                        <tr>
+                          <th>{tr(locale, 'Grupo comercial', 'Sales group')}</th>
+                          <th>{tr(locale, 'Multiplicador & Precios', 'Multiplier & Rates')}</th>
+                          <th>{tr(locale, 'Proveedor activo', 'Active provider')}</th>
+                          <th>Endpoint</th>
+                          <th>{tr(locale, 'Estado', 'Status')}</th>
+                          <th className="right">{tr(locale, 'Acción', 'Action')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {admin.salesGroups.map((group) => {
+                          const providers = admin.providerProfiles.filter((profile) => profile.target_groups.includes(group.code))
+                          const activeProvider = providers.find((profile) => profile.active) || providers[0]
+                          const priceSummary = groupPriceSummary(group)
+                          return (
+                            <tr key={group.code}>
+                              <td>
+                                <strong>{locale === 'en' ? group.label_en : group.label_es}</strong>
+                                <small>{locale === 'en' ? group.note_en : group.note_es}</small>
+                                <code>{group.code}</code>
+                              </td>
+                              <td>
+                                <span className="price-summary">
+                                  <strong className="multiplier-tag">{group.price_multiplier}x</strong>
+                                  <small>Input {tr(locale, 'desde', 'from')} {priceSummary.input} · Output {priceSummary.output}</small>
+                                  <small>Cache {priceSummary.cache} · {priceSummary.pricedCount} {tr(locale, 'modelos', 'models')}</small>
+                                </span>
+                              </td>
+                              <td>
+                                {activeProvider ? (
+                                  <span className="provider-mini">
+                                    <strong>{activeProvider.name}</strong>
+                                    <small>{activeProvider.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Guardado', 'Saved')}</small>
+                                  </span>
+                                ) : (
+                                  <span className="muted-mini">{tr(locale, 'Sin proveedor', 'No provider')}</span>
+                                )}
+                              </td>
+                              <td>
+                                {activeProvider ? (
+                                  <code>{activeProvider.base_url}</code>
+                                ) : (
+                                  <button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}>
+                                    <Plus size={14} />{tr(locale, 'Conectar', 'Connect')}
+                                  </button>
+                                )}
+                              </td>
+                              <td>
+                                <span className={`admin-state ${group.published ? 'active' : ''}`}>
+                                  {group.published ? tr(locale, 'Publicado', 'Published') : tr(locale, 'Oculto', 'Hidden')}
+                                </span>
+                              </td>
+                              <td className="right">
+                                <span className="action-group">
+                                  <button type="button" className="secondary-button" onClick={() => editSalesGroup(group)}>
+                                    <Pencil size={14} />{tr(locale, 'Editar', 'Edit')}
+                                  </button>
+                                  <button type="button" className="secondary-button" onClick={() => prepareProviderForGroup(group)}>
+                                    <Server size={14} />{tr(locale, 'Conexión', 'Connection')}
+                                  </button>
+                                  {!['clientes', 'clientes_025', 'claude'].includes(group.code) && (
+                                    <button type="button" className="icon-button danger" onClick={() => removeSalesGroup(group.code)}>
+                                      <Trash2 size={15} />
+                                    </button>
+                                  )}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Group Form */}
+                  <form className="sales-group-form" onSubmit={saveSalesGroup}>
+                    <div className="form-header-box">
+                      <strong>{groupCode ? tr(locale, 'Editar Grupo Comercial', 'Edit Sales Group') : tr(locale, 'Crear Nuevo Grupo', 'Create New Group')}</strong>
+                      <small>{tr(locale, 'Se sincroniza automáticamente con New API y la base de datos.', 'Syncs automatically with New API and database.')}</small>
+                    </div>
+
+                    <label>
+                      {tr(locale, 'Código técnico (único)', 'Technical code (unique)')}
+                      <input value={groupCode} onChange={(event) => setGroupCode(event.target.value)} placeholder="fastai_02" required />
+                    </label>
+
+                    <label>
+                      {tr(locale, 'Nombre visible al cliente', 'Customer visible name')}
+                      <input value={groupLabel} onChange={(event) => setGroupLabel(event.target.value)} placeholder="FastAI Económico" required />
+                    </label>
+
+                    <label>
+                      {tr(locale, 'Descripción o subtítulo', 'Short description')}
+                      <input value={groupNote} onChange={(event) => setGroupNote(event.target.value)} placeholder="Proveedor alternativo 0.2x" />
+                    </label>
+
+                    <label>
+                      {tr(locale, 'Familia de modelos', 'Model family')}
+                      <select value={groupFamily} onChange={(event) => setGroupFamily(event.target.value as typeof groupFamily)}>
+                        <option value="chatgpt">ChatGPT / OpenAI</option>
+                        <option value="claude">Claude / Anthropic</option>
+                        <option value="all">{tr(locale, 'Todos los modelos', 'All models')}</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      {tr(locale, 'Multiplicador de cobro', 'Billing multiplier')}
+                      <input type="number" min="0.001" step="0.001" value={groupMultiplier} onChange={(event) => setGroupMultiplier(event.target.value)} required />
+                      <small className="field-help">{tr(locale, '1.0 = Precio base catálogo. 2.5 = 2.5x más.', '1.0 = Base catalog price. 2.5 = 2.5x higher.')}</small>
+                    </label>
+
+                    <label className="check-inline">
+                      <input type="checkbox" checked={groupPublished} onChange={(event) => setGroupPublished(event.target.checked)} />
+                      <span>{tr(locale, 'Publicar y permitir crear claves en este grupo', 'Publish and allow creating keys in this group')}</span>
+                    </label>
+
+                    <div className="provider-form-actions">
+                      <button className="primary-button" disabled={savingGroup}>
+                        {savingGroup ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}
+                        <span>{tr(locale, 'Guardar grupo', 'Save group')}</span>
+                      </button>
+                      <button type="button" className="secondary-button" onClick={resetSalesGroupForm}>
+                        {tr(locale, 'Limpiar formulario', 'Clear form')}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 4: UPSTREAM PROVIDERS */}
+          {activeAdminTab === 'providers' && (
+            <div className="admin-tab-pane">
+              <section className="section-block provider-profile-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>{tr(locale, 'Conexiones & Endpoints Upstream', 'Upstream Provider Connections')}</h3>
+                    <p>{tr(locale, 'Configurá Base URL y clave madre para cada proveedor. Los precios se controlan en la pestaña Grupos.', 'Configure Base URL and master key for each provider. Pricing is controlled in Groups.')}</p>
+                  </div>
+                  <span className="info-chip">
+                    <Server size={15} />
+                    {admin.providerProfiles.filter((profile) => profile.active).length ? tr(locale, 'Respaldo activo', 'Backup active') : tr(locale, 'Principal activo', 'Primary active')}
+                  </span>
+                </div>
+
+                <div className="provider-profile-layout">
+                  <div className="provider-profile-list">
+                    {admin.providerProfiles.length === 0 && (
+                      <div className="empty-row"><Server size={18} />{tr(locale, 'Todavía no hay perfiles configurados.', 'No provider profiles configured yet.')}</div>
+                    )}
+                    {admin.providerProfiles.map((profile) => (
+                      <article className={`provider-profile-row ${profile.active ? 'active' : ''}`} key={profile.id}>
+                        <div className="provider-profile-icon">
+                          <Server size={18} />
+                        </div>
+                        <div className="provider-profile-copy">
+                          <strong>{profile.name}</strong>
+                          <small>{profile.description || tr(locale, 'Sin descripción', 'No description')}</small>
+                          <code>{profile.base_url}</code>
+                          <span>{profile.target_groups.map(salesGroupLabel).join(', ')} · {profile.price_multiplier}x · {profile.keyConfigured ? profile.maskedKey : tr(locale, 'Sin key', 'No key')}</span>
+                        </div>
+                        <div className="provider-profile-actions">
+                          <span className={`admin-state ${profile.active ? 'active' : ''}`}>
+                            {profile.active ? tr(locale, 'Activo', 'Active') : tr(locale, 'Disponible', 'Available')}
+                          </span>
+                          <button type="button" className="secondary-button" onClick={() => editProvider(profile)}>
+                            <Pencil size={14} />{tr(locale, 'Editar', 'Edit')}
+                          </button>
+                          <button type="button" className="primary-button" onClick={() => activateProvider(profile.id)} disabled={providerAction === profile.id}>
+                            {providerAction === profile.id ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}
+                            {tr(locale, 'Aplicar', 'Apply')}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+
+                    {admin.providerProfiles.length > 0 && (
+                      <button
+                        type="button"
+                        className="secondary-button provider-restore-button"
+                        onClick={restoreProviders}
+                        disabled={providerAction === 'restore'}
+                      >
+                        {providerAction === 'restore' ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}
+                        {tr(locale, 'Restaurar configuración anterior', 'Restore previous configuration')}
+                      </button>
+                    )}
+                  </div>
+
+                  <form className="provider-profile-form" onSubmit={saveProvider}>
+                    <div className="provider-form-title">
+                      <strong>{providerEditingId === null ? tr(locale, 'Nuevo Perfil Upstream', 'New Upstream Profile') : tr(locale, 'Editar Perfil Upstream', 'Edit Upstream Profile')}</strong>
+                      <small>{tr(locale, 'Las credenciales quedan cifradas y seguras en el servidor.', 'Credentials stay encrypted and secure on the server.')}</small>
+                    </div>
+
+                    <label>
+                      {tr(locale, 'Nombre descriptivo', 'Descriptive name')}
+                      <input value={providerName} onChange={(event) => setProviderName(event.target.value)} placeholder="FastAI 0.2x" required />
+                    </label>
+
+                    <label>
+                      {tr(locale, 'Descripción / Notas', 'Description / Notes')}
+                      <input value={providerDescription} onChange={(event) => setProviderDescription(event.target.value)} placeholder="Proveedor de respaldo con alta concurrencia" />
+                    </label>
+
+                    <label>
+                      Base URL
+                      <input spellCheck={false} value={providerBaseUrl} onChange={(event) => setProviderBaseUrl(event.target.value)} placeholder="https://api.proveedor.com/v1" required />
+                    </label>
+
+                    <label>
+                      {tr(locale, 'API Key madre (Upstream)', 'Master API Key (Upstream)')}
+                      <input type="password" value={providerApiKey} onChange={(event) => setProviderApiKey(event.target.value)} placeholder={providerEditingId === null ? 'sk-...' : tr(locale, 'Dejar vacío para conservarla', 'Leave empty to keep current')} required={providerEditingId === null} />
+                    </label>
+
+                    <fieldset className="provider-group-picker">
+                      <legend>{tr(locale, '¿Qué grupos de clientes usarán este endpoint?', 'Which customer groups will use this endpoint?')}</legend>
+                      <div className="provider-group-options">
+                        {selectableProviderGroups.map((group) => (
+                          <label className={`provider-group-option ${providerGroups.includes(group) ? 'selected' : ''}`} key={group}>
+                            <input type="checkbox" checked={providerGroups.includes(group)} onChange={() => toggleProviderGroup(group)} />
+                            <span className="provider-group-check">{providerGroups.includes(group) && <Check size={13} />}</span>
+                            <span className="provider-group-copy">
+                              <strong>{salesGroupLabel(group)}</strong>
+                              <small>{salesGroupDescription(group)}</small>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <label>
+                      {tr(locale, 'Multiplicador de costo proveedor', 'Provider cost multiplier')}
+                      <input type="number" min="0.001" step="0.001" value={providerMultiplier} onChange={(event) => setProviderMultiplier(event.target.value)} required />
+                    </label>
+
+                    {providerValidation && (
+                      <div className="provider-validation-result">
+                        <div>
+                          <Check size={16} color="#10b981" />
+                          <strong>{providerValidation.models.length} {tr(locale, 'modelos detectados en el endpoint', 'models detected on endpoint')}</strong>
+                        </div>
+                        <small>{providerValidation.knownModels.length} {tr(locale, 'coinciden con el catálogo oficial', 'match official catalog')} · {providerValidation.unknownModels.length} {tr(locale, 'nuevos o por revisar', 'new or need review')}</small>
+                        <code>{providerValidation.models.slice(0, 10).join(' · ')}{providerValidation.models.length > 10 ? ' · ...' : ''}</code>
+                      </div>
+                    )}
+
+                    <div className="provider-form-actions">
+                      <button type="button" className="secondary-button" onClick={validateProvider} disabled={validatingProvider || !providerBaseUrl.trim() || !providerApiKey.trim()}>
+                        {validatingProvider ? <LoaderCircle className="spin" size={16} /> : <RadioTower size={16} />}
+                        <span>{tr(locale, 'Validar conexión en vivo', 'Validate live endpoint')}</span>
+                      </button>
+                      <button type="submit" className="primary-button" disabled={savingProvider}>
+                        {savingProvider ? <LoaderCircle className="spin" size={16} /> : <Check size={16} />}
+                        <span>{tr(locale, 'Guardar perfil', 'Save profile')}</span>
+                      </button>
+                      {providerEditingId !== null && (
+                        <button type="button" className="secondary-button" onClick={resetProviderForm}>
+                          {tr(locale, 'Cancelar', 'Cancel')}
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 5: MODEL CONTROL */}
+          {activeAdminTab === 'models' && (
+            <div className="admin-tab-pane">
+              <section className="section-block model-control-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>{tr(locale, 'Publicación de Modelos por Grupo', 'Model Publishing per Group')}</h3>
+                    <p>{tr(locale, 'Habilitá u ocultá modelos específicos para tus clientes de forma instantánea.', 'Enable or hide specific models for your customers instantly.')}</p>
+                  </div>
+                  <span className="info-chip">
+                    <Sparkles size={15} />
+                    {admin.modelControls.filter((model) => model.enabled).length} {tr(locale, 'publicados', 'published')}
+                  </span>
+                </div>
+
+                <div className="model-control-groups">
+                  {(['clientes', 'claude'] as const).map((group) => (
+                    <div className="model-control-group" key={group}>
+                      <div className="model-control-group-title">
+                        <strong>{group === 'claude' ? 'Claude / Anthropic' : 'ChatGPT / OpenAI & Codex'}</strong>
+                        <span>{group === 'claude' ? tr(locale, 'Modelos de razonamiento y visión', 'Reasoning & vision models') : tr(locale, 'Modelos GPT, Codex y audio', 'GPT, Codex and audio models')}</span>
+                      </div>
+                      <div className="model-control-list">
+                        {admin.modelControls.filter((model) => model.group === group).map((model) => (
+                          <div className="model-control-row" key={model.modelId}>
+                            <div>
+                              <strong>{model.label}</strong>
+                              <code>{model.modelId}</code>
+                            </div>
+                            <button
+                              type="button"
+                              className={`model-toggle ${model.enabled ? 'enabled' : ''}`}
+                              aria-pressed={model.enabled}
+                              onClick={() => toggleModel(model.modelId, !model.enabled)}
+                              disabled={savingModel === model.modelId}
+                            >
+                              {savingModel === model.modelId ? (
+                                <LoaderCircle className="spin" size={15} />
+                              ) : model.enabled ? (
+                                <><Check size={14} />{tr(locale, 'Publicado', 'Published')}</>
+                              ) : (
+                                tr(locale, 'Oculto', 'Hidden')
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 6: DEMO VOUCHERS */}
+          {activeAdminTab === 'vouchers' && (
+            <div className="admin-tab-pane">
+              <section className="section-block redeem-admin-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>{tr(locale, 'Generador de Códigos Demo & Cupones', 'Demo Voucher & Promo Code Generator')}</h3>
+                    <p>{tr(locale, 'Generá crédito de prueba para adquisición y retención de clientes. Valor sugerido: US$ 0.50 - US$ 1.00.', 'Generate trial credit for customer onboarding and retention. Suggested value: US$ 0.50 - US$ 1.00.')}</p>
+                  </div>
+                  <span className="info-chip">
+                    <ReceiptText size={15} />
+                    {redeemCodes.filter((code) => code.status === 'active').length} {tr(locale, 'activos', 'active')}
+                  </span>
+                </div>
+
+                <form className="redeem-admin-form" onSubmit={createRedeemCodes}>
+                  <label>
+                    {tr(locale, 'Monto por código (USD)', 'Amount per code (USD)')}
+                    <input type="number" min="0.01" max="100" step="0.01" value={redeemAmount} onChange={(event) => setRedeemAmount(event.target.value)} />
+                  </label>
+                  <label>
+                    {tr(locale, 'Cantidad a generar', 'Quantity to generate')}
+                    <input type="number" min="1" max="100" step="1" value={redeemCount} onChange={(event) => setRedeemCount(Number(event.target.value))} />
+                  </label>
+                  <label>
+                    {tr(locale, 'Campaña o Nota interna', 'Campaign / Internal note')}
+                    <input value={redeemNote} onChange={(event) => setRedeemNote(event.target.value)} placeholder="Campaña Twitter / Cliente VIP" />
+                  </label>
+                  <button className="primary-button" disabled={creatingRedeem} type="submit">
+                    {creatingRedeem ? <LoaderCircle className="spin" size={16} /> : <Plus size={16} />}
+                    <span>{tr(locale, 'Generar cupones', 'Generate vouchers')}</span>
+                  </button>
+                </form>
+
+                <div className="table-wrap">
+                  <table className="admin-table redeem-table">
+                    <thead>
+                      <tr>
+                        <th>{tr(locale, 'Código Promocional', 'Promo Code')}</th>
+                        <th>{tr(locale, 'Monto', 'Amount')}</th>
+                        <th>{tr(locale, 'Estado', 'Status')}</th>
+                        <th>{tr(locale, 'Campaña / Nota', 'Campaign / Note')}</th>
+                        <th>{tr(locale, 'Fecha Creación', 'Created Date')}</th>
+                        <th className="right">{tr(locale, 'Acción', 'Action')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {redeemCodes.length === 0 && (
+                        <tr>
+                          <td colSpan={6}>
+                            <div className="empty-row"><ReceiptText size={18} />{tr(locale, 'Todavía no hay códigos demo generados', 'No demo codes generated yet')}</div>
+                          </td>
+                        </tr>
+                      )}
+                      {redeemCodes.slice(0, 40).map((code) => {
+                        const isCopied = copiedCode === code.code
+                        return (
+                          <tr key={code.id}>
+                            <td>
+                              <code className="voucher-code-chip">{code.code}</code>
+                            </td>
+                            <td><strong>{money(Number(code.amount_usd), 2)}</strong></td>
+                            <td>
+                              <span className={`admin-state ${code.status === 'active' ? 'active' : code.status === 'redeemed' ? 'blocked' : ''}`}>
+                                {code.status === 'active' ? tr(locale, 'Disponible', 'Available') : code.status === 'redeemed' ? tr(locale, 'Canjeado', 'Redeemed') : code.status}
+                              </span>
+                            </td>
+                            <td>{code.note || '-'}</td>
+                            <td>{formatDate(Number(code.created_at))}</td>
+                            <td className="right">
+                              <button
+                                className={`secondary-button key-use-btn ${isCopied ? 'copied' : ''}`}
+                                onClick={() => copyVoucher(code.code)}
+                                type="button"
+                              >
+                                {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                                <span>{isCopied ? tr(locale, 'Copiado', 'Copied') : tr(locale, 'Copiar', 'Copy')}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
 }
+
 
 function ModelsView({ data, locale }: { data: DashboardData; locale: PortalLocale }) {
   const [searchQuery, setSearchQuery] = useState('')
